@@ -1,0 +1,15 @@
+# Core Django Requirements for RMS
+Django==5.2.5
+djangorestframework==3.16.1
+django-cors-headers==4.7.0
+
+# Database
+# SQLite is included with Python, no additional requirements
+
+# Optional: For production deployment
+# psycopg2-binary==2.9.7  # For PostgreSQL
+# gunicorn==21.2.0  # For production server
+# whitenoise==6.5.0  # For static files serving
+
+# Development dependencies (optional)
+# django-debug-toolbar==4.2.0  # For debugging

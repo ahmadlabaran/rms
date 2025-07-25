@@ -60,63 +60,41 @@
                             </div>
                         </div>
 
-                        <!-- Student Selection -->
+                        <!-- Student Search and Selection -->
                         <div class="mb-4">
-                            <label class="form-label fw-bold">Select Students</label>
+                            <label class="form-label fw-bold">Search and Select Students</label>
                             <div class="card">
                                 <div class="card-header">
                                     <div class="row">
-                                        <div class="col-md-4">
-                                            <input type="text" class="form-control form-control-sm" 
-                                                   placeholder="Search students..." id="studentSearch">
+                                        <div class="col-md-8">
+                                            <input type="text" class="form-control"
+                                                   placeholder="Search by matric number or name..."
+                                                   id="studentSearch" disabled>
+                                            <small class="text-muted">Select a course first to enable search</small>
                                         </div>
-                                        <div class="col-md-4">
-                                            <select class="form-select form-select-sm" id="levelFilter">
-                                                <option value="">All Levels</option>
-                                                <option value="100">100 Level</option>
-                                                <option value="200">200 Level</option>
-                                                <option value="300">300 Level</option>
-                                                <option value="400">400 Level</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectAll()">
-                                                <i class="bi bi-check-all me-1"></i>Select All
-                                            </button>
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearAll()">
-                                                <i class="bi bi-x-circle me-1"></i>Clear All
+                                        <div class="col-md-4 text-end">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearSelected()">
+                                                <i class="bi bi-x-circle me-1"></i>Clear Selected
                                             </button>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                                    <div id="studentsContainer">
-                                        {% if eligible_students %}
-                                            {% for student in eligible_students %}
-                                            <div class="form-check student-item" 
-                                                 data-level="{{ student.current_level.name }}"
-                                                 data-search="{{ student.matric_number|lower }} {{ student.get_full_name|lower }}">
-                                                <input class="form-check-input" type="checkbox" 
-                                                       name="student_ids" value="{{ student.id }}" 
-                                                       id="student{{ student.id }}">
-                                                <label class="form-check-label w-100" for="student{{ student.id }}">
-                                                    <div class="d-flex justify-content-between align-items-center">
-                                                        <div>
-                                                            <strong>{{ student.matric_number }}</strong> - {{ student.get_full_name }}
-                                                            <br><small class="text-muted">{{ student.current_level.name }} • {{ student.department.name }}</small>
-                                                        </div>
-                                                        <span class="badge bg-info">{{ student.current_level.name }}</span>
-                                                    </div>
-                                                </label>
+                                <div class="card-body">
+                                    <!-- Search Results -->
+                                    <div id="searchResults" class="mb-3" style="display: none;">
+                                        <h6 class="text-muted">Search Results:</h6>
+                                        <div id="searchResultsContainer"></div>
+                                    </div>
+
+                                    <!-- Selected Students -->
+                                    <div id="selectedStudents">
+                                        <h6 class="text-muted">Selected Students: <span id="selectedCount">0</span></h6>
+                                        <div id="selectedStudentsContainer">
+                                            <div class="text-center py-4 text-muted">
+                                                <i class="bi bi-people display-4"></i>
+                                                <p class="mt-2">No students selected yet. Search and click to add students.</p>
                                             </div>
-                                            <hr class="my-2">
-                                            {% endfor %}
-                                        {% else %}
-                                            <div class="text-center py-4">
-                                                <i class="bi bi-people display-4 text-muted"></i>
-                                                <p class="text-muted mt-2">No eligible students found. Select a course first.</p>
-                                            </div>
-                                        {% endif %}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -137,69 +115,187 @@
 </div>
 
 <script>
-// Filter and search functionality
+let selectedStudents = [];
+let searchTimeout;
+
 document.addEventListener('DOMContentLoaded', function() {
     const studentSearch = document.getElementById('studentSearch');
-    const levelFilter = document.getElementById('levelFilter');
-    const studentItems = document.querySelectorAll('.student-item');
     const courseSelect = document.getElementById('courseSelect');
-
-    function filterStudents() {
-        const searchValue = studentSearch.value.toLowerCase();
-        const levelValue = levelFilter.value;
-
-        studentItems.forEach(item => {
-            const searchData = item.dataset.search;
-            const levelData = item.dataset.level;
-
-            const searchMatch = !searchValue || searchData.includes(searchValue);
-            const levelMatch = !levelValue || levelData.includes(levelValue);
-
-            if (searchMatch && levelMatch) {
-                item.style.display = 'block';
-                item.nextElementSibling.style.display = 'block'; // Show HR
-            } else {
-                item.style.display = 'none';
-                item.nextElementSibling.style.display = 'none'; // Hide HR
-            }
-        });
-    }
-
-    studentSearch.addEventListener('input', filterStudents);
-    levelFilter.addEventListener('change', filterStudents);
+    const enrollmentForm = document.getElementById('enrollmentForm');
 
     // Course selection handler
     courseSelect.addEventListener('change', function() {
         if (this.value) {
-            const selectedLevel = this.options[this.selectedIndex].dataset.level;
-            levelFilter.value = selectedLevel.replace(' Level', '');
-            filterStudents();
+            studentSearch.disabled = false;
+            studentSearch.placeholder = 'Search by matric number or name...';
+            studentSearch.nextElementSibling.textContent = 'Type to search for students';
+            clearSelected();
+        } else {
+            studentSearch.disabled = true;
+            studentSearch.placeholder = 'Search by matric number or name...';
+            studentSearch.nextElementSibling.textContent = 'Select a course first to enable search';
+            clearSelected();
+        }
+    });
+
+    // Search functionality with debouncing
+    studentSearch.addEventListener('input', function() {
+        const query = this.value.trim();
+        const courseId = courseSelect.value;
+
+        clearTimeout(searchTimeout);
+
+        if (query.length >= 2 && courseId) {
+            searchTimeout = setTimeout(() => {
+                searchStudents(query, courseId);
+            }, 300);
+        } else {
+            hideSearchResults();
         }
     });
 
     // Form validation
-    document.getElementById('enrollmentForm').addEventListener('submit', function(e) {
-        const selectedStudents = document.querySelectorAll('input[name="student_ids"]:checked');
+    enrollmentForm.addEventListener('submit', function(e) {
         if (selectedStudents.length === 0) {
             e.preventDefault();
             alert('Please select at least one student to enroll.');
             return;
         }
-        
+
         if (!confirm(`Enroll ${selectedStudents.length} student(s) in the selected course?`)) {
             e.preventDefault();
         }
     });
 });
 
-function selectAll() {
-    const visibleCheckboxes = document.querySelectorAll('.student-item:not([style*="display: none"]) input[type="checkbox"]');
-    visibleCheckboxes.forEach(checkbox => checkbox.checked = true);
+function searchStudents(query, courseId) {
+    fetch(`/api/lecturer/enroll-students/?search=${encodeURIComponent(query)}&course_id=${courseId}`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.students) {
+            displaySearchResults(data.students);
+        } else {
+            hideSearchResults();
+        }
+    })
+    .catch(error => {
+        console.error('Search error:', error);
+        hideSearchResults();
+    });
 }
 
-function clearAll() {
-    const checkboxes = document.querySelectorAll('input[name="student_ids"]');
-    checkboxes.forEach(checkbox => checkbox.checked = false);
+function displaySearchResults(students) {
+    const searchResults = document.getElementById('searchResults');
+    const container = document.getElementById('searchResultsContainer');
+
+    if (students.length === 0) {
+        container.innerHTML = '<p class="text-muted">No students found matching your search.</p>';
+    } else {
+        let html = '';
+        students.forEach(student => {
+            const isSelected = selectedStudents.some(s => s.id === student.id);
+            html += `
+                <div class="card mb-2 ${isSelected ? 'border-success' : ''}">
+                    <div class="card-body py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong class="text-primary">${student.matric_number}</strong> - ${student.name}
+                                <br><small class="text-muted">${student.level} • ${student.department}</small>
+                            </div>
+                            <button type="button" class="btn btn-sm ${isSelected ? 'btn-success' : 'btn-outline-primary'}"
+                                    onclick="toggleStudent(${student.id}, '${student.matric_number}', '${student.name}', '${student.level}', '${student.department}')"
+                                    ${isSelected ? 'disabled' : ''}>
+                                ${isSelected ? 'Selected' : 'Select'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    searchResults.style.display = 'block';
+}
+
+function hideSearchResults() {
+    document.getElementById('searchResults').style.display = 'none';
+}
+
+function toggleStudent(id, matricNumber, name, level, department) {
+    const student = { id, matricNumber, name, level, department };
+
+    // Check if already selected
+    const existingIndex = selectedStudents.findIndex(s => s.id === id);
+    if (existingIndex === -1) {
+        selectedStudents.push(student);
+        updateSelectedStudentsDisplay();
+        updateSearchResults();
+    }
+}
+
+function removeStudent(id) {
+    selectedStudents = selectedStudents.filter(s => s.id !== id);
+    updateSelectedStudentsDisplay();
+    updateSearchResults();
+}
+
+function updateSelectedStudentsDisplay() {
+    const container = document.getElementById('selectedStudentsContainer');
+    const countSpan = document.getElementById('selectedCount');
+
+    countSpan.textContent = selectedStudents.length;
+
+    if (selectedStudents.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4 text-muted">
+                <i class="bi bi-people display-4"></i>
+                <p class="mt-2">No students selected yet. Search and click to add students.</p>
+            </div>
+        `;
+    } else {
+        let html = '';
+        selectedStudents.forEach(student => {
+            html += `
+                <div class="card mb-2 border-success">
+                    <div class="card-body py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong class="text-primary">${student.matricNumber}</strong> - ${student.name}
+                                <br><small class="text-muted">${student.level} • ${student.department}</small>
+                                <input type="hidden" name="student_ids" value="${student.id}">
+                            </div>
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeStudent(${student.id})">
+                                <i class="bi bi-x"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+}
+
+function updateSearchResults() {
+    // Refresh search results to update button states
+    const query = document.getElementById('studentSearch').value.trim();
+    const courseId = document.getElementById('courseSelect').value;
+
+    if (query.length >= 2 && courseId) {
+        searchStudents(query, courseId);
+    }
+}
+
+function clearSelected() {
+    selectedStudents = [];
+    updateSelectedStudentsDisplay();
+    hideSearchResults();
+    document.getElementById('studentSearch').value = '';
 }
 </script>
 

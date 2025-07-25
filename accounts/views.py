@@ -7248,9 +7248,49 @@ def lecturer_enroll_students(request):
     # Get sessions
     sessions = AcademicSession.objects.all().order_by('-start_date')
 
-    # Get eligible students (not enrolled in selected course)
-    eligible_students = Student.objects.none()
+    # Handle AJAX search requests
+    if request.method == 'GET' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        search_query = request.GET.get('search', '').strip()
+        course_id = request.GET.get('course_id')
 
+        if search_query and course_id:
+            try:
+                course = Course.objects.get(id=course_id)
+
+                # Verify lecturer has access to this course
+                if not CourseAssignment.objects.filter(lecturer=request.user, course=course).exists():
+                    return JsonResponse({'error': 'Access denied'}, status=403)
+
+                # Search students by matric number or name
+                students = Student.objects.filter(
+                    Q(matric_number__icontains=search_query) |
+                    Q(user__first_name__icontains=search_query) |
+                    Q(user__last_name__icontains=search_query),
+                    department__in=course.departments.all(),
+                    current_level=course.level
+                ).exclude(
+                    courseenrollment__course=course,
+                    courseenrollment__session=course.session
+                ).select_related('user', 'current_level', 'department')[:10]  # Limit to 10 results
+
+                student_data = []
+                for student in students:
+                    student_data.append({
+                        'id': student.id,
+                        'matric_number': student.matric_number,
+                        'name': student.get_full_name(),
+                        'department': student.department.name,
+                        'level': student.current_level.name
+                    })
+
+                return JsonResponse({'students': student_data})
+
+            except Course.DoesNotExist:
+                return JsonResponse({'error': 'Course not found'}, status=404)
+
+        return JsonResponse({'students': []})
+
+    # Handle enrollment POST request
     if request.method == 'POST':
         course_id = request.POST.get('course_id')
         session_id = request.POST.get('session_id')
@@ -7268,45 +7308,34 @@ def lecturer_enroll_students(request):
 
                 enrolled_count = 0
                 for student_id in student_ids:
-                    student = Student.objects.get(id=student_id)
+                    try:
+                        student = Student.objects.get(id=student_id)
 
-                    # Check if already enrolled
-                    if not CourseEnrollment.objects.filter(
-                        student=student, course=course, session=session
-                    ).exists():
-                        CourseEnrollment.objects.create(
-                            student=student,
-                            course=course,
-                            session=session,
-                            enrolled_by=request.user
-                        )
-                        enrolled_count += 1
+                        # Check if already enrolled
+                        if not CourseEnrollment.objects.filter(
+                            student=student, course=course, session=session
+                        ).exists():
+                            CourseEnrollment.objects.create(
+                                student=student,
+                                course=course,
+                                session=session,
+                                enrolled_by=request.user
+                            )
+                            enrolled_count += 1
+                    except Student.DoesNotExist:
+                        continue
 
                 messages.success(request, f'Successfully enrolled {enrolled_count} students in {course.code}.')
                 return redirect('lecturer_courses')
 
-            except (Course.DoesNotExist, AcademicSession.DoesNotExist, Student.DoesNotExist):
-                messages.error(request, 'Invalid selection.')
-
-    # Get eligible students for the selected course
-    course_id = request.GET.get('course_id')
-    if course_id:
-        try:
-            course = Course.objects.get(id=course_id)
-            # Get students from the same departments and appropriate level
-            eligible_students = Student.objects.filter(
-                department__in=course.departments.all(),
-                current_level=course.level
-            ).exclude(
-                courseenrollment__course=course
-            ).select_related('user', 'current_level', 'department')
-        except Course.DoesNotExist:
-            pass
+            except (Course.DoesNotExist, AcademicSession.DoesNotExist):
+                messages.error(request, 'Invalid course or session selected.')
+        else:
+            messages.error(request, 'Please select course, session, and at least one student.')
 
     context = {
         'assigned_courses': assigned_courses,
         'sessions': sessions,
-        'eligible_students': eligible_students,
     }
 
     return render(request, 'lecturer_enroll_students.html', context)

@@ -596,7 +596,28 @@
             color: white;
         }
 
-        /* Loading Indicator - No Animation */
+        /* REMOVE ALL ANIMATIONS AND TRANSITIONS */
+        *, *::before, *::after {
+            transition: none !important;
+            animation: none !important;
+            transform: none !important;
+        }
+
+        /* Override all hover effects to remove transforms */
+        .ios-card:hover,
+        .card:hover,
+        .card-elevated:hover,
+        .stat-card:hover,
+        .btn-primary:hover,
+        .btn-secondary:hover,
+        .btn-danger:hover,
+        .btn-accent:hover,
+        .navbar-nav .nav-link:hover,
+        .navbar .btn-outline-danger:hover {
+            transform: none !important;
+        }
+
+        /* Simple loading indicator without animation */
         .loading {
             display: inline-block;
             width: 20px;
@@ -949,79 +970,10 @@
 
 
 
-    <!-- Enhanced JavaScript for iOS-like interactions -->
+    <!-- Simple JavaScript - No animations -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Add touch feedback for buttons and cards
-            const interactiveElements = document.querySelectorAll('.btn, .ios-card, .card, .nav-link');
-            interactiveElements.forEach(element => {
-                element.addEventListener('touchstart', function() {
-                    this.style.transform = 'scale(0.98)';
-                    this.style.transition = 'transform 0.1s ease';
-                });
-
-                element.addEventListener('touchend', function() {
-                    this.style.transform = 'scale(1)';
-                    this.style.transition = 'transform 0.3s ease';
-                });
-
-                // Mouse events for desktop
-                element.addEventListener('mousedown', function() {
-                    this.style.transform = 'scale(0.98)';
-                    this.style.transition = 'transform 0.1s ease';
-                });
-
-                element.addEventListener('mouseup', function() {
-                    this.style.transform = 'scale(1)';
-                    this.style.transition = 'transform 0.3s ease';
-                });
-            });
-
-            // Navbar scroll effect
-            let lastScrollTop = 0;
-            const navbar = document.querySelector('.navbar');
-
-            window.addEventListener('scroll', function() {
-                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-                if (scrollTop > lastScrollTop && scrollTop > 100) {
-                    // Scrolling down
-                    navbar.style.transform = 'translateY(-100%)';
-                    navbar.style.transition = 'transform 0.3s ease';
-                } else {
-                    // Scrolling up
-                    navbar.style.transform = 'translateY(0)';
-                    navbar.style.transition = 'transform 0.3s ease';
-                }
-
-                // Add blur effect when scrolled
-                if (scrollTop > 50) {
-                    navbar.style.background = 'rgba(255, 255, 255, 0.9)';
-                    navbar.style.backdropFilter = 'blur(20px)';
-                } else {
-                    navbar.style.background = 'rgba(255, 255, 255, 0.95)';
-                    navbar.style.backdropFilter = 'blur(20px)';
-                }
-
-                lastScrollTop = scrollTop;
-            });
-
-            // Auto-close mobile menu when clicking outside
-            document.addEventListener('click', function(event) {
-                const navbarCollapse = document.querySelector('.navbar-collapse');
-                const navbarToggler = document.querySelector('.navbar-toggler');
-
-                if (navbarCollapse && navbarCollapse.classList.contains('show')) {
-                    if (!navbarCollapse.contains(event.target) && !navbarToggler.contains(event.target)) {
-                        const bsCollapse = new bootstrap.Collapse(navbarCollapse, {
-                            toggle: false
-                        });
-                        bsCollapse.hide();
-                    }
-                }
-            });
-
-            // Clean navigation - no animations
+            // Simple navigation - no effects
 
             // Notification system
             window.showNotifications = function() {

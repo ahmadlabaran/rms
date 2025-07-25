@@ -153,14 +153,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Email validation
+    // Simple email validation without blocking
     const emailInput = document.querySelector('input[name="email"]');
     emailInput.addEventListener('blur', function() {
         const email = this.value;
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (email && !emailRegex.test(email)) {
-            alert('Please enter a valid email address');
-            this.focus();
+            this.style.borderColor = 'red';
+        } else {
+            this.style.borderColor = '';
         }
     });
 });

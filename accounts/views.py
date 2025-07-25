@@ -7233,7 +7233,83 @@ def faculty_dean_export_departments(request):
 
 @login_required
 def lecturer_enroll_students(request):
-    return render(request, 'placeholder.html', {'page_title': 'Enroll Students', 'message': 'Individual student enrollment interface'})
+    """Lecturer Student Enrollment"""
+    # Check if user has Lecturer role
+    lecturer_roles = UserRole.objects.filter(user=request.user, role='LECTURER')
+    if not lecturer_roles.exists():
+        messages.error(request, 'Access denied. Lecturer role required.')
+        return redirect('dashboard')
+
+    # Get lecturer's assigned courses
+    assigned_courses = CourseAssignment.objects.filter(
+        lecturer=request.user
+    ).select_related('course', 'course__level', 'course__department')
+
+    # Get sessions
+    sessions = AcademicSession.objects.all().order_by('-start_date')
+
+    # Get eligible students (not enrolled in selected course)
+    eligible_students = Student.objects.none()
+
+    if request.method == 'POST':
+        course_id = request.POST.get('course_id')
+        session_id = request.POST.get('session_id')
+        student_ids = request.POST.getlist('student_ids')
+
+        if course_id and session_id and student_ids:
+            try:
+                course = Course.objects.get(id=course_id)
+                session = AcademicSession.objects.get(id=session_id)
+
+                # Verify lecturer has access to this course
+                if not CourseAssignment.objects.filter(lecturer=request.user, course=course).exists():
+                    messages.error(request, 'You do not have permission to enroll students in this course.')
+                    return redirect('lecturer_enroll_students')
+
+                enrolled_count = 0
+                for student_id in student_ids:
+                    student = Student.objects.get(id=student_id)
+
+                    # Check if already enrolled
+                    if not CourseEnrollment.objects.filter(
+                        student=student, course=course, session=session
+                    ).exists():
+                        CourseEnrollment.objects.create(
+                            student=student,
+                            course=course,
+                            session=session,
+                            enrolled_by=request.user
+                        )
+                        enrolled_count += 1
+
+                messages.success(request, f'Successfully enrolled {enrolled_count} students in {course.code}.')
+                return redirect('lecturer_courses')
+
+            except (Course.DoesNotExist, AcademicSession.DoesNotExist, Student.DoesNotExist):
+                messages.error(request, 'Invalid selection.')
+
+    # Get eligible students for the selected course
+    course_id = request.GET.get('course_id')
+    if course_id:
+        try:
+            course = Course.objects.get(id=course_id)
+            # Get students from the same department and appropriate level
+            eligible_students = Student.objects.filter(
+                department=course.department,
+                current_level=course.level
+            ).exclude(
+                courseenrollment__course=course
+            ).select_related('user', 'current_level', 'department')
+        except Course.DoesNotExist:
+            pass
+
+    context = {
+        'assigned_courses': assigned_courses,
+        'sessions': sessions,
+        'eligible_students': eligible_students,
+    }
+
+    return render(request, 'lecturer_enroll_students.html', context)
 
 @login_required
 def lecturer_bulk_enroll(request):
@@ -7249,7 +7325,52 @@ def lecturer_student_list(request):
 
 @login_required
 def lecturer_courses(request):
-    return render(request, 'placeholder.html', {'page_title': 'My Courses', 'message': 'View all assigned courses'})
+    """Lecturer Courses Management"""
+    # Check if user has Lecturer role
+    lecturer_roles = UserRole.objects.filter(user=request.user, role='LECTURER')
+    if not lecturer_roles.exists():
+        messages.error(request, 'Access denied. Lecturer role required.')
+        return redirect('dashboard')
+
+    # Get lecturer's assigned courses
+    assigned_courses = CourseAssignment.objects.filter(
+        lecturer=request.user
+    ).select_related('course', 'course__level', 'course__department', 'session')
+
+    # Get sessions for filtering
+    sessions = AcademicSession.objects.all().order_by('-start_date')
+
+    # Add enrollment counts and result statistics
+    for assignment in assigned_courses:
+        assignment.enrolled_count = CourseEnrollment.objects.filter(
+            course=assignment.course,
+            session=assignment.session
+        ).count()
+
+        # Get result statistics
+        enrollments = CourseEnrollment.objects.filter(
+            course=assignment.course,
+            session=assignment.session
+        )
+        assignment.draft_count = Result.objects.filter(
+            enrollment__in=enrollments,
+            status='DRAFT'
+        ).count()
+        assignment.submitted_count = Result.objects.filter(
+            enrollment__in=enrollments,
+            status='SUBMITTED'
+        ).count()
+        assignment.published_count = Result.objects.filter(
+            enrollment__in=enrollments,
+            status='PUBLISHED'
+        ).count()
+
+    context = {
+        'assigned_courses': assigned_courses,
+        'sessions': sessions,
+    }
+
+    return render(request, 'lecturer_courses.html', context)
 
 @login_required
 def lecturer_course_details(request):
@@ -7257,7 +7378,122 @@ def lecturer_course_details(request):
 
 @login_required
 def lecturer_enter_results(request):
-    return render(request, 'placeholder.html', {'page_title': 'Enter Results', 'message': 'Enter student results for courses'})
+    """Lecturer Enter Results"""
+    # Check if user has Lecturer role
+    lecturer_roles = UserRole.objects.filter(user=request.user, role='LECTURER')
+    if not lecturer_roles.exists():
+        messages.error(request, 'Access denied. Lecturer role required.')
+        return redirect('dashboard')
+
+    # Get lecturer's assigned courses
+    assigned_courses = CourseAssignment.objects.filter(
+        lecturer=request.user
+    ).select_related('course', 'course__level', 'course__department')
+
+    # Get sessions
+    sessions = AcademicSession.objects.all().order_by('-start_date')
+
+    selected_course = None
+    selected_session = None
+    enrolled_students = None
+
+    # Get selected course and session
+    course_id = request.GET.get('course_id') or request.POST.get('course_id')
+    session_id = request.GET.get('session_id') or request.POST.get('session_id')
+
+    if course_id and session_id:
+        try:
+            selected_course = Course.objects.get(id=course_id)
+            selected_session = AcademicSession.objects.get(id=session_id)
+
+            # Verify lecturer has access to this course
+            if not CourseAssignment.objects.filter(lecturer=request.user, course=selected_course).exists():
+                messages.error(request, 'You do not have permission to enter results for this course.')
+                return redirect('lecturer_enter_results')
+
+            # Get enrolled students with existing results
+            enrolled_students = CourseEnrollment.objects.filter(
+                course=selected_course,
+                session=selected_session
+            ).select_related('student', 'student__user').prefetch_related('result_set')
+
+            # Add result data to each enrollment
+            for enrollment in enrolled_students:
+                try:
+                    enrollment.result = enrollment.result_set.first()
+                except:
+                    enrollment.result = None
+
+        except (Course.DoesNotExist, AcademicSession.DoesNotExist):
+            messages.error(request, 'Invalid course or session selected.')
+
+    if request.method == 'POST' and selected_course and selected_session:
+        save_as_draft = request.POST.get('save_as_draft') == 'true'
+
+        try:
+            for enrollment in enrolled_students:
+                ca_score = request.POST.get(f'ca_score_{enrollment.id}')
+                exam_score = request.POST.get(f'exam_score_{enrollment.id}')
+
+                if ca_score or exam_score:
+                    ca_score = float(ca_score) if ca_score else 0
+                    exam_score = float(exam_score) if exam_score else 0
+                    total_score = ca_score + exam_score
+
+                    # Calculate grade
+                    if total_score >= 70:
+                        grade = 'A'
+                    elif total_score >= 60:
+                        grade = 'B'
+                    elif total_score >= 50:
+                        grade = 'C'
+                    elif total_score >= 45:
+                        grade = 'D'
+                    else:
+                        grade = 'F'
+
+                    # Create or update result
+                    result, created = Result.objects.get_or_create(
+                        enrollment=enrollment,
+                        defaults={
+                            'ca_score': ca_score,
+                            'exam_score': exam_score,
+                            'total_score': total_score,
+                            'grade': grade,
+                            'status': 'DRAFT' if save_as_draft else 'SUBMITTED',
+                            'entered_by': request.user
+                        }
+                    )
+
+                    if not created:
+                        result.ca_score = ca_score
+                        result.exam_score = exam_score
+                        result.total_score = total_score
+                        result.grade = grade
+                        result.status = 'DRAFT' if save_as_draft else 'SUBMITTED'
+                        result.save()
+
+            if save_as_draft:
+                return JsonResponse({'success': True, 'message': 'Results saved as draft'})
+            else:
+                messages.success(request, 'Results submitted successfully!')
+                return redirect('lecturer_result_status')
+
+        except Exception as e:
+            if save_as_draft:
+                return JsonResponse({'success': False, 'error': str(e)})
+            else:
+                messages.error(request, f'Error saving results: {str(e)}')
+
+    context = {
+        'assigned_courses': assigned_courses,
+        'sessions': sessions,
+        'selected_course': selected_course,
+        'selected_session': selected_session,
+        'enrolled_students': enrolled_students,
+    }
+
+    return render(request, 'lecturer_enter_results.html', context)
 
 @login_required
 def lecturer_bulk_results(request):
@@ -7277,7 +7513,80 @@ def lecturer_submit_results(request):
 
 @login_required
 def lecturer_result_status(request):
-    return render(request, 'placeholder.html', {'page_title': 'Result Status', 'message': 'Track result approval status'})
+    """Lecturer Result Status Tracking"""
+    # Check if user has Lecturer role
+    lecturer_roles = UserRole.objects.filter(user=request.user, role='LECTURER')
+    if not lecturer_roles.exists():
+        messages.error(request, 'Access denied. Lecturer role required.')
+        return redirect('dashboard')
+
+    # Get lecturer's courses with results
+    assigned_courses = CourseAssignment.objects.filter(
+        lecturer=request.user
+    ).select_related('course', 'session')
+
+    # Get all result submissions
+    result_submissions = []
+
+    for assignment in assigned_courses:
+        enrollments = CourseEnrollment.objects.filter(
+            course=assignment.course,
+            session=assignment.session
+        )
+
+        if enrollments.exists():
+            # Get results for this course/session combination
+            results = Result.objects.filter(enrollment__in=enrollments)
+
+            if results.exists():
+                # Group by status
+                status_counts = results.values('status').annotate(count=models.Count('id'))
+
+                # Calculate statistics
+                total_results = results.count()
+                pass_count = results.filter(total_score__gte=45).count()
+                fail_count = results.filter(total_score__lt=45).count()
+                average_score = results.aggregate(avg=models.Avg('total_score'))['avg'] or 0
+
+                # Get the most recent status
+                latest_result = results.order_by('-created_at').first()
+
+                submission_data = {
+                    'course': assignment.course,
+                    'session': assignment.session,
+                    'status': latest_result.status if latest_result else 'DRAFT',
+                    'student_count': enrollments.count(),
+                    'total_results': total_results,
+                    'pass_count': pass_count,
+                    'fail_count': fail_count,
+                    'average_score': average_score,
+                    'last_updated': latest_result.updated_at if latest_result else None,
+                    'rejection_reason': getattr(latest_result, 'rejection_reason', None)
+                }
+
+                result_submissions.append(submission_data)
+
+    # Calculate summary statistics
+    total_results = len(result_submissions)
+    draft_count = len([r for r in result_submissions if r['status'] == 'DRAFT'])
+    submitted_count = len([r for r in result_submissions if r['status'] == 'SUBMITTED'])
+    approved_count = len([r for r in result_submissions if r['status'] == 'APPROVED'])
+    rejected_count = len([r for r in result_submissions if r['status'] == 'REJECTED'])
+
+    # Get sessions for filtering
+    sessions = AcademicSession.objects.all().order_by('-start_date')
+
+    context = {
+        'result_submissions': result_submissions,
+        'sessions': sessions,
+        'total_results': total_results,
+        'draft_count': draft_count,
+        'submitted_count': submitted_count,
+        'approved_count': approved_count,
+        'rejected_count': rejected_count,
+    }
+
+    return render(request, 'lecturer_result_status.html', context)
 
 @login_required
 def lecturer_corrections(request):

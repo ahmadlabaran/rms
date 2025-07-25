@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% load role_tags %}
+
+{% block title %}Enroll Students - Lecturer{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Delegation Status Badges -->
+    {% show_delegation_badges user %}
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <h1 class="mb-1 fw-bold">Enroll Students</h1>
+                    <p class="mb-0 opacity-75">Add students to your courses</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enrollment Form -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">Student Enrollment</h5>
+                    <a href="{% url 'lecturer_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+                    </a>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="enrollmentForm">
+                        {% csrf_token %}
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Select Course</label>
+                                <select name="course_id" class="form-select" required id="courseSelect">
+                                    <option value="">Choose a course...</option>
+                                    {% for assignment in assigned_courses %}
+                                    <option value="{{ assignment.course.id }}" 
+                                            data-level="{{ assignment.course.level.name }}"
+                                            data-department="{{ assignment.course.department.id }}">
+                                        {{ assignment.course.code }} - {{ assignment.course.title }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Academic Session</label>
+                                <select name="session_id" class="form-select" required>
+                                    <option value="">Select session...</option>
+                                    {% for session in sessions %}
+                                    <option value="{{ session.id }}" {% if session.is_active %}selected{% endif %}>
+                                        {{ session.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Student Selection -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Select Students</label>
+                            <div class="card">
+                                <div class="card-header">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <input type="text" class="form-control form-control-sm" 
+                                                   placeholder="Search students..." id="studentSearch">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <select class="form-select form-select-sm" id="levelFilter">
+                                                <option value="">All Levels</option>
+                                                <option value="100">100 Level</option>
+                                                <option value="200">200 Level</option>
+                                                <option value="300">300 Level</option>
+                                                <option value="400">400 Level</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectAll()">
+                                                <i class="bi bi-check-all me-1"></i>Select All
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearAll()">
+                                                <i class="bi bi-x-circle me-1"></i>Clear All
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                                    <div id="studentsContainer">
+                                        {% if eligible_students %}
+                                            {% for student in eligible_students %}
+                                            <div class="form-check student-item" 
+                                                 data-level="{{ student.current_level.name }}"
+                                                 data-search="{{ student.matric_number|lower }} {{ student.get_full_name|lower }}">
+                                                <input class="form-check-input" type="checkbox" 
+                                                       name="student_ids" value="{{ student.id }}" 
+                                                       id="student{{ student.id }}">
+                                                <label class="form-check-label w-100" for="student{{ student.id }}">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <strong>{{ student.matric_number }}</strong> - {{ student.get_full_name }}
+                                                            <br><small class="text-muted">{{ student.current_level.name }} • {{ student.department.name }}</small>
+                                                        </div>
+                                                        <span class="badge bg-info">{{ student.current_level.name }}</span>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                            <hr class="my-2">
+                                            {% endfor %}
+                                        {% else %}
+                                            <div class="text-center py-4">
+                                                <i class="bi bi-people display-4 text-muted"></i>
+                                                <p class="text-muted mt-2">No eligible students found. Select a course first.</p>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="{% url 'lecturer_dashboard' %}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-person-plus me-1"></i>Enroll Selected Students
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Filter and search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const studentSearch = document.getElementById('studentSearch');
+    const levelFilter = document.getElementById('levelFilter');
+    const studentItems = document.querySelectorAll('.student-item');
+    const courseSelect = document.getElementById('courseSelect');
+
+    function filterStudents() {
+        const searchValue = studentSearch.value.toLowerCase();
+        const levelValue = levelFilter.value;
+
+        studentItems.forEach(item => {
+            const searchData = item.dataset.search;
+            const levelData = item.dataset.level;
+
+            const searchMatch = !searchValue || searchData.includes(searchValue);
+            const levelMatch = !levelValue || levelData.includes(levelValue);
+
+            if (searchMatch && levelMatch) {
+                item.style.display = 'block';
+                item.nextElementSibling.style.display = 'block'; // Show HR
+            } else {
+                item.style.display = 'none';
+                item.nextElementSibling.style.display = 'none'; // Hide HR
+            }
+        });
+    }
+
+    studentSearch.addEventListener('input', filterStudents);
+    levelFilter.addEventListener('change', filterStudents);
+
+    // Course selection handler
+    courseSelect.addEventListener('change', function() {
+        if (this.value) {
+            const selectedLevel = this.options[this.selectedIndex].dataset.level;
+            levelFilter.value = selectedLevel.replace(' Level', '');
+            filterStudents();
+        }
+    });
+
+    // Form validation
+    document.getElementById('enrollmentForm').addEventListener('submit', function(e) {
+        const selectedStudents = document.querySelectorAll('input[name="student_ids"]:checked');
+        if (selectedStudents.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one student to enroll.');
+            return;
+        }
+        
+        if (!confirm(`Enroll ${selectedStudents.length} student(s) in the selected course?`)) {
+            e.preventDefault();
+        }
+    });
+});
+
+function selectAll() {
+    const visibleCheckboxes = document.querySelectorAll('.student-item:not([style*="display: none"]) input[type="checkbox"]');
+    visibleCheckboxes.forEach(checkbox => checkbox.checked = true);
+}
+
+function clearAll() {
+    const checkboxes = document.querySelectorAll('input[name="student_ids"]');
+    checkboxes.forEach(checkbox => checkbox.checked = false);
+}
+</script>
+
+{% endblock %}

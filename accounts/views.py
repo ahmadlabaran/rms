@@ -9189,6 +9189,203 @@ def hod_submit_to_dean(request):
 def hod_result_status(request):
     return render(request, 'placeholder.html', {'page_title': 'Result Status', 'message': 'Track result approval status'})
 
+# HOD Course Management API endpoints
+@login_required
+def hod_get_lecturers(request):
+    """Get available lecturers for assignment"""
+    # Check if user has HOD role
+    hod_roles = UserRole.objects.filter(user=request.user, role='HOD')
+    if not hod_roles.exists():
+        return JsonResponse({'error': 'Access denied. HOD role required.'}, status=403)
+
+    hod_role = hod_roles.first()
+    faculty = hod_role.faculty
+
+    # Get lecturers in the same faculty
+    lecturer_roles = UserRole.objects.filter(
+        role='LECTURER',
+        faculty=faculty
+    ).select_related('user', 'department')
+
+    lecturers = []
+    for role in lecturer_roles:
+        lecturers.append({
+            'id': role.user.id,
+            'name': role.user.get_full_name(),
+            'email': role.user.email,
+            'department': role.department.name if role.department else 'Faculty-wide'
+        })
+
+    return JsonResponse({'lecturers': lecturers})
+
+@login_required
+def hod_assign_course_lecturer(request, course_id):
+    """Assign or change lecturer for a course"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required'}, status=405)
+
+    # Check if user has HOD role
+    hod_roles = UserRole.objects.filter(user=request.user, role='HOD')
+    if not hod_roles.exists():
+        return JsonResponse({'error': 'Access denied. HOD role required.'}, status=403)
+
+    hod_role = hod_roles.first()
+    department = hod_role.department
+
+    try:
+        course = Course.objects.get(id=course_id, departments=department)
+    except Course.DoesNotExist:
+        return JsonResponse({'error': 'Course not found'}, status=404)
+
+    lecturer_id = request.POST.get('lecturer_id')
+    if not lecturer_id:
+        return JsonResponse({'error': 'Lecturer ID required'}, status=400)
+
+    try:
+        lecturer_user = User.objects.get(id=lecturer_id)
+        # Verify lecturer is in the same faculty
+        lecturer_role = UserRole.objects.filter(
+            user=lecturer_user,
+            role='LECTURER',
+            faculty=hod_role.faculty
+        ).first()
+
+        if not lecturer_role:
+            return JsonResponse({'error': 'Lecturer not found in your faculty'}, status=400)
+
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'Lecturer not found'}, status=404)
+
+    # Remove existing assignment if any
+    CourseAssignment.objects.filter(course=course).delete()
+
+    # Create new assignment
+    assignment = CourseAssignment.objects.create(
+        course=course,
+        lecturer=lecturer_user,
+        assigned_by=request.user
+    )
+
+    # Log the action
+    AuditLog.objects.create(
+        user=request.user,
+        action='ASSIGN_LECTURER',
+        description=f'Assigned {lecturer_user.get_full_name()} to course {course.code}',
+        level='INFO'
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Lecturer {lecturer_user.get_full_name()} assigned to {course.code}',
+        'lecturer_name': lecturer_user.get_full_name(),
+        'lecturer_email': lecturer_user.email
+    })
+
+@login_required
+def hod_edit_course(request, course_id):
+    """Edit course details"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required'}, status=405)
+
+    # Check if user has HOD role
+    hod_roles = UserRole.objects.filter(user=request.user, role='HOD')
+    if not hod_roles.exists():
+        return JsonResponse({'error': 'Access denied. HOD role required.'}, status=403)
+
+    hod_role = hod_roles.first()
+    department = hod_role.department
+
+    try:
+        course = Course.objects.get(id=course_id, departments=department)
+    except Course.DoesNotExist:
+        return JsonResponse({'error': 'Course not found'}, status=404)
+
+    # Get form data
+    title = request.POST.get('title', '').strip()
+    code = request.POST.get('code', '').strip().upper()
+    credit_units = request.POST.get('credit_units')
+
+    if not title or not code or not credit_units:
+        return JsonResponse({'error': 'Title, code, and credit units are required'}, status=400)
+
+    try:
+        credit_units = int(credit_units)
+        if credit_units < 1 or credit_units > 6:
+            return JsonResponse({'error': 'Credit units must be between 1 and 6'}, status=400)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid credit units'}, status=400)
+
+    # Check if code is unique (excluding current course)
+    if Course.objects.filter(code=code, session=course.session).exclude(id=course.id).exists():
+        return JsonResponse({'error': f'Course code {code} already exists in this session'}, status=400)
+
+    # Update course
+    course.title = title
+    course.code = code
+    course.credit_units = credit_units
+    course.save()
+
+    # Log the action
+    AuditLog.objects.create(
+        user=request.user,
+        action='UPDATE_COURSE',
+        description=f'Updated course {course.code}: {course.title}',
+        level='INFO'
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Course {course.code} updated successfully',
+        'course': {
+            'id': course.id,
+            'title': course.title,
+            'code': course.code,
+            'credit_units': course.credit_units
+        }
+    })
+
+@login_required
+def hod_delete_course(request, course_id):
+    """Delete a course"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required'}, status=405)
+
+    # Check if user has HOD role
+    hod_roles = UserRole.objects.filter(user=request.user, role='HOD')
+    if not hod_roles.exists():
+        return JsonResponse({'error': 'Access denied. HOD role required.'}, status=403)
+
+    hod_role = hod_roles.first()
+    department = hod_role.department
+
+    try:
+        course = Course.objects.get(id=course_id, departments=department)
+    except Course.DoesNotExist:
+        return JsonResponse({'error': 'Course not found'}, status=404)
+
+    # Check if course has enrollments or results
+    if CourseEnrollment.objects.filter(course=course).exists():
+        return JsonResponse({'error': 'Cannot delete course with existing enrollments'}, status=400)
+
+    if Result.objects.filter(enrollment__course=course).exists():
+        return JsonResponse({'error': 'Cannot delete course with existing results'}, status=400)
+
+    course_code = course.code
+    course.delete()
+
+    # Log the action
+    AuditLog.objects.create(
+        user=request.user,
+        action='DELETE_COURSE',
+        description=f'Deleted course {course_code}',
+        level='INFO'
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Course {course_code} deleted successfully'
+    })
+
 @login_required
 def hod_department_summary(request):
     return render(request, 'placeholder.html', {'page_title': 'Department Summary', 'message': 'Department performance summary'})

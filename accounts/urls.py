@@ -353,6 +353,12 @@ urlpatterns = [
     path('hod/submit-to-dean/', views.hod_submit_to_dean, name='hod_submit_to_dean'),
     path('hod/result-status/', views.hod_result_status, name='hod_result_status'),
 
+    # HOD Course Management API endpoints
+    path('hod/api/lecturers/', views.hod_get_lecturers, name='hod_get_lecturers'),
+    path('hod/api/course/<int:course_id>/assign/', views.hod_assign_course_lecturer, name='hod_assign_course_lecturer'),
+    path('hod/api/course/<int:course_id>/edit/', views.hod_edit_course, name='hod_edit_course'),
+    path('hod/api/course/<int:course_id>/delete/', views.hod_delete_course, name='hod_delete_course'),
+
     # Consolidated Navigation URLs (Smart Multi-Role Access)
     path('consolidated/students/', views.consolidated_students_view, name='consolidated_students'),
     path('consolidated/lecturers/', views.consolidated_lecturers_view, name='consolidated_lecturers'),

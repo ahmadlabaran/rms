@@ -7280,7 +7280,7 @@ def lecturer_enroll_students(request):
                     ).exclude(
                         courseenrollment__course=course,
                         courseenrollment__session=course.session
-                    ).select_related('user', 'current_level', 'department', 'faculty')[:20]  # Increased limit for university-wide search
+                    ).select_related('user', 'current_level', 'department', 'faculty').order_by('matric_number')
                 else:
                     # For regular courses, search within the same faculty
                     course_faculty = None
@@ -7295,7 +7295,7 @@ def lecturer_enroll_students(request):
                     ).exclude(
                         courseenrollment__course=course,
                         courseenrollment__session=course.session
-                    ).select_related('user', 'current_level', 'department')[:15]
+                    ).select_related('user', 'current_level', 'department').order_by('matric_number')
 
                 student_data = []
                 for student in students:

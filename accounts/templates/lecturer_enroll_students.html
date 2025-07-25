@@ -80,9 +80,9 @@
                                     <div class="row">
                                         <div class="col-md-8">
                                             <input type="text" class="form-control"
-                                                   placeholder="Search by matric number or name (all departments & levels)..."
+                                                   placeholder="Type at least 3 characters to search students..."
                                                    id="studentSearch" disabled>
-                                            <small class="text-muted">Select a course first to search across all faculty students</small>
+                                            <small class="text-muted">Select a course first to enable search (minimum 3 characters)</small>
                                         </div>
                                         <div class="col-md-4 text-end">
                                             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearSelected()">
@@ -153,29 +153,29 @@ document.addEventListener('DOMContentLoaded', function() {
             studentSearch.disabled = false;
 
             if (isGeneralStudies) {
-                studentSearch.placeholder = 'Search by matric number or name (ALL STUDENTS UNIVERSITY-WIDE)...';
-                studentSearch.nextElementSibling.textContent = 'General Studies: Search across ALL students from any faculty, department, or level';
+                studentSearch.placeholder = 'Type 3+ characters to search ALL UNIVERSITY STUDENTS...';
+                studentSearch.nextElementSibling.textContent = 'General Studies: Search ALL students from any faculty, department, or level (min 3 chars)';
 
                 // Update the note for General Studies
                 const note = document.getElementById('enrollmentNote');
                 note.className = 'alert alert-success py-2 mb-3';
                 note.innerHTML = `
                     <small><i class="bi bi-globe me-1"></i>
-                        <strong>General Studies Course:</strong> You can enroll students from ANY faculty, department, and level across the entire university.
-                        This course is open to all students.
+                        <strong>General Studies Course:</strong> Search across the entire university - all faculties, departments, and levels.
+                        All matching students will be shown (no limits).
                     </small>
                 `;
             } else {
-                studentSearch.placeholder = 'Search by matric number or name (faculty students)...';
-                studentSearch.nextElementSibling.textContent = 'Regular Course: Search across all students in your faculty - any department or level';
+                studentSearch.placeholder = 'Type 3+ characters to search ALL FACULTY STUDENTS...';
+                studentSearch.nextElementSibling.textContent = 'Faculty Course: Search ALL students in your faculty - any department or level (min 3 chars)';
 
                 // Reset the note for regular courses
                 const note = document.getElementById('enrollmentNote');
                 note.className = 'alert alert-info py-2 mb-3';
                 note.innerHTML = `
                     <small><i class="bi bi-info-circle me-1"></i>
-                        <strong>Note:</strong> You can enroll students from any department and level within your faculty.
-                        The course is not restricted to specific departments or levels.
+                        <strong>Faculty Course:</strong> Search across your entire faculty - all departments and levels.
+                        All matching students will be shown (no limits).
                     </small>
                 `;
             }
@@ -189,18 +189,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Search functionality with debouncing
+    // Search functionality with optimized debouncing
     studentSearch.addEventListener('input', function() {
         const query = this.value.trim();
         const courseId = courseSelect.value;
 
         clearTimeout(searchTimeout);
 
-        if (query.length >= 2 && courseId) {
+        if (query.length >= 3 && courseId) {
+            // Increased minimum length to 3 for better performance
             searchTimeout = setTimeout(() => {
                 searchStudents(query, courseId);
-            }, 300);
-        } else {
+            }, 400); // Slightly longer delay for better performance
+        } else if (query.length < 3) {
             hideSearchResults();
         }
     });

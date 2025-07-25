@@ -48,10 +48,20 @@
     <!-- Header -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
                 <div class="card-body">
-                    <h1 class="mb-1 fw-bold">{{ faculty.name }} Students</h1>
-                    <p class="mb-0 text-muted">Manage and monitor student records</p>
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">{{ faculty.name }} Students</h1>
+                            <p class="mb-0 opacity-75">Manage and monitor student records</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">
+                                <div class="h3 fw-bold mb-0">{{ stats.total_students }}</div>
+                                <small class="opacity-75">Total Students</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -60,33 +70,33 @@
     <!-- Statistics -->
     <div class="row mb-4">
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card text-center h-100">
+            <div class="card text-center h-100" style="border-left: 4px solid var(--ios-blue);">
                 <div class="card-body d-flex flex-column justify-content-center">
-                    <div class="h2 text-primary fw-bold mb-2">{{ stats.total_students }}</div>
+                    <div class="h2 fw-bold mb-2" style="color: var(--ios-blue);">{{ stats.total_students }}</div>
                     <div class="text-muted">Total Students</div>
                 </div>
             </div>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card text-center h-100">
+            <div class="card text-center h-100" style="border-left: 4px solid var(--ios-green);">
                 <div class="card-body d-flex flex-column justify-content-center">
-                    <div class="h2 text-success fw-bold mb-2">{{ stats.active_students }}</div>
+                    <div class="h2 fw-bold mb-2" style="color: var(--ios-green);">{{ stats.active_students }}</div>
                     <div class="text-muted">Active Students</div>
                 </div>
             </div>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card text-center h-100">
+            <div class="card text-center h-100" style="border-left: 4px solid var(--ios-orange);">
                 <div class="card-body d-flex flex-column justify-content-center">
-                    <div class="h2 text-info fw-bold mb-2">{{ stats.new_students }}</div>
+                    <div class="h2 fw-bold mb-2" style="color: var(--ios-orange);">{{ stats.new_students }}</div>
                     <div class="text-muted">New This Session</div>
                 </div>
             </div>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card text-center h-100">
+            <div class="card text-center h-100" style="border-left: 4px solid var(--ios-red);">
                 <div class="card-body d-flex flex-column justify-content-center">
-                    <div class="h2 text-warning fw-bold mb-2">{{ stats.graduating_students }}</div>
+                    <div class="h2 fw-bold mb-2" style="color: var(--ios-red);">{{ stats.graduating_students }}</div>
                     <div class="text-muted">Graduating</div>
                 </div>
             </div>
@@ -428,17 +438,14 @@ function editStudent(studentId) {
             <h3 style="margin-bottom: 16px;">Edit Student: ${matricNumber}</h3>
             <form id="editStudentForm">
                 <input type="text" id="editFirstName" value="${firstName}" placeholder="First Name" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+                <input type="text" id="editMiddleName" value="" placeholder="Middle Name (Optional)" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px;">
                 <input type="text" id="editLastName" value="${lastName}" placeholder="Last Name" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
                 <input type="email" id="editEmail" value="${email}" placeholder="Email" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
                 <select id="editDepartment" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
-                    {% for dept in departments %}
-                    <option value="{{ dept.id }}">{{ dept.name }}</option>
-                    {% endfor %}
+                    <option value="">Select Department</option>
                 </select>
                 <select id="editLevel" style="width: 100%; padding: 8px; margin-bottom: 16px; border: 1px solid #ddd; border-radius: 4px;" required>
-                    {% for level in levels %}
-                    <option value="{{ level.id }}">{{ level.name }}</option>
-                    {% endfor %}
+                    <option value="">Select Level</option>
                 </select>
                 <div style="display: flex; gap: 8px; justify-content: flex-end;">
                     <button type="button" onclick="closeModal(this)" style="background: #f0f0f0; color: #333; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Cancel</button>
@@ -450,6 +457,26 @@ function editStudent(studentId) {
 
     document.body.appendChild(modal);
 
+    // Populate dropdowns
+    const deptSelect = document.getElementById('editDepartment');
+    const levelSelect = document.getElementById('editLevel');
+
+    // Add departments
+    {% for dept in departments %}
+    const deptOption{{ dept.id }} = document.createElement('option');
+    deptOption{{ dept.id }}.value = '{{ dept.id }}';
+    deptOption{{ dept.id }}.textContent = '{{ dept.name }}';
+    deptSelect.appendChild(deptOption{{ dept.id }});
+    {% endfor %}
+
+    // Add levels
+    {% for level in levels %}
+    const levelOption{{ level.id }} = document.createElement('option');
+    levelOption{{ level.id }}.value = '{{ level.id }}';
+    levelOption{{ level.id }}.textContent = '{{ level.name }}';
+    levelSelect.appendChild(levelOption{{ level.id }});
+    {% endfor %}
+
     // Handle form submission
     document.getElementById('editStudentForm').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -460,6 +487,7 @@ function editStudent(studentId) {
 function updateStudent(studentId, modal) {
     const formData = new FormData();
     formData.append('first_name', document.getElementById('editFirstName').value);
+    formData.append('middle_name', document.getElementById('editMiddleName').value);
     formData.append('last_name', document.getElementById('editLastName').value);
     formData.append('email', document.getElementById('editEmail').value);
     formData.append('department_id', document.getElementById('editDepartment').value);

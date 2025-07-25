@@ -4,55 +4,44 @@
 
 {% block content %}
 <div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <h1 class="mb-1 fw-bold">Bulk Create Students</h1>
+                    <p class="mb-0 opacity-75">Add multiple students to {{ faculty.name }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">Bulk Create Students</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Student Information</h5>
+                        <button type="button" class="btn btn-success btn-sm" onclick="addStudentRow()">
+                            <i class="bi bi-plus-circle me-1"></i>Add Student
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-info">
-                        <strong>Format:</strong> first_name,middle_name,last_name,matric_number,email,username,password<br>
-                        <strong>Example:</strong> John,Michael,Doe,22A/UE/BICT/10016,john.doe@student.edu.ng,22A/UE/BICT/10016,22a-ue-bict-10016<br>
-                        <small><strong>Note:</strong> Middle name can be empty. Username = matric number, Password = lowercase matric with dashes</small>
-                    </div>
-
-                    <form method="post">
+                    <form method="post" id="bulkCreateForm">
                         {% csrf_token %}
 
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Department</label>
-                                <select name="department_id" class="form-select" required>
-                                    <option value="">Select Department</option>
-                                    {% for dept in departments %}
-                                    <option value="{{ dept.id }}">{{ dept.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Level</label>
-                                <select name="level_id" class="form-select" required>
-                                    <option value="">Select Level</option>
-                                    {% for level in levels %}
-                                    <option value="{{ level.id }}">{{ level.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
+                        <!-- Students Container -->
+                        <div id="studentsContainer">
+                            <!-- Initial student row will be added by JavaScript -->
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Student Data</label>
-                            <textarea name="students_data" class="form-control" rows="10"
-                                      placeholder="Enter student data here, one per line&#10;Format: first_name,middle_name,last_name,matric_number,email,username,password&#10;Example: John,Michael,Doe,22A/UE/BICT/10016,john.doe@student.edu.ng,22A/UE/BICT/10016,22a-ue-bict-10016" required></textarea>
-                            <div class="form-text">Format: first_name,middle_name,last_name,matric_number,email,username,password (middle name can be empty)</div>
-                        </div>
-
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-outline-secondary" onclick="generateSample()">Sample Data</button>
-                            <button type="button" class="btn btn-outline-secondary" onclick="clearData()">Clear</button>
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2 justify-content-end mt-4">
                             <a href="{% url 'faculty_dean_students' %}" class="btn btn-secondary">Back</a>
-                            <button type="submit" class="btn btn-primary">Create Students</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-people me-1"></i>Create All Students
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -62,18 +51,146 @@
 </div>
 
 <script>
-function generateSample() {
-    const sample = `John,Michael,Doe,22A/UE/BICT/10016,john.doe@student.edu.ng,22A/UE/BICT/10016,22a-ue-bict-10016
-Jane,,Smith,22A/UE/BICT/10017,jane.smith@student.edu.ng,22A/UE/BICT/10017,22a-ue-bict-10017
-Michael,David,Johnson,22A/UE/BICT/10018,michael.johnson@student.edu.ng,22A/UE/BICT/10018,22a-ue-bict-10018`;
-    document.querySelector('textarea[name="students_data"]').value = sample;
+let studentCount = 0;
+
+function addStudentRow() {
+    studentCount++;
+    const container = document.getElementById('studentsContainer');
+
+    const studentRow = document.createElement('div');
+    studentRow.className = 'student-row border rounded p-3 mb-3';
+    studentRow.id = `student-${studentCount}`;
+
+    studentRow.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0 text-primary">Student ${studentCount}</h6>
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeStudentRow(${studentCount})">
+                <i class="bi bi-trash"></i> Remove
+            </button>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label class="form-label">First Name</label>
+                <input type="text" name="students[${studentCount}][first_name]" class="form-control" required>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Middle Name <small class="text-muted">(Optional)</small></label>
+                <input type="text" name="students[${studentCount}][middle_name]" class="form-control">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Last Name</label>
+                <input type="text" name="students[${studentCount}][last_name]" class="form-control" required>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Matric Number</label>
+                <input type="text" name="students[${studentCount}][matric_number]" class="form-control"
+                       placeholder="e.g., 22A/UE/BICT/10016" onchange="updateCredentials(${studentCount})" required>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Email Address</label>
+                <input type="email" name="students[${studentCount}][email]" class="form-control" required>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Department</label>
+                <select name="students[${studentCount}][department_id]" class="form-select" required>
+                    <option value="">Select Department</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}">{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Level</label>
+                <select name="students[${studentCount}][level_id]" class="form-select" required>
+                    <option value="">Select Level</option>
+                    {% for level in levels %}
+                    <option value="{{ level.id }}">{{ level.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Username <small class="text-muted">(Auto-generated)</small></label>
+                <input type="text" name="students[${studentCount}][username]" class="form-control"
+                       readonly style="background-color: #f8f9fa;">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Password <small class="text-muted">(Auto-generated)</small></label>
+                <div class="input-group">
+                    <input type="password" name="students[${studentCount}][password]" class="form-control"
+                           readonly style="background-color: #f8f9fa;">
+                    <button type="button" class="btn btn-outline-secondary" onclick="togglePasswordVisibility(${studentCount})">
+                        <i class="bi bi-eye" id="toggleIcon-${studentCount}"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.appendChild(studentRow);
 }
 
-function clearData() {
-    if (confirm('Clear all data?')) {
-        document.querySelector('textarea[name="students_data"]').value = '';
+function removeStudentRow(id) {
+    if (confirm('Remove this student?')) {
+        document.getElementById(`student-${id}`).remove();
     }
 }
+
+function updateCredentials(studentId) {
+    const matricInput = document.querySelector(`input[name="students[${studentId}][matric_number]"]`);
+    const usernameInput = document.querySelector(`input[name="students[${studentId}][username]"]`);
+    const passwordInput = document.querySelector(`input[name="students[${studentId}][password]"]`);
+
+    const matricNumber = matricInput.value.trim();
+    if (matricNumber) {
+        // Username is the matric number
+        usernameInput.value = matricNumber;
+
+        // Password is lowercase matric with dashes
+        passwordInput.value = matricNumber.toLowerCase().replace(/\//g, '-');
+    }
+}
+
+function togglePasswordVisibility(studentId) {
+    const passwordInput = document.querySelector(`input[name="students[${studentId}][password]"]`);
+    const toggleIcon = document.getElementById(`toggleIcon-${studentId}`);
+
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleIcon.className = 'bi bi-eye-slash';
+    } else {
+        passwordInput.type = 'password';
+        toggleIcon.className = 'bi bi-eye';
+    }
+}
+
+// Initialize with one student row
+document.addEventListener('DOMContentLoaded', function() {
+    addStudentRow();
+
+    // Form validation
+    document.getElementById('bulkCreateForm').addEventListener('submit', function(e) {
+        const studentRows = document.querySelectorAll('.student-row');
+        if (studentRows.length === 0) {
+            e.preventDefault();
+            alert('Please add at least one student');
+            return;
+        }
+
+        if (!confirm(`Create ${studentRows.length} student(s)?`)) {
+            e.preventDefault();
+        }
+    });
+});
 </script>
 
 {% endblock %}

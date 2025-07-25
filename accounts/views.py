@@ -5020,14 +5020,25 @@ def faculty_dean_students(request):
     page_number = request.GET.get('page')
     students_page = paginator.get_page(page_number)
 
+    # Get current session
+    current_session = AcademicSession.objects.filter(is_active=True).first()
+
     # Statistics
+    total_students = Student.objects.filter(faculty=faculty).count()
+    active_students = Student.objects.filter(faculty=faculty, user__is_active=True).count()
+    new_students = Student.objects.filter(faculty=faculty, admission_session=current_session).count() if current_session else 0
+    graduating_students = Student.objects.filter(faculty=faculty, current_level__name__contains='400').count()
+
     stats = {
-        'total_students': Student.objects.filter(faculty=faculty).count(),
+        'total_students': total_students,
+        'active_students': active_students,
+        'new_students': new_students,
+        'graduating_students': graduating_students,
         'by_level': {
-            '100': Student.objects.filter(faculty=faculty, current_level__name='100').count(),
-            '200': Student.objects.filter(faculty=faculty, current_level__name='200').count(),
-            '300': Student.objects.filter(faculty=faculty, current_level__name='300').count(),
-            '400': Student.objects.filter(faculty=faculty, current_level__name='400').count(),
+            '100': Student.objects.filter(faculty=faculty, current_level__name__contains='100').count(),
+            '200': Student.objects.filter(faculty=faculty, current_level__name__contains='200').count(),
+            '300': Student.objects.filter(faculty=faculty, current_level__name__contains='300').count(),
+            '400': Student.objects.filter(faculty=faculty, current_level__name__contains='400').count(),
         },
         'by_department': {dept.name: Student.objects.filter(department=dept).count() for dept in departments}
     }
@@ -9558,76 +9569,99 @@ def faculty_dean_bulk_create_students(request):
         return redirect('dashboard')
 
     if request.method == 'POST':
-        students_data = request.POST.get('students_data', '').strip()
-        department_id = request.POST.get('department_id')
-        level_id = request.POST.get('level_id')
+        current_session = AcademicSession.objects.filter(is_active=True).first()
 
-        if not all([students_data, department_id, level_id]):
-            messages.error(request, 'All fields are required.')
+        if not current_session:
+            messages.error(request, 'No active academic session found.')
             return redirect('faculty_dean_bulk_create_students')
 
         try:
-            department = Department.objects.get(id=department_id, faculty=faculty)
-            level = Level.objects.get(id=level_id)
-            current_session = AcademicSession.objects.filter(is_active=True).first()
 
-            if not current_session:
-                messages.error(request, 'No active academic session found.')
-                return redirect('faculty_dean_bulk_create_students')
-
-            # Parse students data (CSV format: first_name,middle_name,last_name,matric_number,email,username,password)
-            lines = students_data.strip().split('\n')
+            # Process form-based student data
             created_count = 0
             errors = []
 
-            for line_num, line in enumerate(lines, 1):
-                if not line.strip():
-                    continue
+            # Get all student data from form
+            student_indices = []
+            for key in request.POST.keys():
+                if key.startswith('students[') and key.endswith('][first_name]'):
+                    # Extract student index from key like 'students[1][first_name]'
+                    index = key.split('[')[1].split(']')[0]
+                    student_indices.append(index)
 
-                parts = [part.strip() for part in line.split(',')]
-                if len(parts) not in [6, 7]:  # Allow 6 (no middle name) or 7 (with middle name)
-                    errors.append(f'Line {line_num}: Invalid format. Expected 6-7 fields, got {len(parts)}')
-                    continue
-
-                if len(parts) == 6:
-                    first_name, last_name, matric_number, email, username, password = parts
-                    middle_name = ''
-                else:
-                    first_name, middle_name, last_name, matric_number, email, username, password = parts
-                matric_number = matric_number.upper()
-                email = email.lower()
-
-                # Auto-correct username and password format
-                username = matric_number  # Username should be matric number
-                password = matric_number.lower().replace('/', '-')  # Password should be lowercase with dashes
-
-                # Validation
-                if not all([first_name, last_name, matric_number, email]):
-                    errors.append(f'Line {line_num}: First name, last name, matric number, and email are required')
-                    continue
-
-                # Check duplicates
-                if Student.objects.filter(matric_number=matric_number).exists():
-                    errors.append(f'Line {line_num}: Matric number {matric_number} already exists')
-                    continue
-
-                if User.objects.filter(username=username).exists():
-                    errors.append(f'Line {line_num}: Username {username} already exists')
-                    continue
-
-                if User.objects.filter(email=email).exists():
-                    errors.append(f'Line {line_num}: Email {email} already exists')
-                    continue
-
+            for index in student_indices:
                 try:
-                    # Create user account with proper password hashing
+                    # Get student data
+                    first_name = sanitize_input(request.POST.get(f'students[{index}][first_name]', '').strip())
+                    middle_name = sanitize_input(request.POST.get(f'students[{index}][middle_name]', '').strip())
+                    last_name = sanitize_input(request.POST.get(f'students[{index}][last_name]', '').strip())
+                    matric_number = sanitize_input(request.POST.get(f'students[{index}][matric_number]', '').strip().upper())
+                    email = sanitize_input(request.POST.get(f'students[{index}][email]', '').strip().lower())
+                    department_id = request.POST.get(f'students[{index}][department_id]')
+                    level_id = request.POST.get(f'students[{index}][level_id]')
+
+                    # Auto-generate username and password
+                    username = matric_number
+                    password = matric_number.lower().replace('/', '-')
+
+                    # Validation
+                    if not all([first_name, last_name, matric_number, email, department_id, level_id]):
+                        errors.append(f'Student {index}: All fields are required')
+                        continue
+
+                    # Security validations
+                    if not validate_name(first_name):
+                        errors.append(f'Student {index}: First name contains invalid characters')
+                        continue
+
+                    if middle_name and not validate_name(middle_name):
+                        errors.append(f'Student {index}: Middle name contains invalid characters')
+                        continue
+
+                    if not validate_name(last_name):
+                        errors.append(f'Student {index}: Last name contains invalid characters')
+                        continue
+
+                    if not validate_email(email):
+                        errors.append(f'Student {index}: Invalid email address')
+                        continue
+
+                    if not validate_matric_number(matric_number):
+                        errors.append(f'Student {index}: Invalid matriculation number format')
+                        continue
+
+                    # Check duplicates
+                    if Student.objects.filter(matric_number=matric_number).exists():
+                        errors.append(f'Student {index}: Matric number {matric_number} already exists')
+                        continue
+
+                    if User.objects.filter(username=username).exists():
+                        errors.append(f'Student {index}: Username {username} already exists')
+                        continue
+
+                    if User.objects.filter(email=email).exists():
+                        errors.append(f'Student {index}: Email {email} already exists')
+                        continue
+
+                    # Get department and level for this student
+                    try:
+                        department = Department.objects.get(id=department_id, faculty=faculty)
+                        level = Level.objects.get(id=level_id)
+                    except Department.DoesNotExist:
+                        errors.append(f'Student {index}: Invalid department selected')
+                        continue
+                    except Level.DoesNotExist:
+                        errors.append(f'Student {index}: Invalid level selected')
+                        continue
+
+                    # Create user account
                     full_first_name = f"{first_name} {middle_name}".strip() if middle_name else first_name
                     user = User.objects.create_user(
                         username=username,
                         email=email,
                         first_name=full_first_name,
                         last_name=last_name,
-                        password=password  # Django automatically hashes this
+                        password=password
                     )
 
                     # Create student profile
@@ -9653,13 +9687,13 @@ def faculty_dean_bulk_create_students(request):
                     created_count += 1
 
                 except Exception as e:
-                    errors.append(f'Line {line_num}: Error creating student - {str(e)}')
+                    errors.append(f'Student {index}: Error creating student - {str(e)}')
 
             # Log the action
             AuditLog.objects.create(
                 user=request.user,
                 action='BULK_CREATE_STUDENTS',
-                description=f'Bulk created {created_count} students in {department.name}',
+                description=f'Bulk created {created_count} students in {faculty.name}',
                 level='INFO'
             )
 
@@ -9667,18 +9701,14 @@ def faculty_dean_bulk_create_students(request):
                 messages.success(request, f'Successfully created {created_count} students!')
 
             if errors:
-                error_msg = f'{len(errors)} errors occurred:\n' + '\n'.join(errors[:10])  # Show first 10 errors
-                if len(errors) > 10:
-                    error_msg += f'\n... and {len(errors) - 10} more errors'
+                error_msg = f'{len(errors)} errors occurred:\n' + '\n'.join(errors[:5])
+                if len(errors) > 5:
+                    error_msg += f'\n... and {len(errors) - 5} more errors'
                 messages.error(request, error_msg)
 
             if created_count > 0:
                 return redirect('faculty_dean_students')
 
-        except Department.DoesNotExist:
-            messages.error(request, 'Invalid department selected.')
-        except Level.DoesNotExist:
-            messages.error(request, 'Invalid level selected.')
         except Exception as e:
             messages.error(request, f'Error processing bulk creation: {str(e)}')
 

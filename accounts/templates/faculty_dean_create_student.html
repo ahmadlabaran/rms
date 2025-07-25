@@ -63,8 +63,8 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Username</label>
-                                <input type="text" name="username" class="form-control" required>
+                                <label class="form-label">Username <small class="text-muted">(Auto-generated)</small></label>
+                                <input type="text" name="username" class="form-control" readonly style="background-color: #f8f9fa;">
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Email Address</label>
@@ -74,13 +74,12 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Password</label>
+                                <label class="form-label">Password <small class="text-muted">(Auto-generated)</small></label>
                                 <div class="input-group">
-                                    <input type="password" name="password" id="password" class="form-control" required>
+                                    <input type="password" name="password" id="password" class="form-control" readonly style="background-color: #f8f9fa;">
                                     <button type="button" class="btn btn-outline-secondary" onclick="togglePassword()">
                                         <i class="bi bi-eye" id="passwordToggleIcon"></i>
                                     </button>
-                                    <button type="button" class="btn btn-outline-secondary" onclick="generatePasswordFromMatric()">Generate</button>
                                 </div>
                             </div>
                         </div>
@@ -103,6 +102,8 @@ function generateMatricNumber() {
         .then(data => {
             if (data.matric_number) {
                 document.getElementById('matricNumber').value = data.matric_number;
+                // Auto-generate username and password when matric number is generated
+                updateUsernameAndPassword();
             } else {
                 alert('Error: ' + (data.error || 'Unknown error'));
             }
@@ -111,10 +112,17 @@ function generateMatricNumber() {
 }
 
 function generatePasswordFromMatric() {
+    updateUsernameAndPassword();
+}
+
+function updateUsernameAndPassword() {
     const matricNumber = document.getElementById('matricNumber').value;
     if (matricNumber) {
-        // Replace / with - for password
-        const password = matricNumber.replace(/\//g, '-');
+        // Username is the matric number as-is
+        document.querySelector('input[name="username"]').value = matricNumber;
+
+        // Password is the matric number in lowercase with - instead of /
+        const password = matricNumber.toLowerCase().replace(/\//g, '-');
         document.getElementById('password').value = password;
     } else {
         alert('Please enter or generate a matric number first');
@@ -134,23 +142,16 @@ function togglePassword() {
     }
 }
 
-// Auto-generate username from names
+// Auto-generate username and password from matric number
 document.addEventListener('DOMContentLoaded', function() {
-    const firstNameInput = document.querySelector('input[name="first_name"]');
-    const lastNameInput = document.querySelector('input[name="last_name"]');
-    const usernameInput = document.querySelector('input[name="username"]');
+    const matricInput = document.getElementById('matricNumber');
 
-    function updateUsername() {
-        const firstName = firstNameInput.value.trim().toLowerCase();
-        const lastName = lastNameInput.value.trim().toLowerCase();
-        if (firstName && lastName) {
-            const username = firstName + '.' + lastName;
-            usernameInput.value = username;
+    // Auto-generate username and password when matric number changes
+    matricInput.addEventListener('input', function() {
+        if (this.value.trim()) {
+            updateUsernameAndPassword();
         }
-    }
-
-    firstNameInput.addEventListener('input', updateUsername);
-    lastNameInput.addEventListener('input', updateUsername);
+    });
 
     // Email validation
     const emailInput = document.querySelector('input[name="email"]');

@@ -9417,15 +9417,17 @@ def faculty_dean_create_student(request):
         last_name = sanitize_input(request.POST.get('last_name', '').strip())
         matric_number = sanitize_input(request.POST.get('matric_number', '').strip().upper())
         email = sanitize_input(request.POST.get('email', '').strip().lower())
-        username = sanitize_input(request.POST.get('username', '').strip().lower())
-        password = request.POST.get('password', '').strip()  # Don't sanitize password
         department_id = request.POST.get('department_id')
         level_id = request.POST.get('level_id')
 
-        # Validation - middle name is optional
-        required_fields = [first_name, last_name, matric_number, email, username, password, department_id, level_id]
+        # Auto-generate username and password from matric number
+        username = matric_number  # Username is the matric number
+        password = matric_number.lower().replace('/', '-')  # Password is lowercase matric with dashes
+
+        # Validation - middle name is optional, username and password are auto-generated
+        required_fields = [first_name, last_name, matric_number, email, department_id, level_id]
         if not all(required_fields):
-            messages.error(request, 'All fields except middle name are required.')
+            messages.error(request, 'First name, last name, matric number, email, department, and level are required.')
             return redirect('faculty_dean_create_student')
 
         # Security validations
@@ -9445,9 +9447,7 @@ def faculty_dean_create_student(request):
             messages.error(request, 'Please enter a valid email address.')
             return redirect('faculty_dean_create_student')
 
-        if not validate_username(username):
-            messages.error(request, 'Username can only contain letters, numbers, dots, and underscores.')
-            return redirect('faculty_dean_create_student')
+
 
         if not validate_matric_number(matric_number):
             messages.error(request, 'Invalid matriculation number format.')
@@ -9596,11 +9596,14 @@ def faculty_dean_bulk_create_students(request):
                     first_name, middle_name, last_name, matric_number, email, username, password = parts
                 matric_number = matric_number.upper()
                 email = email.lower()
-                username = username.lower()
+
+                # Auto-correct username and password format
+                username = matric_number  # Username should be matric number
+                password = matric_number.lower().replace('/', '-')  # Password should be lowercase with dashes
 
                 # Validation
-                if not all([first_name, last_name, matric_number, email, username, password]):
-                    errors.append(f'Line {line_num}: All fields are required')
+                if not all([first_name, last_name, matric_number, email]):
+                    errors.append(f'Line {line_num}: First name, last name, matric number, and email are required')
                     continue
 
                 # Check duplicates

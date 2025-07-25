@@ -13,8 +13,8 @@
                 <div class="card-body">
                     <div class="alert alert-info">
                         <strong>Format:</strong> first_name,middle_name,last_name,matric_number,email,username,password<br>
-                        <strong>Example:</strong> John,Michael,Doe,CSC/24/0001,john.doe@student.edu.ng,john.doe,CSC-24-0001<br>
-                        <small><strong>Note:</strong> Middle name can be empty. Use format: John,,Doe,CSC/24/0001,... for no middle name</small>
+                        <strong>Example:</strong> John,Michael,Doe,CSC/24/0001,john.doe@student.edu.ng,CSC/24/0001,csc-24-0001<br>
+                        <small><strong>Note:</strong> Middle name can be empty. Username = matric number, Password = lowercase matric with dashes</small>
                     </div>
 
                     <form method="post">
@@ -63,9 +63,9 @@
 
 <script>
 function generateSample() {
-    const sample = `John,Michael,Doe,CSC/24/0001,john.doe@student.edu.ng,john.doe,CSC-24-0001
-Jane,,Smith,CSC/24/0002,jane.smith@student.edu.ng,jane.smith,CSC-24-0002
-Michael,David,Johnson,CSC/24/0003,michael.johnson@student.edu.ng,michael.johnson,CSC-24-0003`;
+    const sample = `John,Michael,Doe,CSC/24/0001,john.doe@student.edu.ng,CSC/24/0001,csc-24-0001
+Jane,,Smith,CSC/24/0002,jane.smith@student.edu.ng,CSC/24/0002,csc-24-0002
+Michael,David,Johnson,CSC/24/0003,michael.johnson@student.edu.ng,CSC/24/0003,csc-24-0003`;
     document.querySelector('textarea[name="students_data"]').value = sample;
 }
 

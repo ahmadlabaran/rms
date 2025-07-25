@@ -5,204 +5,306 @@
 
 {% block content %}
 
-<!-- Role Context Indicator and Return Button -->
 <div class="container-fluid">
-    <div class="row mb-3">
+    <!-- Delegation Status Badges -->
+    {% show_delegation_badges user %}
+
+    <!-- Header -->
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                    {% get_user_roles_with_delegation user as user_roles_details %}
-                    {% for role_detail in user_roles_details %}
-                        {% if role_detail.role == 'LECTURER' %}
-                            {% if role_detail.is_delegated %}
-                            <h4 class="mb-0 text-primary">
-                                <i class="fas fa-chalkboard-teacher me-2"></i>
-                                Acting as Lecturer
-                            </h4>
-                            <span class="badge bg-warning ms-2">Delegated Permission</span>
-                            {% else %}
-                            <h4 class="mb-0 text-primary">
-                                <i class="fas fa-chalkboard-teacher me-2"></i>
-                                Lecturer
-                            </h4>
-                            {% endif %}
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">Welcome, {{ user.first_name }}</h1>
+                            <p class="mb-0 opacity-75">
+                                Lecturer Dashboard • {{ current_session.name }}
+                                {% get_user_roles_with_delegation user as user_roles_details %}
+                                {% for role_detail in user_roles_details %}
+                                    {% if role_detail.role == 'LECTURER' and role_detail.is_delegated %}
+                                    <span class="badge bg-warning ms-2">Acting as Delegated Lecturer</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">
+                                <div class="h3 fw-bold mb-0">{{ stats.assigned_courses }}</div>
+                                <small class="opacity-75">Assigned Courses</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center h-100" style="border-left: 4px solid var(--ios-blue);">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <div class="h2 fw-bold mb-2" style="color: var(--ios-blue);">{{ stats.total_students }}</div>
+                    <div class="text-muted">Total Students</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center h-100" style="border-left: 4px solid var(--ios-orange);">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <div class="h2 fw-bold mb-2" style="color: var(--ios-orange);">{{ stats.draft_results }}</div>
+                    <div class="text-muted">Draft Results</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center h-100" style="border-left: 4px solid var(--ios-blue);">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <div class="h2 fw-bold mb-2" style="color: var(--ios-blue);">{{ stats.submitted_results }}</div>
+                    <div class="text-muted">Submitted Results</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center h-100" style="border-left: 4px solid var(--ios-green);">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <div class="h2 fw-bold mb-2" style="color: var(--ios-green);">{{ stats.published_results }}</div>
+                    <div class="text-muted">Published Results</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Grid -->
+    <div class="row mb-4">
+        <!-- Course Management -->
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="card-title h5 fw-bold text-primary mb-3">Course Management</h2>
+
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Student Operations</h6>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <a href="{% url 'lecturer_enroll_students' %}" class="btn btn-primary btn-sm w-100">
+                                    <i class="bi bi-person-plus me-1"></i>Enroll Students
+                                </a>
+                            </div>
+                            <div class="col-6">
+                                <a href="{% url 'lecturer_bulk_enroll' %}" class="btn btn-outline-primary btn-sm w-100">
+                                    <i class="bi bi-people me-1"></i>Bulk Enroll
+                                </a>
+                            </div>
+                            <div class="col-6">
+                                <a href="{% url 'lecturer_manage_enrollments' %}" class="btn btn-outline-secondary btn-sm w-100">
+                                    <i class="bi bi-gear me-1"></i>Manage
+                                </a>
+                            </div>
+                            <div class="col-6">
+                                <a href="{% url 'lecturer_student_list' %}" class="btn btn-outline-secondary btn-sm w-100">
+                                    <i class="bi bi-list me-1"></i>Student Lists
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Course Information</h6>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <a href="{% url 'lecturer_courses' %}" class="btn btn-info btn-sm w-100">
+                                    <i class="bi bi-book me-1"></i>My Courses
+                                </a>
+                            </div>
+                            <div class="col-6">
+                                <a href="{% url 'lecturer_course_details' %}" class="btn btn-outline-info btn-sm w-100">
+                                    <i class="bi bi-info-circle me-1"></i>Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Management -->
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="card-title h5 fw-bold text-primary mb-3">Result Management</h2>
+
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Result Entry</h6>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <a href="{% url 'lecturer_enter_results' %}" class="btn btn-success btn-sm w-100">
+                                    <i class="bi bi-plus-circle me-1"></i>Enter Results
+                                </a>
+                            </div>
+                            <div class="col-6">
+                                <a href="{% url 'lecturer_bulk_results' %}" class="btn btn-outline-success btn-sm w-100">
+                                    <i class="bi bi-upload me-1"></i>Bulk Upload
+                                </a>
+                            </div>
+                            <div class="col-6">
+                                <a href="{% url 'lecturer_draft_results' %}" class="btn btn-outline-warning btn-sm w-100">
+                                    <i class="bi bi-file-earmark me-1"></i>Drafts
+                                </a>
+                            </div>
+                            <div class="col-6">
+                                <a href="{% url 'lecturer_edit_results' %}" class="btn btn-outline-secondary btn-sm w-100">
+                                    <i class="bi bi-pencil me-1"></i>Edit
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Submission & Status</h6>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <a href="{% url 'lecturer_submit_results' %}" class="btn btn-primary btn-sm w-100">
+                                    <i class="bi bi-send me-1"></i>Submit
+                                </a>
+                            </div>
+                            <div class="col-6">
+                                <a href="{% url 'lecturer_result_status' %}" class="btn btn-outline-primary btn-sm w-100">
+                                    <i class="bi bi-check-circle me-1"></i>Status
+                                </a>
+                            </div>
+                            <div class="col-6">
+                                <a href="{% url 'lecturer_corrections' %}" class="btn btn-outline-danger btn-sm w-100">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>Corrections
+                                </a>
+                            </div>
+                            <div class="col-6">
+                                <a href="{% url 'lecturer_resubmit' %}" class="btn btn-outline-warning btn-sm w-100">
+                                    <i class="bi bi-arrow-repeat me-1"></i>Resubmit
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assigned Courses & Quick Actions -->
+    <div class="row">
+        <!-- Assigned Courses -->
+        <div class="col-lg-8 mb-3">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">My Assigned Courses</h5>
+                    <a href="{% url 'lecturer_courses' %}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-arrow-right me-1"></i>View All
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if assigned_courses %}
+                        {% for assignment in assigned_courses|slice:":5" %}
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <h6 class="card-title mb-1">{{ assignment.course.code }} - {{ assignment.course.title }}</h6>
+                                        <p class="card-text text-muted mb-1">
+                                            <small>{{ assignment.course.level.name }} • {{ assignment.course.credit_units }} Units</small>
+                                        </p>
+                                        <p class="card-text">
+                                            <small class="text-muted">Enrolled: {{ assignment.enrolled_count }} students</small>
+                                        </p>
+                                    </div>
+                                    <div class="col-md-4 text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'lecturer_course_students' assignment.course.id %}" class="btn btn-primary btn-sm">
+                                                <i class="bi bi-people me-1"></i>Students
+                                            </a>
+                                            <a href="{% url 'lecturer_course_results' assignment.course.id %}" class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-file-text me-1"></i>Results
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="bi bi-book display-4 text-muted"></i>
+                            </div>
+                            <h6 class="text-muted">No courses assigned yet</h6>
+                            <p class="text-muted">Contact your department head for course assignments.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions & Notifications -->
+        <div class="col-lg-4 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0 fw-bold">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Pending Actions -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-3">Pending Actions</h6>
+                        {% if correction_requests %}
+                            <div class="alert alert-danger py-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    <div>
+                                        <div class="fw-bold">{{ correction_requests.count }} Correction Request(s)</div>
+                                        <small>Results need to be corrected</small>
+                                    </div>
+                                </div>
+                            </div>
                         {% endif %}
-                    {% endfor %}
-                </div>
 
-            </div>
-        </div>
-    </div>
-</div>
+                        {% if draft_results_count > 0 %}
+                            <div class="alert alert-info py-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-file-earmark me-2"></i>
+                                    <div>
+                                        <div class="fw-bold">{{ draft_results_count }} Draft Result(s)</div>
+                                        <small>Ready for submission</small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
 
-<!-- Delegation Status Badges -->
-{% show_delegation_badges user %}
-
-
-<div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
-
-    <!-- Clean Welcome Header -->
-    <div style="text-align: center; margin-bottom: 48px;">
-        <h1 style="font-size: 36px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; letter-spacing: -0.02em;">
-            Welcome, {{ user.first_name }}
-        </h1>
-        <p style="color: var(--text-secondary); font-size: 17px; font-weight: 400;">
-            Lecturer Dashboard • {{ current_session.name }}
-        </p>
-        <div style="background: var(--ios-blue); color: white; padding: 8px 16px; border-radius: 20px; display: inline-block; margin-top: 8px; font-weight: 600;">
-            {{ stats.assigned_courses }} Assigned Courses
-        </div>
-    </div>
-
-    <!-- Academic Summary -->
-    <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 24px; padding: 32px; margin-bottom: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
-        <h2 style="font-size: 24px; font-weight: 600; color: var(--text-primary); margin-bottom: 24px; text-align: center;">
-            Teaching Overview
-        </h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 24px;">
-            <div style="text-align: center;">
-                <div style="font-size: 32px; font-weight: 700; color: var(--ios-blue); margin-bottom: 4px;">{{ stats.total_students }}</div>
-                <div style="color: var(--text-secondary); font-size: 14px; font-weight: 500;">Total Students</div>
-            </div>
-            <div style="text-align: center;">
-                <div style="font-size: 32px; font-weight: 700; color: var(--ios-orange); margin-bottom: 4px;">{{ stats.draft_results }}</div>
-                <div style="color: var(--text-secondary); font-size: 14px; font-weight: 500;">Draft Results</div>
-            </div>
-            <div style="text-align: center;">
-                <div style="font-size: 32px; font-weight: 700; color: var(--ios-blue); margin-bottom: 4px;">{{ stats.submitted_results }}</div>
-                <div style="color: var(--text-secondary); font-size: 14px; font-weight: 500;">Submitted Results</div>
-            </div>
-            <div style="text-align: center;">
-                <div style="font-size: 32px; font-weight: 700; color: var(--ios-green); margin-bottom: 4px;">{{ stats.published_results }}</div>
-                <div style="color: var(--text-secondary); font-size: 14px; font-weight: 500;">Published Results</div>
-            </div>
-        </div>
-    </div>
-
-<!-- Main Dashboard Grid -->
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px;">
-    
-    <!-- Course Management -->
-    <div class="ios-card">
-        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Course Management</h2>
-        
-        <div style="margin-bottom: 32px;">
-            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Student Operations</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <a href="{% url 'lecturer_enroll_students' %}" class="btn btn-primary btn-compact">Enroll Students</a>
-                <a href="{% url 'lecturer_bulk_enroll' %}" class="btn btn-primary btn-compact">Bulk Enroll</a>
-                <a href="{% url 'lecturer_manage_enrollments' %}" class="btn btn-secondary btn-compact">Manage Enrollments</a>
-                <a href="{% url 'lecturer_student_list' %}" class="btn btn-secondary btn-compact">Student Lists</a>
-            </div>
-        </div>
-
-        <div style="margin-bottom: 32px;">
-            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Course Information</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <a href="{% url 'lecturer_courses' %}" class="btn btn-primary btn-compact">My Courses</a>
-                <a href="{% url 'lecturer_course_details' %}" class="btn btn-secondary btn-compact">Course Details</a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Result Management -->
-    <div class="ios-card">
-        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Result Management</h2>
-        
-        <div style="margin-bottom: 32px;">
-            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Result Entry</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <a href="{% url 'lecturer_enter_results' %}" class="btn btn-primary btn-compact">Enter Results</a>
-                <a href="{% url 'lecturer_bulk_results' %}" class="btn btn-primary btn-compact">Bulk Upload</a>
-                <a href="{% url 'lecturer_draft_results' %}" class="btn btn-secondary btn-compact">Draft Results</a>
-                <a href="{% url 'lecturer_edit_results' %}" class="btn btn-secondary btn-compact">Edit Results</a>
-            </div>
-        </div>
-
-        <div style="margin-bottom: 32px;">
-            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Submission & Status</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <a href="{% url 'lecturer_submit_results' %}" class="btn btn-primary btn-compact">Submit to Exam Officer</a>
-                <a href="{% url 'lecturer_result_status' %}" class="btn btn-secondary btn-compact">Result Status</a>
-                <a href="{% url 'lecturer_corrections' %}" class="btn btn-secondary btn-compact">Correction Requests</a>
-                <a href="{% url 'lecturer_resubmit' %}" class="btn btn-secondary btn-compact">Resubmit Results</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Assigned Courses & Recent Activity -->
-<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 32px;">
-    
-    <!-- Assigned Courses -->
-    <div class="ios-card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-            <h2 style="color: var(--text-primary); font-size: 20px; font-weight: 600; margin: 0;">My Assigned Courses</h2>
-            <a href="{% url 'lecturer_courses' %}" style="color: var(--ios-blue); text-decoration: none; font-weight: 500;">View All</a>
-        </div>
-        
-        {% if assigned_courses %}
-            {% for assignment in assigned_courses|slice:":5" %}
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--surface-secondary); border-radius: 12px; margin-bottom: 12px; border: 1px solid var(--border-light);">
-                <div>
-                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
-                        {{ assignment.course.code }} - {{ assignment.course.title }}
+                        {% if not correction_requests and draft_results_count == 0 %}
+                            <div class="text-center text-muted">
+                                <i class="bi bi-check-circle display-6"></i>
+                                <p class="mt-2 mb-0">All caught up!</p>
+                            </div>
+                        {% endif %}
                     </div>
-                    <div style="color: var(--text-secondary); font-size: 14px;">
-                        {{ assignment.course.level.name }} • {{ assignment.course.credit_units }} Units
-                    </div>
-                    <div style="color: var(--text-tertiary); font-size: 12px;">
-                        Enrolled: {{ assignment.enrolled_count }} students
+
+                    <!-- Quick Links -->
+                    <div>
+                        <h6 class="text-muted mb-3">Quick Links</h6>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'lecturer_enter_results' %}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-plus-circle me-1"></i>Enter New Results
+                            </a>
+                            <a href="{% url 'lecturer_enroll_students' %}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-person-plus me-1"></i>Enroll Students
+                            </a>
+                            <a href="{% url 'lecturer_result_status' %}" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-check-circle me-1"></i>Check Status
+                            </a>
+                        </div>
                     </div>
                 </div>
-                <div style="display: flex; gap: 8px;">
-                    <a href="{% url 'lecturer_course_students' assignment.course.id %}" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">Students</a>
-                    <a href="{% url 'lecturer_course_results' assignment.course.id %}" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;">Results</a>
-                </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
-                <div style="width: 60px; height: 60px; background: var(--ios-blue-ultra-light); border-radius: 15px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
-                    <div style="width: 30px; height: 30px; background: var(--ios-blue); border-radius: 8px; opacity: 0.6;"></div>
-                </div>
-                <p>No courses assigned yet</p>
-            </div>
-        {% endif %}
-    </div>
-
-    <!-- Quick Actions & Notifications -->
-    <div class="ios-card">
-        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 20px; font-weight: 600;">Quick Actions</h2>
-        
-        <!-- Pending Actions -->
-        <div style="margin-bottom: 24px;">
-            <h3 style="color: var(--ios-blue); margin-bottom: 12px; font-size: 16px; font-weight: 600;">Pending Actions</h3>
-            {% if correction_requests %}
-                <div style="background: var(--ios-red-light); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--ios-red);">
-                    <div style="font-weight: 600; color: var(--ios-red); font-size: 14px;">{{ correction_requests.count }} Correction Request(s)</div>
-                    <div style="color: var(--text-secondary); font-size: 12px;">Results need to be corrected</div>
-                </div>
-            {% endif %}
-            
-            {% if draft_results_count > 0 %}
-                <div style="background: var(--ios-blue-ultra-light); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--ios-blue);">
-                    <div style="font-weight: 600; color: var(--ios-blue); font-size: 14px;">{{ draft_results_count }} Draft Result(s)</div>
-                    <div style="color: var(--text-secondary); font-size: 12px;">Ready for submission</div>
-                </div>
-            {% endif %}
-        </div>
-
-        <!-- Quick Links -->
-        <div>
-            <h3 style="color: var(--ios-blue); margin-bottom: 12px; font-size: 16px; font-weight: 600;">Quick Links</h3>
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-                <a href="{% url 'lecturer_enter_results' %}" class="btn btn-primary btn-compact">Enter New Results</a>
-                <a href="{% url 'lecturer_enroll_students' %}" class="btn btn-secondary btn-compact">Enroll Students</a>
-                <a href="{% url 'lecturer_result_status' %}" class="btn btn-secondary btn-compact">Check Status</a>
             </div>
         </div>
     </div>
+
 </div>
 
 {% endblock %}

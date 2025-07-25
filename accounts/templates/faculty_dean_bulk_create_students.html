@@ -3,6 +3,42 @@
 {% block title %}Bulk Create Students{% endblock %}
 
 {% block content %}
+<style>
+    .password-toggle-btn {
+        border-left: none !important;
+        background-color: #f8f9fa;
+        border-color: #ced4da;
+    }
+
+    .password-toggle-btn:hover {
+        background-color: #e9ecef;
+        border-color: #adb5bd;
+    }
+
+    .password-toggle-btn:focus {
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        border-color: #80bdff;
+    }
+
+    .password-toggle-btn i {
+        transition: all 0.2s ease;
+    }
+
+    .password-toggle-btn:active i {
+        transform: scale(0.9);
+    }
+
+    .student-row {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        transition: all 0.2s ease;
+    }
+
+    .student-row:hover {
+        background-color: #e9ecef;
+        border-color: #adb5bd;
+    }
+</style>
 <div class="container-fluid py-4">
     <!-- Header -->
     <div class="row mb-4">
@@ -127,8 +163,10 @@ function addStudentRow() {
                 <label class="form-label">Password <small class="text-muted">(Auto-generated)</small></label>
                 <div class="input-group">
                     <input type="password" name="students[${studentCount}][password]" class="form-control"
-                           readonly style="background-color: #f8f9fa;">
-                    <button type="button" class="btn btn-outline-secondary" onclick="togglePasswordVisibility(${studentCount})">
+                           readonly style="background-color: #f8f9fa;" id="passwordField-${studentCount}">
+                    <button type="button" class="btn btn-outline-secondary password-toggle-btn"
+                            onclick="togglePasswordVisibility(${studentCount})"
+                            id="toggleBtn-${studentCount}" title="Show Password" aria-label="Show Password">
                         <i class="bi bi-eye" id="toggleIcon-${studentCount}"></i>
                     </button>
                 </div>
@@ -161,15 +199,27 @@ function updateCredentials(studentId) {
 }
 
 function togglePasswordVisibility(studentId) {
-    const passwordInput = document.querySelector(`input[name="students[${studentId}][password]"]`);
+    const passwordInput = document.getElementById(`passwordField-${studentId}`);
     const toggleIcon = document.getElementById(`toggleIcon-${studentId}`);
+    const toggleBtn = document.getElementById(`toggleBtn-${studentId}`);
+
+    if (!passwordInput || !toggleIcon || !toggleBtn) {
+        console.error('Password toggle elements not found for student', studentId);
+        return;
+    }
 
     if (passwordInput.type === 'password') {
+        // Show password
         passwordInput.type = 'text';
         toggleIcon.className = 'bi bi-eye-slash';
+        toggleBtn.title = 'Hide Password';
+        toggleBtn.setAttribute('aria-label', 'Hide Password');
     } else {
+        // Hide password
         passwordInput.type = 'password';
         toggleIcon.className = 'bi bi-eye';
+        toggleBtn.title = 'Show Password';
+        toggleBtn.setAttribute('aria-label', 'Show Password');
     }
 }
 

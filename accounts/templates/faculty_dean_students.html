@@ -156,6 +156,9 @@
                             <button class="btn btn-secondary btn-sm">
                                 <i class="bi bi-download me-1"></i>Export
                             </button>
+                            <button class="btn btn-info btn-sm" onclick="showProgressModal()">
+                                <i class="bi bi-arrow-up-circle me-1"></i>Progress Students
+                            </button>
                             <a href="{% url 'faculty_dean_create_student' %}" class="btn btn-success btn-sm">
                                 <i class="bi bi-person-plus me-1"></i>Create Student
                             </a>
@@ -279,15 +282,12 @@ function editStudent(studentId) {
     const matricNumber = cells[0].querySelector('.fw-bold').textContent;
     const fullName = cells[1].querySelector('.fw-bold').textContent;
     const email = cells[1].querySelector('small').textContent;
-    const department = cells[2].textContent;
-    const level = cells[3].textContent.replace(' Level', '').replace('badge bg-info', '').trim();
 
     const [firstName, ...lastNameParts] = fullName.split(' ');
     const lastName = lastNameParts.join(' ');
 
-    // Create edit modal
+    // Create simple edit modal
     const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
     modal.style.cssText = `
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(0,0,0,0.5); display: flex; align-items: center;
@@ -295,44 +295,25 @@ function editStudent(studentId) {
     `;
 
     modal.innerHTML = `
-        <div style="background: white; padding: 24px; border-radius: 16px; max-width: 500px; width: 90%;">
-            <h3 style="margin-bottom: 16px; color: var(--text-primary);">Edit Student: ${matricNumber}</h3>
+        <div style="background: white; padding: 24px; border-radius: 8px; max-width: 400px; width: 90%;">
+            <h3 style="margin-bottom: 16px;">Edit Student: ${matricNumber}</h3>
             <form id="editStudentForm">
-                <div style="margin-bottom: 12px;">
-                    <label style="display: block; margin-bottom: 4px; font-weight: 600;">First Name</label>
-                    <input type="text" id="editFirstName" value="${firstName}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px;" required>
-                </div>
-                <div style="margin-bottom: 12px;">
-                    <label style="display: block; margin-bottom: 4px; font-weight: 600;">Last Name</label>
-                    <input type="text" id="editLastName" value="${lastName}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px;" required>
-                </div>
-                <div style="margin-bottom: 12px;">
-                    <label style="display: block; margin-bottom: 4px; font-weight: 600;">Email</label>
-                    <input type="email" id="editEmail" value="${email}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px;" required>
-                </div>
-                <div style="margin-bottom: 12px;">
-                    <label style="display: block; margin-bottom: 4px; font-weight: 600;">Department</label>
-                    <select id="editDepartment" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px;" required>
-                        {% for dept in departments %}
-                        <option value="{{ dept.id }}">{{ dept.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div style="margin-bottom: 16px;">
-                    <label style="display: block; margin-bottom: 4px; font-weight: 600;">Level</label>
-                    <select id="editLevel" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px;" required>
-                        {% for level in levels %}
-                        <option value="{{ level.id }}">{{ level.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+                <input type="text" id="editFirstName" value="${firstName}" placeholder="First Name" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+                <input type="text" id="editLastName" value="${lastName}" placeholder="Last Name" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+                <input type="email" id="editEmail" value="${email}" placeholder="Email" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+                <select id="editDepartment" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}">{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+                <select id="editLevel" style="width: 100%; padding: 8px; margin-bottom: 16px; border: 1px solid #ddd; border-radius: 4px;" required>
+                    {% for level in levels %}
+                    <option value="{{ level.id }}">{{ level.name }}</option>
+                    {% endfor %}
+                </select>
                 <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                    <button type="button" onclick="closeModal(this)" style="background: #f0f0f0; color: #333; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">
-                        Cancel
-                    </button>
-                    <button type="submit" style="background: var(--ios-blue); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">
-                        Update
-                    </button>
+                    <button type="button" onclick="closeModal(this)" style="background: #f0f0f0; color: #333; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Cancel</button>
+                    <button type="submit" style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Update</button>
                 </div>
             </form>
         </div>
@@ -404,14 +385,81 @@ function deleteStudent(studentId, matricNumber) {
 }
 
 function closeModal(element) {
-    const modal = element.closest('.modal-overlay');
-    if (modal) {
-        modal.remove();
-    }
+    element.closest('[style*="position: fixed"]').remove();
 }
 
 function viewResults(studentId) {
     alert('View student results - to be implemented');
+}
+
+function showProgressModal() {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); display: flex; align-items: center;
+        justify-content: center; z-index: 1000;
+    `;
+
+    modal.innerHTML = `
+        <div style="background: white; padding: 24px; border-radius: 8px; max-width: 400px; width: 90%;">
+            <h3 style="margin-bottom: 16px;">Progress Students to Next Level</h3>
+            <p style="margin-bottom: 16px;">This will automatically move all eligible students to the next level for the new academic session.</p>
+            <form id="progressForm">
+                <select id="newSessionId" style="width: 100%; padding: 8px; margin-bottom: 16px; border: 1px solid #ddd; border-radius: 4px;" required>
+                    <option value="">Select New Academic Session</option>
+                    {% for session in academic_sessions %}
+                    <option value="{{ session.id }}">{{ session.name }}</option>
+                    {% endfor %}
+                </select>
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button type="button" onclick="closeModal(this)" style="background: #f0f0f0; color: #333; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Cancel</button>
+                    <button type="submit" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Progress Students</button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    document.getElementById('progressForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        progressStudents(modal);
+    });
+}
+
+function progressStudents(modal) {
+    const sessionId = document.getElementById('newSessionId').value;
+    if (!sessionId) {
+        alert('Please select a new academic session');
+        return;
+    }
+
+    if (!confirm('This will progress all eligible students to the next level. Continue?')) {
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('new_session_id', sessionId);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+    fetch('/api/faculty-dean/api/progress-students/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            modal.remove();
+            window.location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error progressing students');
+    });
 }
 </script>
 

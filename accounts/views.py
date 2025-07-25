@@ -5031,6 +5031,10 @@ def faculty_dean_students(request):
         'by_department': {dept.name: Student.objects.filter(department=dept).count() for dept in departments}
     }
 
+    # Get academic sessions and levels for student management
+    academic_sessions = AcademicSession.objects.all().order_by('-start_date')
+    levels = Level.objects.all().order_by('name')
+
     context = {
         'faculty': faculty,
         'students': students_page,
@@ -5039,6 +5043,8 @@ def faculty_dean_students(request):
         'search_query': search_query,
         'department_filter': department_filter,
         'level_filter': level_filter,
+        'academic_sessions': academic_sessions,
+        'levels': levels,
     }
 
     return render(request, 'faculty_dean_students.html', context)

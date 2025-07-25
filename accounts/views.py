@@ -9835,6 +9835,99 @@ def faculty_dean_delete_student(request, student_id):
     })
 
 @login_required
+def faculty_dean_student_results(request, student_id):
+    """View student results"""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'GET method required'}, status=405)
+
+    # Check if user has Faculty Dean role
+    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not faculty_dean_roles.exists():
+        return JsonResponse({'error': 'Access denied. Faculty Dean role required.'}, status=403)
+
+    faculty_role = faculty_dean_roles.first()
+    faculty = faculty_role.faculty
+
+    try:
+        student = Student.objects.get(id=student_id, faculty=faculty)
+    except Student.DoesNotExist:
+        return JsonResponse({'error': 'Student not found'}, status=404)
+
+    # Get student results
+    results = []
+    try:
+        # Get all enrollments for this student
+        enrollments = CourseEnrollment.objects.filter(student=student).select_related('course')
+
+        for enrollment in enrollments:
+            # Get results for this enrollment
+            student_results = Result.objects.filter(enrollment=enrollment).first()
+
+            if student_results:
+                results.append({
+                    'course_code': enrollment.course.code,
+                    'course_title': enrollment.course.title,
+                    'ca_score': student_results.ca_score,
+                    'exam_score': student_results.exam_score,
+                    'total_score': student_results.total_score,
+                    'grade': student_results.grade,
+                    'session': enrollment.session.name if enrollment.session else 'N/A'
+                })
+    except Exception as e:
+        return JsonResponse({'error': f'Error fetching results: {str(e)}'}, status=500)
+
+    return JsonResponse({
+        'success': True,
+        'results': results,
+        'student_name': student.get_full_name(),
+        'matric_number': student.matric_number
+    })
+
+@login_required
+def faculty_dean_reset_password(request, student_id):
+    """Reset student password"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required'}, status=405)
+
+    # Check if user has Faculty Dean role
+    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not faculty_dean_roles.exists():
+        return JsonResponse({'error': 'Access denied. Faculty Dean role required.'}, status=403)
+
+    faculty_role = faculty_dean_roles.first()
+    faculty = faculty_role.faculty
+
+    try:
+        student = Student.objects.get(id=student_id, faculty=faculty)
+    except Student.DoesNotExist:
+        return JsonResponse({'error': 'Student not found'}, status=404)
+
+    try:
+        # Generate new password from matric number (lowercase with dashes)
+        new_password = student.matric_number.lower().replace('/', '-')
+
+        # Update user password
+        student.user.set_password(new_password)
+        student.user.save()
+
+        # Log the action
+        AuditLog.objects.create(
+            user=request.user,
+            action='RESET_STUDENT_PASSWORD',
+            description=f'Reset password for student: {student.matric_number} - {student.get_full_name()}',
+            level='INFO'
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Password reset successfully for {student.matric_number}',
+            'new_password': new_password
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': f'Error resetting password: {str(e)}'}, status=500)
+
+@login_required
 def faculty_dean_progress_students(request):
     """Progress students to next level automatically"""
     if request.method != 'POST':

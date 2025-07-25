@@ -172,6 +172,8 @@ urlpatterns = [
     path('faculty-dean/bulk-create-students/', views.faculty_dean_bulk_create_students, name='faculty_dean_bulk_create_students'),
     path('faculty-dean/api/student/<int:student_id>/edit/', views.faculty_dean_edit_student, name='faculty_dean_edit_student'),
     path('faculty-dean/api/student/<int:student_id>/delete/', views.faculty_dean_delete_student, name='faculty_dean_delete_student'),
+    path('faculty-dean/api/student/<int:student_id>/results/', views.faculty_dean_student_results, name='faculty_dean_student_results'),
+    path('faculty-dean/api/student/<int:student_id>/reset-password/', views.faculty_dean_reset_password, name='faculty_dean_reset_password'),
     path('faculty-dean/api/progress-students/', views.faculty_dean_progress_students, name='faculty_dean_progress_students'),
 
     # Lecturer Professional Interface

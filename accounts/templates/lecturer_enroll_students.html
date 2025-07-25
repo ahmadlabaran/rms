@@ -43,9 +43,11 @@
                                     <option value="{{ assignment.course.id }}"
                                             data-level="{{ assignment.course.level.name }}">
                                         {{ assignment.course.code }} - {{ assignment.course.title }}
+                                        <small>(Faculty-wide enrollment)</small>
                                     </option>
                                     {% endfor %}
                                 </select>
+                                <small class="text-muted">Students from any department/level can be enrolled</small>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Academic Session</label>
@@ -63,14 +65,20 @@
                         <!-- Student Search and Selection -->
                         <div class="mb-4">
                             <label class="form-label fw-bold">Search and Select Students</label>
+                            <div class="alert alert-info py-2 mb-3">
+                                <small><i class="bi bi-info-circle me-1"></i>
+                                    <strong>Note:</strong> You can enroll students from any department and level within your faculty.
+                                    The course is not restricted to specific departments or levels.
+                                </small>
+                            </div>
                             <div class="card">
                                 <div class="card-header">
                                     <div class="row">
                                         <div class="col-md-8">
                                             <input type="text" class="form-control"
-                                                   placeholder="Search by matric number or name..."
+                                                   placeholder="Search by matric number or name (all departments & levels)..."
                                                    id="studentSearch" disabled>
-                                            <small class="text-muted">Select a course first to enable search</small>
+                                            <small class="text-muted">Select a course first to search across all faculty students</small>
                                         </div>
                                         <div class="col-md-4 text-end">
                                             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearSelected()">
@@ -127,13 +135,13 @@ document.addEventListener('DOMContentLoaded', function() {
     courseSelect.addEventListener('change', function() {
         if (this.value) {
             studentSearch.disabled = false;
-            studentSearch.placeholder = 'Search by matric number or name...';
-            studentSearch.nextElementSibling.textContent = 'Type to search for students';
+            studentSearch.placeholder = 'Search by matric number or name (all departments & levels)...';
+            studentSearch.nextElementSibling.textContent = 'Type to search across all faculty students - any department or level';
             clearSelected();
         } else {
             studentSearch.disabled = true;
-            studentSearch.placeholder = 'Search by matric number or name...';
-            studentSearch.nextElementSibling.textContent = 'Select a course first to enable search';
+            studentSearch.placeholder = 'Search by matric number or name (all departments & levels)...';
+            studentSearch.nextElementSibling.textContent = 'Select a course first to search across all faculty students';
             clearSelected();
         }
     });
@@ -204,7 +212,10 @@ function displaySearchResults(students) {
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <strong class="text-primary">${student.matric_number}</strong> - ${student.name}
-                                <br><small class="text-muted">${student.level} • ${student.department}</small>
+                                <br><small class="text-muted">
+                                    <span class="badge bg-info me-1">${student.level}</span>
+                                    <span class="badge bg-secondary">${student.department}</span>
+                                </small>
                             </div>
                             <button type="button" class="btn btn-sm ${isSelected ? 'btn-success' : 'btn-outline-primary'}"
                                     onclick="toggleStudent(${student.id}, '${student.matric_number}', '${student.name}', '${student.level}', '${student.department}')"
@@ -266,7 +277,10 @@ function updateSelectedStudentsDisplay() {
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <strong class="text-primary">${student.matricNumber}</strong> - ${student.name}
-                                <br><small class="text-muted">${student.level} • ${student.department}</small>
+                                <br><small class="text-muted">
+                                    <span class="badge bg-info me-1">${student.level}</span>
+                                    <span class="badge bg-secondary">${student.department}</span>
+                                </small>
                                 <input type="hidden" name="student_ids" value="${student.id}">
                             </div>
                             <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeStudent(${student.id})">

@@ -7261,17 +7261,21 @@ def lecturer_enroll_students(request):
                 if not CourseAssignment.objects.filter(lecturer=request.user, course=course).exists():
                     return JsonResponse({'error': 'Access denied'}, status=403)
 
-                # Search students by matric number or name
+                # Get the faculty from the course's departments
+                course_faculty = None
+                if course.departments.exists():
+                    course_faculty = course.departments.first().faculty
+
+                # Search students by matric number or name from the same faculty
                 students = Student.objects.filter(
                     Q(matric_number__icontains=search_query) |
                     Q(user__first_name__icontains=search_query) |
                     Q(user__last_name__icontains=search_query),
-                    department__in=course.departments.all(),
-                    current_level=course.level
+                    faculty=course_faculty  # Search across all departments in the faculty
                 ).exclude(
                     courseenrollment__course=course,
                     courseenrollment__session=course.session
-                ).select_related('user', 'current_level', 'department')[:10]  # Limit to 10 results
+                ).select_related('user', 'current_level', 'department')[:15]  # Increased limit to 15 results
 
                 student_data = []
                 for student in students:

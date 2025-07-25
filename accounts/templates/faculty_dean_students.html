@@ -3,6 +3,7 @@
 {% block title %}{{ faculty.name }} Students - Faculty Dean{% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <style>
     .card {
         background: #FFFFFF;
@@ -485,14 +486,35 @@ function editStudent(studentId) {
 }
 
 function updateStudent(studentId, modal) {
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (!csrfToken) {
+        alert('CSRF token not found. Please refresh the page.');
+        return;
+    }
+
+    // Get form elements
+    const firstNameEl = document.getElementById('editFirstName');
+    const middleNameEl = document.getElementById('editMiddleName');
+    const lastNameEl = document.getElementById('editLastName');
+    const emailEl = document.getElementById('editEmail');
+    const departmentEl = document.getElementById('editDepartment');
+    const levelEl = document.getElementById('editLevel');
+
+    // Check if all elements exist
+    if (!firstNameEl || !lastNameEl || !emailEl || !departmentEl || !levelEl) {
+        alert('Form elements not found. Please try again.');
+        return;
+    }
+
     const formData = new FormData();
-    formData.append('first_name', document.getElementById('editFirstName').value);
-    formData.append('middle_name', document.getElementById('editMiddleName').value);
-    formData.append('last_name', document.getElementById('editLastName').value);
-    formData.append('email', document.getElementById('editEmail').value);
-    formData.append('department_id', document.getElementById('editDepartment').value);
-    formData.append('level_id', document.getElementById('editLevel').value);
-    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    formData.append('first_name', firstNameEl.value);
+    formData.append('middle_name', middleNameEl ? middleNameEl.value : '');
+    formData.append('last_name', lastNameEl.value);
+    formData.append('email', emailEl.value);
+    formData.append('department_id', departmentEl.value);
+    formData.append('level_id', levelEl.value);
+    formData.append('csrfmiddlewaretoken', csrfToken.value);
 
     fetch(`/api/faculty-dean/api/student/${studentId}/edit/`, {
         method: 'POST',
@@ -542,7 +564,21 @@ function deleteStudent(studentId, matricNumber) {
 }
 
 function closeModal(element) {
-    element.closest('[style*="position: fixed"]').remove();
+    try {
+        const modal = element.closest('[style*="position: fixed"]');
+        if (modal) {
+            modal.remove();
+        } else {
+            // Fallback: remove any modal-like elements
+            const modals = document.querySelectorAll('div[style*="position: fixed"]');
+            modals.forEach(m => m.remove());
+        }
+    } catch (error) {
+        console.error('Error closing modal:', error);
+        // Force remove all modals
+        const modals = document.querySelectorAll('div[style*="position: fixed"]');
+        modals.forEach(m => m.remove());
+    }
 }
 
 function viewResults(studentId) {
@@ -623,8 +659,15 @@ function resetStudentPassword(studentId, matricNumber) {
         return;
     }
 
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (!csrfToken) {
+        alert('CSRF token not found. Please refresh the page.');
+        return;
+    }
+
     const formData = new FormData();
-    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    formData.append('csrfmiddlewaretoken', csrfToken.value);
 
     fetch(`/api/faculty-dean/api/student/${studentId}/reset-password/`, {
         method: 'POST',

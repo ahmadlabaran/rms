@@ -12,8 +12,9 @@
                 </div>
                 <div class="card-body">
                     <div class="alert alert-info">
-                        <strong>Format:</strong> first_name,last_name,matric_number,email,username,password<br>
-                        <strong>Example:</strong> John,Doe,CSC/24/0001,john.doe@student.edu.ng,john.doe,password123
+                        <strong>Format:</strong> first_name,middle_name,last_name,matric_number,email,username,password<br>
+                        <strong>Example:</strong> John,Michael,Doe,CSC/24/0001,john.doe@student.edu.ng,john.doe,CSC-24-0001<br>
+                        <small><strong>Note:</strong> Middle name can be empty. Use format: John,,Doe,CSC/24/0001,... for no middle name</small>
                     </div>
 
                     <form method="post">
@@ -43,7 +44,8 @@
                         <div class="mb-3">
                             <label class="form-label">Student Data</label>
                             <textarea name="students_data" class="form-control" rows="10"
-                                      placeholder="Enter student data here, one per line" required></textarea>
+                                      placeholder="Enter student data here, one per line&#10;Format: first_name,middle_name,last_name,matric_number,email,username,password" required></textarea>
+                            <div class="form-text">Format: first_name,middle_name,last_name,matric_number,email,username,password (middle name can be empty)</div>
                         </div>
 
                         <div class="d-flex gap-2">
@@ -61,9 +63,9 @@
 
 <script>
 function generateSample() {
-    const sample = `John,Doe,CSC/24/0001,john.doe@student.edu.ng,john.doe,password123
-Jane,Smith,CSC/24/0002,jane.smith@student.edu.ng,jane.smith,password456
-Michael,Johnson,CSC/24/0003,michael.johnson@student.edu.ng,michael.johnson,password789`;
+    const sample = `John,Michael,Doe,CSC/24/0001,john.doe@student.edu.ng,john.doe,CSC-24-0001
+Jane,,Smith,CSC/24/0002,jane.smith@student.edu.ng,jane.smith,CSC-24-0002
+Michael,David,Johnson,CSC/24/0003,michael.johnson@student.edu.ng,michael.johnson,CSC-24-0003`;
     document.querySelector('textarea[name="students_data"]').value = sample;
 }
 

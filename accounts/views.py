@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.db import transaction
 from django.views.decorators.http import require_http_methods
 import json
+from .security import sanitize_input, validate_email, validate_username, validate_matric_number, validate_name
 
 from .models import (
     AcademicSession, Faculty, Department, Level, Course, CourseAssignment,
@@ -9410,19 +9411,46 @@ def faculty_dean_create_student(request):
         return redirect('dashboard')
 
     if request.method == 'POST':
-        # Get form data
-        first_name = request.POST.get('first_name', '').strip()
-        last_name = request.POST.get('last_name', '').strip()
-        matric_number = request.POST.get('matric_number', '').strip().upper()
-        email = request.POST.get('email', '').strip().lower()
-        username = request.POST.get('username', '').strip().lower()
-        password = request.POST.get('password', '').strip()
+        # Get and sanitize form data
+        first_name = sanitize_input(request.POST.get('first_name', '').strip())
+        middle_name = sanitize_input(request.POST.get('middle_name', '').strip())
+        last_name = sanitize_input(request.POST.get('last_name', '').strip())
+        matric_number = sanitize_input(request.POST.get('matric_number', '').strip().upper())
+        email = sanitize_input(request.POST.get('email', '').strip().lower())
+        username = sanitize_input(request.POST.get('username', '').strip().lower())
+        password = request.POST.get('password', '').strip()  # Don't sanitize password
         department_id = request.POST.get('department_id')
         level_id = request.POST.get('level_id')
 
-        # Validation
-        if not all([first_name, last_name, matric_number, email, username, password, department_id, level_id]):
-            messages.error(request, 'All fields are required.')
+        # Validation - middle name is optional
+        required_fields = [first_name, last_name, matric_number, email, username, password, department_id, level_id]
+        if not all(required_fields):
+            messages.error(request, 'All fields except middle name are required.')
+            return redirect('faculty_dean_create_student')
+
+        # Security validations
+        if not validate_name(first_name):
+            messages.error(request, 'First name contains invalid characters.')
+            return redirect('faculty_dean_create_student')
+
+        if middle_name and not validate_name(middle_name):
+            messages.error(request, 'Middle name contains invalid characters.')
+            return redirect('faculty_dean_create_student')
+
+        if not validate_name(last_name):
+            messages.error(request, 'Last name contains invalid characters.')
+            return redirect('faculty_dean_create_student')
+
+        if not validate_email(email):
+            messages.error(request, 'Please enter a valid email address.')
+            return redirect('faculty_dean_create_student')
+
+        if not validate_username(username):
+            messages.error(request, 'Username can only contain letters, numbers, dots, and underscores.')
+            return redirect('faculty_dean_create_student')
+
+        if not validate_matric_number(matric_number):
+            messages.error(request, 'Invalid matriculation number format.')
             return redirect('faculty_dean_create_student')
 
         # Check if matric number already exists
@@ -9449,13 +9477,14 @@ def faculty_dean_create_student(request):
                 messages.error(request, 'No active academic session found.')
                 return redirect('faculty_dean_create_student')
 
-            # Create user account
+            # Create user account with proper password hashing
+            full_first_name = f"{first_name} {middle_name}".strip() if middle_name else first_name
             user = User.objects.create_user(
                 username=username,
                 email=email,
-                first_name=first_name,
+                first_name=full_first_name,
                 last_name=last_name,
-                password=password
+                password=password  # Django automatically hashes this
             )
 
             # Create student profile
@@ -9546,7 +9575,7 @@ def faculty_dean_bulk_create_students(request):
                 messages.error(request, 'No active academic session found.')
                 return redirect('faculty_dean_bulk_create_students')
 
-            # Parse students data (CSV format: first_name,last_name,matric_number,email,username,password)
+            # Parse students data (CSV format: first_name,middle_name,last_name,matric_number,email,username,password)
             lines = students_data.strip().split('\n')
             created_count = 0
             errors = []
@@ -9556,11 +9585,15 @@ def faculty_dean_bulk_create_students(request):
                     continue
 
                 parts = [part.strip() for part in line.split(',')]
-                if len(parts) != 6:
-                    errors.append(f'Line {line_num}: Invalid format. Expected 6 fields, got {len(parts)}')
+                if len(parts) not in [6, 7]:  # Allow 6 (no middle name) or 7 (with middle name)
+                    errors.append(f'Line {line_num}: Invalid format. Expected 6-7 fields, got {len(parts)}')
                     continue
 
-                first_name, last_name, matric_number, email, username, password = parts
+                if len(parts) == 6:
+                    first_name, last_name, matric_number, email, username, password = parts
+                    middle_name = ''
+                else:
+                    first_name, middle_name, last_name, matric_number, email, username, password = parts
                 matric_number = matric_number.upper()
                 email = email.lower()
                 username = username.lower()
@@ -9584,13 +9617,14 @@ def faculty_dean_bulk_create_students(request):
                     continue
 
                 try:
-                    # Create user account
+                    # Create user account with proper password hashing
+                    full_first_name = f"{first_name} {middle_name}".strip() if middle_name else first_name
                     user = User.objects.create_user(
                         username=username,
                         email=email,
-                        first_name=first_name,
+                        first_name=full_first_name,
                         last_name=last_name,
-                        password=password
+                        password=password  # Django automatically hashes this
                     )
 
                     # Create student profile
@@ -9732,13 +9766,20 @@ def faculty_dean_edit_student(request, student_id):
 
     # Get form data
     first_name = request.POST.get('first_name', '').strip()
+    middle_name = request.POST.get('middle_name', '').strip()
     last_name = request.POST.get('last_name', '').strip()
     email = request.POST.get('email', '').strip().lower()
     department_id = request.POST.get('department_id')
     level_id = request.POST.get('level_id')
 
     if not all([first_name, last_name, email, department_id, level_id]):
-        return JsonResponse({'error': 'All fields are required'}, status=400)
+        return JsonResponse({'error': 'All fields except middle name are required'}, status=400)
+
+    # Email validation
+    import re
+    email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+    if not re.match(email_regex, email):
+        return JsonResponse({'error': 'Please enter a valid email address'}, status=400)
 
     try:
         department = Department.objects.get(id=department_id, faculty=faculty)
@@ -9749,7 +9790,8 @@ def faculty_dean_edit_student(request, student_id):
             return JsonResponse({'error': f'Email {email} already exists'}, status=400)
 
         # Update user details
-        student.user.first_name = first_name
+        full_first_name = f"{first_name} {middle_name}".strip() if middle_name else first_name
+        student.user.first_name = full_first_name
         student.user.last_name = last_name
         student.user.email = email
         student.user.save()

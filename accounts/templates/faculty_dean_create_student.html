@@ -15,11 +15,15 @@
                         {% csrf_token %}
 
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label class="form-label">First Name</label>
                                 <input type="text" name="first_name" class="form-control" required>
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Middle Name(s) <small class="text-muted">(Optional)</small></label>
+                                <input type="text" name="middle_name" class="form-control">
+                            </div>
+                            <div class="col-md-4 mb-3">
                                 <label class="form-label">Last Name</label>
                                 <input type="text" name="last_name" class="form-control" required>
                             </div>
@@ -54,10 +58,7 @@
                                     {% endfor %}
                                 </select>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Email</label>
-                                <input type="email" name="email" class="form-control" required>
-                            </div>
+
                         </div>
 
                         <div class="row">
@@ -66,10 +67,20 @@
                                 <input type="text" name="username" class="form-control" required>
                             </div>
                             <div class="col-md-6 mb-3">
+                                <label class="form-label">Email Address</label>
+                                <input type="email" name="email" class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label">Password</label>
                                 <div class="input-group">
                                     <input type="password" name="password" id="password" class="form-control" required>
-                                    <button type="button" class="btn btn-outline-secondary" onclick="generatePassword()">Generate</button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="togglePassword()">
+                                        <i class="bi bi-eye" id="passwordToggleIcon"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="generatePasswordFromMatric()">Generate</button>
                                 </div>
                             </div>
                         </div>
@@ -99,34 +110,58 @@ function generateMatricNumber() {
         .catch(error => alert('Error generating matric number'));
 }
 
-function generatePassword() {
-    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-    let password = '';
-    for (let i = 0; i < 8; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
+function generatePasswordFromMatric() {
+    const matricNumber = document.getElementById('matricNumber').value;
+    if (matricNumber) {
+        // Replace / with - for password
+        const password = matricNumber.replace(/\//g, '-');
+        document.getElementById('password').value = password;
+    } else {
+        alert('Please enter or generate a matric number first');
     }
-    document.getElementById('password').value = password;
 }
 
-// Auto-generate username and email
+function togglePassword() {
+    const passwordField = document.getElementById('password');
+    const toggleIcon = document.getElementById('passwordToggleIcon');
+
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        toggleIcon.className = 'bi bi-eye-slash';
+    } else {
+        passwordField.type = 'password';
+        toggleIcon.className = 'bi bi-eye';
+    }
+}
+
+// Auto-generate username from names
 document.addEventListener('DOMContentLoaded', function() {
     const firstNameInput = document.querySelector('input[name="first_name"]');
     const lastNameInput = document.querySelector('input[name="last_name"]');
     const usernameInput = document.querySelector('input[name="username"]');
-    const emailInput = document.querySelector('input[name="email"]');
 
-    function updateFields() {
+    function updateUsername() {
         const firstName = firstNameInput.value.trim().toLowerCase();
         const lastName = lastNameInput.value.trim().toLowerCase();
         if (firstName && lastName) {
             const username = firstName + '.' + lastName;
             usernameInput.value = username;
-            emailInput.value = username + '@student.edu.ng';
         }
     }
 
-    firstNameInput.addEventListener('input', updateFields);
-    lastNameInput.addEventListener('input', updateFields);
+    firstNameInput.addEventListener('input', updateUsername);
+    lastNameInput.addEventListener('input', updateUsername);
+
+    // Email validation
+    const emailInput = document.querySelector('input[name="email"]');
+    emailInput.addEventListener('blur', function() {
+        const email = this.value;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (email && !emailRegex.test(email)) {
+            alert('Please enter a valid email address');
+            this.focus();
+        }
+    });
 });
 </script>
 

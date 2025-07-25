@@ -19,7 +19,7 @@ import json
 from .security import sanitize_input, validate_email, validate_username, validate_matric_number, validate_name
 
 from .models import (
-    AcademicSession, Faculty, Department, Level, Course, CourseAssignment,
+    AcademicSession, Faculty, Department, Level, Course, CourseAssignment, CourseThreshold,
     Student, UserRole, AlternativeLogin, Notification, AuditLog, CourseEnrollment,
     Result, ResultApproval, CarryOverList, GradingScale, GradeRange, CarryOverCriteria,
     StudentComplaint, PermissionDelegation, LevelProgression
@@ -7456,6 +7456,7 @@ def lecturer_enter_results(request):
     selected_course = None
     selected_session = None
     enrolled_students = None
+    course_threshold = None
 
     # Get selected course and session
     course_id = request.GET.get('course_id') or request.POST.get('course_id')
@@ -7477,8 +7478,18 @@ def lecturer_enter_results(request):
                 session=selected_session
             ).select_related('student', 'student__user', 'result')
 
-            # Result data is already available through select_related('result')
-            # No need for additional processing since OneToOneField is directly accessible
+            # Get course assignment and threshold
+            course_assignment = CourseAssignment.objects.filter(
+                course=selected_course,
+                lecturer=request.user
+            ).first()
+
+            course_threshold = None
+            if course_assignment:
+                try:
+                    course_threshold = course_assignment.threshold
+                except CourseThreshold.DoesNotExist:
+                    course_threshold = None
 
         except (Course.DoesNotExist, AcademicSession.DoesNotExist):
             messages.error(request, 'Invalid course or session selected.')
@@ -7496,7 +7507,26 @@ def lecturer_enter_results(request):
             session=selected_session
         ).select_related('student', 'student__user', 'result')
 
+        # Get course threshold for validation
+        course_assignment = CourseAssignment.objects.filter(
+            course=selected_course,
+            lecturer=request.user
+        ).first()
+
+        course_threshold = None
+        if course_assignment:
+            try:
+                course_threshold = course_assignment.threshold
+            except CourseThreshold.DoesNotExist:
+                course_threshold = None
+
+        # Set default thresholds if none exist
+        ca_max = course_threshold.ca_max_score if course_threshold else 30.0
+        exam_max = course_threshold.exam_max_score if course_threshold else 70.0
+
         try:
+            validation_errors = []
+
             for enrollment in enrolled_students_for_post:
                 ca_score = request.POST.get(f'ca_score_{enrollment.id}')
                 exam_score = request.POST.get(f'exam_score_{enrollment.id}')
@@ -7504,6 +7534,16 @@ def lecturer_enter_results(request):
                 if ca_score or exam_score:
                     ca_score = float(ca_score) if ca_score else 0
                     exam_score = float(exam_score) if exam_score else 0
+
+                    # Validate against thresholds
+                    if ca_score > ca_max:
+                        validation_errors.append(f"{enrollment.student.matric_number}: CA score ({ca_score}) exceeds maximum ({ca_max})")
+                        continue
+
+                    if exam_score > exam_max:
+                        validation_errors.append(f"{enrollment.student.matric_number}: Exam score ({exam_score}) exceeds maximum ({exam_max})")
+                        continue
+
                     total_score = ca_score + exam_score
 
                     # Calculate grade
@@ -7544,6 +7584,15 @@ def lecturer_enter_results(request):
 
                     print(f"Result {'created' if created else 'updated'} for enrollment {enrollment.id} with status: {result.status}")
 
+            # Check for validation errors
+            if validation_errors:
+                error_message = "Score validation errors:\n" + "\n".join(validation_errors)
+                if save_as_draft:
+                    return JsonResponse({'success': False, 'error': error_message})
+                else:
+                    messages.error(request, error_message)
+                    return redirect('lecturer_enter_results')
+
             if save_as_draft:
                 return JsonResponse({'success': True, 'message': 'Results saved as draft'})
             else:
@@ -7562,6 +7611,7 @@ def lecturer_enter_results(request):
         'selected_course': selected_course,
         'selected_session': selected_session,
         'enrolled_students': enrolled_students,
+        'course_threshold': course_threshold,
     }
 
     return render(request, 'lecturer_enter_results.html', context)
@@ -7758,6 +7808,91 @@ def lecturer_student_details(request, student_id):
         return JsonResponse({'error': 'Student not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+def lecturer_course_thresholds(request):
+    """View for lecturers to set CA and Exam score thresholds for their courses"""
+    # Check if user has Lecturer role
+    lecturer_roles = UserRole.objects.filter(user=request.user, role='LECTURER')
+    if not lecturer_roles.exists():
+        messages.error(request, 'Access denied. Lecturer role required.')
+        return redirect('dashboard')
+
+    # Get lecturer's assigned courses with their thresholds
+    assigned_courses = CourseAssignment.objects.filter(
+        lecturer=request.user
+    ).select_related('course', 'course__level', 'course__session').prefetch_related('course__departments')
+
+    # Handle POST request to update thresholds
+    if request.method == 'POST':
+        course_assignment_id = request.POST.get('course_assignment_id')
+        ca_max_score = request.POST.get('ca_max_score')
+        exam_max_score = request.POST.get('exam_max_score')
+
+        try:
+            course_assignment = CourseAssignment.objects.get(
+                id=course_assignment_id,
+                lecturer=request.user
+            )
+
+            # Validate scores
+            ca_max_score = float(ca_max_score) if ca_max_score else 30.0
+            exam_max_score = float(exam_max_score) if exam_max_score else 70.0
+
+            if ca_max_score < 0 or ca_max_score > 100:
+                messages.error(request, 'CA max score must be between 0 and 100.')
+                return redirect('lecturer_course_thresholds')
+
+            if exam_max_score < 0 or exam_max_score > 100:
+                messages.error(request, 'Exam max score must be between 0 and 100.')
+                return redirect('lecturer_course_thresholds')
+
+            # Create or update threshold
+            threshold, created = CourseThreshold.objects.get_or_create(
+                course_assignment=course_assignment,
+                defaults={
+                    'ca_max_score': ca_max_score,
+                    'exam_max_score': exam_max_score
+                }
+            )
+
+            if not created:
+                threshold.ca_max_score = ca_max_score
+                threshold.exam_max_score = exam_max_score
+                threshold.save()
+
+            action = 'created' if created else 'updated'
+            messages.success(request, f'Score thresholds {action} successfully for {course_assignment.course.code}!')
+
+            # Log the action
+            AuditLog.objects.create(
+                user=request.user,
+                action='SET_COURSE_THRESHOLD',
+                description=f'Set thresholds for {course_assignment.course.code}: CA={ca_max_score}, Exam={exam_max_score}',
+                level='INFO'
+            )
+
+        except CourseAssignment.DoesNotExist:
+            messages.error(request, 'Invalid course assignment.')
+        except ValueError:
+            messages.error(request, 'Invalid score values. Please enter valid numbers.')
+        except Exception as e:
+            messages.error(request, f'Error setting thresholds: {str(e)}')
+
+        return redirect('lecturer_course_thresholds')
+
+    # Add threshold data to each assignment
+    for assignment in assigned_courses:
+        try:
+            assignment.threshold_obj = assignment.threshold
+        except CourseThreshold.DoesNotExist:
+            assignment.threshold_obj = None
+
+    context = {
+        'assigned_courses': assigned_courses,
+    }
+
+    return render(request, 'lecturer_course_thresholds.html', context)
 
 @login_required
 def lecturer_unenroll_student(request, enrollment_id):

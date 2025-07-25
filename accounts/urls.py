@@ -196,6 +196,7 @@ urlpatterns = [
     path('lecturer/course/<int:course_id>/results/', views.lecturer_course_results, name='lecturer_course_results'),
     path('lecturer/student/<int:student_id>/details/', views.lecturer_student_details, name='lecturer_student_details'),
     path('lecturer/enrollment/<int:enrollment_id>/unenroll/', views.lecturer_unenroll_student, name='lecturer_unenroll_student'),
+    path('lecturer/course-thresholds/', views.lecturer_course_thresholds, name='lecturer_course_thresholds'),
 
     # Exam Officer Professional Interface
     path('exam-officer/', views.exam_officer_dashboard, name='exam_officer_dashboard'),

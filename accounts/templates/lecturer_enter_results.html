@@ -74,9 +74,26 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h5 class="mb-0 fw-bold">{{ selected_course.code }} - {{ selected_course.title }}</h5>
-                            <small class="text-muted">{{ enrolled_students.count }} students enrolled</small>
+                            <div class="d-flex align-items-center gap-3">
+                                <small class="text-muted">{{ enrolled_students.count }} students enrolled</small>
+                                {% if course_threshold %}
+                                <small class="text-info">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Max Scores: CA = {{ course_threshold.ca_max_score }}, Exam = {{ course_threshold.exam_max_score }}
+                                </small>
+                                {% else %}
+                                <small class="text-warning">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    Default Max: CA = 30, Exam = 70
+                                    <a href="{% url 'lecturer_course_thresholds' %}" class="text-primary">Set Custom</a>
+                                </small>
+                                {% endif %}
+                            </div>
                         </div>
                         <div>
+                            <a href="{% url 'lecturer_course_thresholds' %}" class="btn btn-outline-secondary btn-sm me-2">
+                                <i class="bi bi-gear me-1"></i>Thresholds
+                            </a>
                             <button type="button" class="btn btn-outline-info btn-sm" onclick="calculateTotals()">
                                 <i class="bi bi-calculator me-1"></i>Calculate All
                             </button>
@@ -225,6 +242,10 @@
 </div>
 
 <script>
+// Get threshold values from template
+const caMaxScore = {% if course_threshold %}{{ course_threshold.ca_max_score }}{% else %}30{% endif %};
+const examMaxScore = {% if course_threshold %}{{ course_threshold.exam_max_score }}{% else %}70{% endif %};
+
 function calculateTotal(enrollmentId) {
     const caInput = document.querySelector(`input[name="ca_score_${enrollmentId}"]`);
     const examInput = document.querySelector(`input[name="exam_score_${enrollmentId}"]`);
@@ -235,6 +256,26 @@ function calculateTotal(enrollmentId) {
 
     const caScore = parseFloat(caInput.value) || 0;
     const examScore = parseFloat(examInput.value) || 0;
+
+    // Validate against thresholds
+    if (caScore > caMaxScore) {
+        caInput.classList.add('is-invalid');
+        caInput.title = `Maximum CA score is ${caMaxScore}`;
+        return;
+    } else {
+        caInput.classList.remove('is-invalid');
+        caInput.title = '';
+    }
+
+    if (examScore > examMaxScore) {
+        examInput.classList.add('is-invalid');
+        examInput.title = `Maximum Exam score is ${examMaxScore}`;
+        return;
+    } else {
+        examInput.classList.remove('is-invalid');
+        examInput.title = '';
+    }
+
     const total = caScore + examScore;
 
     if (totalInput) totalInput.value = total.toFixed(2);

@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% load role_tags %}
+
+{% block title %}Course Score Thresholds - Lecturer{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Delegation Status Badges -->
+    {% show_delegation_badges user %}
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">Course Score Thresholds</h1>
+                            <p class="mb-0 opacity-75">Set maximum CA and Exam scores for your courses</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">
+                                <div class="h3 fw-bold mb-0">{{ assigned_courses.count }}</div>
+                                <small class="opacity-75">Your Courses</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Alert -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <div class="d-flex">
+                    <div class="me-3">
+                        <i class="bi bi-info-circle-fill fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="alert-heading">About Score Thresholds</h5>
+                        <p class="mb-2">Set maximum scores for CA (Continuous Assessment) and Exam components of your courses.</p>
+                        <ul class="mb-0">
+                            <li><strong>Default:</strong> CA = 30, Exam = 70 (traditional 30/70 split)</li>
+                            <li><strong>Validation:</strong> Students cannot enter scores above your set thresholds</li>
+                            <li><strong>Flexibility:</strong> You can customize thresholds for each course individually</li>
+                            <li><strong>Updates:</strong> Changes apply immediately to result entry forms</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Thresholds -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">Your Course Thresholds</h5>
+                    <a href="{% url 'lecturer_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if assigned_courses %}
+                        <div class="row">
+                            {% for assignment in assigned_courses %}
+                            <div class="col-lg-6 col-xl-4 mb-4">
+                                <div class="card h-100 border-primary">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="mb-0 fw-bold">{{ assignment.course.code }}</h6>
+                                        <small class="opacity-75">{{ assignment.course.title }}</small>
+                                    </div>
+                                    <div class="card-body">
+                                        <form method="post" class="threshold-form">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="course_assignment_id" value="{{ assignment.id }}">
+                                            
+                                            <div class="row mb-3">
+                                                <div class="col-6">
+                                                    <label class="form-label fw-bold">CA Max Score</label>
+                                                    <input type="number" 
+                                                           name="ca_max_score" 
+                                                           class="form-control" 
+                                                           value="{% if assignment.threshold_obj %}{{ assignment.threshold_obj.ca_max_score }}{% else %}30{% endif %}"
+                                                           min="0" 
+                                                           max="100" 
+                                                           step="0.01" 
+                                                           required>
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label fw-bold">Exam Max Score</label>
+                                                    <input type="number" 
+                                                           name="exam_max_score" 
+                                                           class="form-control" 
+                                                           value="{% if assignment.threshold_obj %}{{ assignment.threshold_obj.exam_max_score }}{% else %}70{% endif %}"
+                                                           min="0" 
+                                                           max="100" 
+                                                           step="0.01" 
+                                                           required>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <small class="text-muted">
+                                                    <strong>Total Max:</strong> 
+                                                    <span class="total-display">
+                                                        {% if assignment.threshold_obj %}
+                                                            {{ assignment.threshold_obj.total_max_score }}
+                                                        {% else %}
+                                                            100
+                                                        {% endif %}
+                                                    </span>
+                                                </small>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <div class="row text-center">
+                                                    <div class="col-6">
+                                                        <div class="bg-light p-2 rounded">
+                                                            <small class="text-muted d-block">Level</small>
+                                                            <span class="badge bg-info">{{ assignment.course.level.name }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <div class="bg-light p-2 rounded">
+                                                            <small class="text-muted d-block">Session</small>
+                                                            <span class="badge bg-secondary">{{ assignment.course.session.name }}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="d-grid">
+                                                <button type="submit" class="btn btn-success">
+                                                    <i class="bi bi-check-circle me-1"></i>
+                                                    {% if assignment.threshold_obj %}Update{% else %}Set{% endif %} Thresholds
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    {% if assignment.threshold_obj %}
+                                    <div class="card-footer bg-light">
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock me-1"></i>
+                                            Last updated: {{ assignment.threshold_obj.updated_at|date:"M d, Y H:i" }}
+                                        </small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="bi bi-book display-1 text-muted"></i>
+                            </div>
+                            <h4 class="text-muted">No Courses Assigned</h4>
+                            <p class="text-muted">You don't have any courses assigned yet.</p>
+                            <a href="{% url 'lecturer_dashboard' %}" class="btn btn-primary">
+                                <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Update total when CA or Exam scores change
+    document.querySelectorAll('.threshold-form').forEach(form => {
+        const caInput = form.querySelector('input[name="ca_max_score"]');
+        const examInput = form.querySelector('input[name="exam_max_score"]');
+        const totalDisplay = form.querySelector('.total-display');
+        
+        function updateTotal() {
+            const caScore = parseFloat(caInput.value) || 0;
+            const examScore = parseFloat(examInput.value) || 0;
+            const total = caScore + examScore;
+            totalDisplay.textContent = total.toFixed(2);
+            
+            // Color coding for total
+            if (total === 100) {
+                totalDisplay.className = 'text-success fw-bold';
+            } else if (total > 100) {
+                totalDisplay.className = 'text-danger fw-bold';
+            } else {
+                totalDisplay.className = 'text-warning fw-bold';
+            }
+        }
+        
+        caInput.addEventListener('input', updateTotal);
+        examInput.addEventListener('input', updateTotal);
+        
+        // Initial calculation
+        updateTotal();
+    });
+    
+    // Form validation
+    document.querySelectorAll('.threshold-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const caScore = parseFloat(form.querySelector('input[name="ca_max_score"]').value) || 0;
+            const examScore = parseFloat(form.querySelector('input[name="exam_max_score"]').value) || 0;
+            
+            if (caScore < 0 || caScore > 100) {
+                e.preventDefault();
+                alert('CA max score must be between 0 and 100.');
+                return;
+            }
+            
+            if (examScore < 0 || examScore > 100) {
+                e.preventDefault();
+                alert('Exam max score must be between 0 and 100.');
+                return;
+            }
+            
+            if (caScore + examScore <= 0) {
+                e.preventDefault();
+                alert('Total max score must be greater than 0.');
+                return;
+            }
+            
+            // Confirm if total is not 100
+            const total = caScore + examScore;
+            if (total !== 100) {
+                if (!confirm(`Total max score is ${total.toFixed(2)} (not 100). Are you sure you want to continue?`)) {
+                    e.preventDefault();
+                    return;
+                }
+            }
+        });
+    });
+});
+</script>
+
+{% endblock %}

@@ -74,6 +74,32 @@ class CourseAssignment(models.Model):
     assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='assigned_courses')  # Faculty Dean
     assigned_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f"{self.lecturer.get_full_name()} - {self.course.code}"
+
+
+class CourseThreshold(models.Model):
+    """Model to store CA and Exam score thresholds set by lecturers for their courses"""
+    course_assignment = models.OneToOneField(CourseAssignment, on_delete=models.CASCADE, related_name='threshold')
+    ca_max_score = models.DecimalField(max_digits=5, decimal_places=2, default=30.00,
+                                      help_text="Maximum CA score (default: 30)")
+    exam_max_score = models.DecimalField(max_digits=5, decimal_places=2, default=70.00,
+                                        help_text="Maximum Exam score (default: 70)")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Course Threshold"
+        verbose_name_plural = "Course Thresholds"
+
+    def __str__(self):
+        return f"{self.course_assignment.course.code} - CA:{self.ca_max_score}, Exam:{self.exam_max_score}"
+
+    @property
+    def total_max_score(self):
+        return self.ca_max_score + self.exam_max_score
+
+
 class Student(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='student_profile', null=True, blank=True)
     matric_number = models.CharField(max_length=20, unique=True)

@@ -251,11 +251,7 @@
                                placeholder="e.g., 15" min="1" max="52" value="15">
                     </div>
                     
-                    <div class="form-group">
-                        <label class="form-label" for="max_students">Maximum Class Size</label>
-                        <input type="number" id="max_students" name="max_students" class="form-input" 
-                               placeholder="e.g., 50" min="1" max="500">
-                    </div>
+
                 </div>
                 
                 <div class="form-row">
@@ -265,17 +261,7 @@
                                placeholder="e.g., 3" min="0" max="10" value="3">
                     </div>
                     
-                    <div class="form-group">
-                        <label class="form-label" for="tutorial_hours">Tutorial Hours/Week</label>
-                        <input type="number" id="tutorial_hours" name="tutorial_hours" class="form-input" 
-                               placeholder="e.g., 1" min="0" max="10" value="0">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label" for="practical_hours">Practical Hours/Week</label>
-                        <input type="number" id="practical_hours" name="practical_hours" class="form-input" 
-                               placeholder="e.g., 2" min="0" max="10" value="0">
-                    </div>
+
                 </div>
             </div>
             
@@ -303,69 +289,10 @@
                     </div>
                 </div>
                 
-                <div class="form-group">
-                    <label class="form-label">Assessment Methods</label>
-                    <div class="checkbox-grid">
-                        <label class="checkbox-item">
-                            <input type="checkbox" name="assessment_methods" value="ASSIGNMENTS" style="transform: scale(1.2);">
-                            <span>Assignments</span>
-                        </label>
-                        <label class="checkbox-item">
-                            <input type="checkbox" name="assessment_methods" value="QUIZZES" style="transform: scale(1.2);">
-                            <span>Quizzes</span>
-                        </label>
-                        <label class="checkbox-item">
-                            <input type="checkbox" name="assessment_methods" value="PRACTICALS" style="transform: scale(1.2);">
-                            <span>Practicals</span>
-                        </label>
-                        <label class="checkbox-item">
-                            <input type="checkbox" name="assessment_methods" value="PROJECTS" style="transform: scale(1.2);">
-                            <span>Projects</span>
-                        </label>
-                        <label class="checkbox-item">
-                            <input type="checkbox" name="assessment_methods" value="PRESENTATIONS" style="transform: scale(1.2);">
-                            <span>Presentations</span>
-                        </label>
-                        <label class="checkbox-item">
-                            <input type="checkbox" name="assessment_methods" value="MIDTERM" style="transform: scale(1.2);">
-                            <span>Mid-term Exam</span>
-                        </label>
-                    </div>
-                </div>
+
             </div>
             
-            <!-- Prerequisites & Requirements -->
-            <div class="form-section">
-                <h3 class="section-title">
-                    ⚡ Prerequisites & Requirements
-                </h3>
-                
-                <div class="form-row">
-                    <div class="form-group" style="grid-column: 1 / -1;">
-                        <label class="form-label" for="prerequisites">Prerequisites</label>
-                        <textarea id="prerequisites" name="prerequisites" class="form-input" rows="2" 
-                                  placeholder="List any prerequisite courses, minimum CGPA, or other requirements..."></textarea>
-                    </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label" for="min_level">Minimum Level Required</label>
-                        <select id="min_level" name="min_level" class="form-input">
-                            <option value="">No specific requirement</option>
-                            {% for level in levels %}
-                            <option value="{{ level.id }}">{{ level.name }} and above</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label" for="min_cgpa">Minimum CGPA</label>
-                        <input type="number" id="min_cgpa" name="min_cgpa" class="form-input" 
-                               placeholder="e.g., 2.5" min="0" max="5" step="0.1">
-                    </div>
-                </div>
-            </div>
+
             
             <!-- Form Actions -->
             <div style="display: flex; gap: 16px; justify-content: space-between; margin-top: 32px; flex-wrap: wrap;">

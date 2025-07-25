@@ -40,9 +40,8 @@
                                 <select name="course_id" class="form-select" required id="courseSelect">
                                     <option value="">Choose a course...</option>
                                     {% for assignment in assigned_courses %}
-                                    <option value="{{ assignment.course.id }}" 
-                                            data-level="{{ assignment.course.level.name }}"
-                                            data-department="{{ assignment.course.department.id }}">
+                                    <option value="{{ assignment.course.id }}"
+                                            data-level="{{ assignment.course.level.name }}">
                                         {{ assignment.course.code }} - {{ assignment.course.title }}
                                     </option>
                                     {% endfor %}

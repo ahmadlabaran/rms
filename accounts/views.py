@@ -7243,7 +7243,7 @@ def lecturer_enroll_students(request):
     # Get lecturer's assigned courses
     assigned_courses = CourseAssignment.objects.filter(
         lecturer=request.user
-    ).select_related('course', 'course__level', 'course__department')
+    ).select_related('course', 'course__level', 'course__session').prefetch_related('course__departments')
 
     # Get sessions
     sessions = AcademicSession.objects.all().order_by('-start_date')
@@ -7293,9 +7293,9 @@ def lecturer_enroll_students(request):
     if course_id:
         try:
             course = Course.objects.get(id=course_id)
-            # Get students from the same department and appropriate level
+            # Get students from the same departments and appropriate level
             eligible_students = Student.objects.filter(
-                department=course.department,
+                department__in=course.departments.all(),
                 current_level=course.level
             ).exclude(
                 courseenrollment__course=course
@@ -7335,7 +7335,7 @@ def lecturer_courses(request):
     # Get lecturer's assigned courses
     assigned_courses = CourseAssignment.objects.filter(
         lecturer=request.user
-    ).select_related('course', 'course__level', 'course__department', 'session')
+    ).select_related('course', 'course__level', 'course__session').prefetch_related('course__departments')
 
     # Get sessions for filtering
     sessions = AcademicSession.objects.all().order_by('-start_date')
@@ -7344,13 +7344,13 @@ def lecturer_courses(request):
     for assignment in assigned_courses:
         assignment.enrolled_count = CourseEnrollment.objects.filter(
             course=assignment.course,
-            session=assignment.session
+            session=assignment.course.session
         ).count()
 
         # Get result statistics
         enrollments = CourseEnrollment.objects.filter(
             course=assignment.course,
-            session=assignment.session
+            session=assignment.course.session
         )
         assignment.draft_count = Result.objects.filter(
             enrollment__in=enrollments,
@@ -7388,7 +7388,7 @@ def lecturer_enter_results(request):
     # Get lecturer's assigned courses
     assigned_courses = CourseAssignment.objects.filter(
         lecturer=request.user
-    ).select_related('course', 'course__level', 'course__department')
+    ).select_related('course', 'course__level', 'course__session').prefetch_related('course__departments')
 
     # Get sessions
     sessions = AcademicSession.objects.all().order_by('-start_date')
@@ -7523,7 +7523,7 @@ def lecturer_result_status(request):
     # Get lecturer's courses with results
     assigned_courses = CourseAssignment.objects.filter(
         lecturer=request.user
-    ).select_related('course', 'session')
+    ).select_related('course', 'course__session')
 
     # Get all result submissions
     result_submissions = []
@@ -7531,7 +7531,7 @@ def lecturer_result_status(request):
     for assignment in assigned_courses:
         enrollments = CourseEnrollment.objects.filter(
             course=assignment.course,
-            session=assignment.session
+            session=assignment.course.session
         )
 
         if enrollments.exists():
@@ -7553,7 +7553,7 @@ def lecturer_result_status(request):
 
                 submission_data = {
                     'course': assignment.course,
-                    'session': assignment.session,
+                    'session': assignment.course.session,
                     'status': latest_result.status if latest_result else 'DRAFT',
                     'student_count': enrollments.count(),
                     'total_results': total_results,

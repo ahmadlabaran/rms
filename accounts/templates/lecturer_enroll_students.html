@@ -43,7 +43,11 @@
                                     <option value="{{ assignment.course.id }}"
                                             data-level="{{ assignment.course.level.name }}">
                                         {{ assignment.course.code }} - {{ assignment.course.title }}
-                                        <small>(Faculty-wide enrollment)</small>
+                                        {% if 'general' in assignment.course.code|lower or 'gst' in assignment.course.code|lower or 'gns' in assignment.course.code|lower or 'general studies' in assignment.course.title|lower %}
+                                            <small>(University-wide enrollment)</small>
+                                        {% else %}
+                                            <small>(Faculty-wide enrollment)</small>
+                                        {% endif %}
                                     </option>
                                     {% endfor %}
                                 </select>
@@ -65,7 +69,7 @@
                         <!-- Student Search and Selection -->
                         <div class="mb-4">
                             <label class="form-label fw-bold">Search and Select Students</label>
-                            <div class="alert alert-info py-2 mb-3">
+                            <div class="alert alert-info py-2 mb-3" id="enrollmentNote">
                                 <small><i class="bi bi-info-circle me-1"></i>
                                     <strong>Note:</strong> You can enroll students from any department and level within your faculty.
                                     The course is not restricted to specific departments or levels.
@@ -134,14 +138,53 @@ document.addEventListener('DOMContentLoaded', function() {
     // Course selection handler
     courseSelect.addEventListener('change', function() {
         if (this.value) {
+            const selectedOption = this.options[this.selectedIndex];
+            const courseCode = selectedOption.textContent.split(' - ')[0];
+            const courseTitle = selectedOption.textContent.toLowerCase();
+
+            // Check if this is a General Studies course
+            const isGeneralStudies = (
+                courseCode.toLowerCase().includes('gst') ||
+                courseCode.toLowerCase().includes('gns') ||
+                courseCode.toLowerCase().includes('general') ||
+                courseTitle.includes('general studies')
+            );
+
             studentSearch.disabled = false;
-            studentSearch.placeholder = 'Search by matric number or name (all departments & levels)...';
-            studentSearch.nextElementSibling.textContent = 'Type to search across all faculty students - any department or level';
+
+            if (isGeneralStudies) {
+                studentSearch.placeholder = 'Search by matric number or name (ALL STUDENTS UNIVERSITY-WIDE)...';
+                studentSearch.nextElementSibling.textContent = 'General Studies: Search across ALL students from any faculty, department, or level';
+
+                // Update the note for General Studies
+                const note = document.getElementById('enrollmentNote');
+                note.className = 'alert alert-success py-2 mb-3';
+                note.innerHTML = `
+                    <small><i class="bi bi-globe me-1"></i>
+                        <strong>General Studies Course:</strong> You can enroll students from ANY faculty, department, and level across the entire university.
+                        This course is open to all students.
+                    </small>
+                `;
+            } else {
+                studentSearch.placeholder = 'Search by matric number or name (faculty students)...';
+                studentSearch.nextElementSibling.textContent = 'Regular Course: Search across all students in your faculty - any department or level';
+
+                // Reset the note for regular courses
+                const note = document.getElementById('enrollmentNote');
+                note.className = 'alert alert-info py-2 mb-3';
+                note.innerHTML = `
+                    <small><i class="bi bi-info-circle me-1"></i>
+                        <strong>Note:</strong> You can enroll students from any department and level within your faculty.
+                        The course is not restricted to specific departments or levels.
+                    </small>
+                `;
+            }
+
             clearSelected();
         } else {
             studentSearch.disabled = true;
-            studentSearch.placeholder = 'Search by matric number or name (all departments & levels)...';
-            studentSearch.nextElementSibling.textContent = 'Select a course first to search across all faculty students';
+            studentSearch.placeholder = 'Search by matric number or name...';
+            studentSearch.nextElementSibling.textContent = 'Select a course first to enable search';
             clearSelected();
         }
     });
@@ -214,11 +257,12 @@ function displaySearchResults(students) {
                                 <strong class="text-primary">${student.matric_number}</strong> - ${student.name}
                                 <br><small class="text-muted">
                                     <span class="badge bg-info me-1">${student.level}</span>
-                                    <span class="badge bg-secondary">${student.department}</span>
+                                    <span class="badge bg-secondary me-1">${student.department}</span>
+                                    ${student.is_general_studies && student.faculty ? `<span class="badge bg-warning">${student.faculty}</span>` : ''}
                                 </small>
                             </div>
                             <button type="button" class="btn btn-sm ${isSelected ? 'btn-success' : 'btn-outline-primary'}"
-                                    onclick="toggleStudent(${student.id}, '${student.matric_number}', '${student.name}', '${student.level}', '${student.department}')"
+                                    onclick="toggleStudent(${student.id}, '${student.matric_number}', '${student.name}', '${student.level}', '${student.department}', '${student.faculty || ''}')"
                                     ${isSelected ? 'disabled' : ''}>
                                 ${isSelected ? 'Selected' : 'Select'}
                             </button>
@@ -237,8 +281,8 @@ function hideSearchResults() {
     document.getElementById('searchResults').style.display = 'none';
 }
 
-function toggleStudent(id, matricNumber, name, level, department) {
-    const student = { id, matricNumber, name, level, department };
+function toggleStudent(id, matricNumber, name, level, department, faculty = '') {
+    const student = { id, matricNumber, name, level, department, faculty };
 
     // Check if already selected
     const existingIndex = selectedStudents.findIndex(s => s.id === id);
@@ -279,7 +323,8 @@ function updateSelectedStudentsDisplay() {
                                 <strong class="text-primary">${student.matricNumber}</strong> - ${student.name}
                                 <br><small class="text-muted">
                                     <span class="badge bg-info me-1">${student.level}</span>
-                                    <span class="badge bg-secondary">${student.department}</span>
+                                    <span class="badge bg-secondary me-1">${student.department}</span>
+                                    ${student.faculty ? `<span class="badge bg-warning">${student.faculty}</span>` : ''}
                                 </small>
                                 <input type="hidden" name="student_ids" value="${student.id}">
                             </div>

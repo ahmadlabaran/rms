@@ -7261,31 +7261,58 @@ def lecturer_enroll_students(request):
                 if not CourseAssignment.objects.filter(lecturer=request.user, course=course).exists():
                     return JsonResponse({'error': 'Access denied'}, status=403)
 
-                # Get the faculty from the course's departments
-                course_faculty = None
-                if course.departments.exists():
-                    course_faculty = course.departments.first().faculty
+                # Check if this is a General Studies course
+                is_general_studies = (
+                    'general' in course.code.lower() or
+                    'gst' in course.code.lower() or
+                    'gns' in course.code.lower() or
+                    'general studies' in course.title.lower() or
+                    any('general' in dept.name.lower() for dept in course.departments.all())
+                )
 
-                # Search students by matric number or name from the same faculty
-                students = Student.objects.filter(
-                    Q(matric_number__icontains=search_query) |
-                    Q(user__first_name__icontains=search_query) |
-                    Q(user__last_name__icontains=search_query),
-                    faculty=course_faculty  # Search across all departments in the faculty
-                ).exclude(
-                    courseenrollment__course=course,
-                    courseenrollment__session=course.session
-                ).select_related('user', 'current_level', 'department')[:15]  # Increased limit to 15 results
+                if is_general_studies:
+                    # For General Studies courses, search across ALL students university-wide
+                    students = Student.objects.filter(
+                        Q(matric_number__icontains=search_query) |
+                        Q(user__first_name__icontains=search_query) |
+                        Q(user__last_name__icontains=search_query)
+                        # No faculty/department restriction for General Studies
+                    ).exclude(
+                        courseenrollment__course=course,
+                        courseenrollment__session=course.session
+                    ).select_related('user', 'current_level', 'department', 'faculty')[:20]  # Increased limit for university-wide search
+                else:
+                    # For regular courses, search within the same faculty
+                    course_faculty = None
+                    if course.departments.exists():
+                        course_faculty = course.departments.first().faculty
+
+                    students = Student.objects.filter(
+                        Q(matric_number__icontains=search_query) |
+                        Q(user__first_name__icontains=search_query) |
+                        Q(user__last_name__icontains=search_query),
+                        faculty=course_faculty  # Search across all departments in the faculty
+                    ).exclude(
+                        courseenrollment__course=course,
+                        courseenrollment__session=course.session
+                    ).select_related('user', 'current_level', 'department')[:15]
 
                 student_data = []
                 for student in students:
-                    student_data.append({
+                    student_info = {
                         'id': student.id,
                         'matric_number': student.matric_number,
                         'name': student.get_full_name(),
                         'department': student.department.name,
-                        'level': student.current_level.name
-                    })
+                        'level': student.current_level.name,
+                        'is_general_studies': is_general_studies
+                    }
+
+                    # Add faculty info for General Studies courses
+                    if is_general_studies:
+                        student_info['faculty'] = student.faculty.name
+
+                    student_data.append(student_info)
 
                 return JsonResponse({'students': student_data})
 

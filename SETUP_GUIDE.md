@@ -124,10 +124,6 @@ If you encounter issues:
 2. Review the project documentation in `RMS_PROJECT_DOCUMENTATION.txt`
 3. Contact the developer: ahmadlabaran032@gmail.com
 
-## 📝 License
-
-This is an educational project for learning Django and web development.
-
 ## 👨‍💻 Author
 
 Ahmad Labaran - Computer Science Student

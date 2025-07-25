@@ -81,8 +81,116 @@ class Student(models.Model):
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
     current_level = models.ForeignKey(Level, on_delete=models.CASCADE)
     admission_session = models.ForeignKey(AcademicSession, on_delete=models.CASCADE)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_students')  # Admission Officer
+    current_session = models.ForeignKey(AcademicSession, on_delete=models.CASCADE, related_name='current_students', null=True, blank=True)  # Track current academic session
+    is_graduated = models.BooleanField(default=False)
+    graduation_session = models.ForeignKey(AcademicSession, on_delete=models.SET_NULL, null=True, blank=True, related_name='graduated_students')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_students')  # Admission Officer or Dean
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.matric_number} - {self.user.get_full_name() if self.user else 'No User'}"
+
+    def get_full_name(self):
+        return self.user.get_full_name() if self.user else 'No User'
+
+    @property
+    def email(self):
+        return self.user.email if self.user else 'No Email'
+
+    @property
+    def level(self):
+        return self.current_level.name if self.current_level else 'No Level'
+
+    @property
+    def session(self):
+        return self.current_session or self.admission_session
+
+    @property
+    def is_active(self):
+        return self.user.is_active if self.user else False
+
+    def can_progress_to_next_level(self):
+        """Check if student can progress to next level"""
+        if self.is_graduated:
+            return False
+
+        # Get next level
+        current_level_value = int(self.current_level.name.split()[0])  # Extract number from "100 Level"
+        next_level_value = current_level_value + 100
+
+        # Check if next level exists and not beyond graduation
+        if next_level_value > 400:  # Assuming 400 Level is final
+            return False
+
+        try:
+            Level.objects.get(name=f"{next_level_value} Level")
+            return True
+        except Level.DoesNotExist:
+            return False
+
+    def progress_to_next_level(self, new_session, processed_by=None):
+        """Progress student to next level"""
+        if not self.can_progress_to_next_level():
+            return False
+
+        current_level_value = int(self.current_level.name.split()[0])
+        next_level_value = current_level_value + 100
+
+        try:
+            next_level = Level.objects.get(name=f"{next_level_value} Level")
+
+            # Create level progression record
+            LevelProgression.objects.create(
+                student=self,
+                from_level=self.current_level,
+                to_level=next_level,
+                from_session=self.current_session or self.admission_session,
+                to_session=new_session,
+                progression_type='AUTOMATIC',
+                processed_by=processed_by
+            )
+
+            # Update student level and session
+            self.current_level = next_level
+            self.current_session = new_session
+
+            # Check if this is graduation (400 Level)
+            if next_level_value >= 400:
+                self.is_graduated = True
+                self.graduation_session = new_session
+
+            self.save()
+            return True
+
+        except Level.DoesNotExist:
+            return False
+
+# Level Progression Tracking
+class LevelProgression(models.Model):
+    PROGRESSION_TYPES = [
+        ('AUTOMATIC', 'Automatic Progression'),
+        ('MANUAL', 'Manual Progression'),
+        ('REPEAT', 'Repeat Level'),
+        ('TRANSFER', 'Transfer Student'),
+    ]
+
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='level_progressions')
+    from_level = models.ForeignKey(Level, on_delete=models.CASCADE, related_name='progressions_from')
+    to_level = models.ForeignKey(Level, on_delete=models.CASCADE, related_name='progressions_to')
+    from_session = models.ForeignKey(AcademicSession, on_delete=models.CASCADE, related_name='progressions_from')
+    to_session = models.ForeignKey(AcademicSession, on_delete=models.CASCADE, related_name='progressions_to')
+    progression_type = models.CharField(max_length=20, choices=PROGRESSION_TYPES, default='AUTOMATIC')
+    processed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    processed_at = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-processed_at']
+        unique_together = ['student', 'from_session', 'to_session']
+
+    def __str__(self):
+        return f"{self.student.matric_number}: {self.from_level.name} → {self.to_level.name} ({self.from_session.name} → {self.to_session.name})"
 
 # Faculty-specific grading system (set by Faculty Dean)
 class GradingScale(models.Model):

@@ -21,7 +21,7 @@ from .models import (
     AcademicSession, Faculty, Department, Level, Course, CourseAssignment,
     Student, UserRole, AlternativeLogin, Notification, AuditLog, CourseEnrollment,
     Result, ResultApproval, CarryOverList, GradingScale, GradeRange, CarryOverCriteria,
-    StudentComplaint, PermissionDelegation
+    StudentComplaint, PermissionDelegation, LevelProgression
 )
 from .serializers import (
     UserSerializer, LoginSerializer, AlternativeLoginSerializer,
@@ -9385,6 +9385,600 @@ def hod_delete_course(request, course_id):
         'success': True,
         'message': f'Course {course_code} deleted successfully'
     })
+
+# Faculty Dean Student Management Views
+@login_required
+def faculty_dean_create_student(request):
+    """Faculty Dean Create Student"""
+    # Check if user has Faculty Dean role
+    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not faculty_dean_roles.exists():
+        messages.error(request, 'Access denied. Faculty Dean role required.')
+        return redirect('dashboard')
+
+    faculty_role = faculty_dean_roles.first()
+    faculty = faculty_role.faculty
+
+    if not faculty:
+        messages.error(request, 'No faculty assigned to your Faculty Dean role.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        # Get form data
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        matric_number = request.POST.get('matric_number', '').strip().upper()
+        email = request.POST.get('email', '').strip().lower()
+        username = request.POST.get('username', '').strip().lower()
+        password = request.POST.get('password', '').strip()
+        department_id = request.POST.get('department_id')
+        level_id = request.POST.get('level_id')
+
+        # Validation
+        if not all([first_name, last_name, matric_number, email, username, password, department_id, level_id]):
+            messages.error(request, 'All fields are required.')
+            return redirect('faculty_dean_create_student')
+
+        # Check if matric number already exists
+        if Student.objects.filter(matric_number=matric_number).exists():
+            messages.error(request, f'Matriculation number {matric_number} already exists.')
+            return redirect('faculty_dean_create_student')
+
+        # Check if username already exists
+        if User.objects.filter(username=username).exists():
+            messages.error(request, f'Username {username} already exists.')
+            return redirect('faculty_dean_create_student')
+
+        # Check if email already exists
+        if User.objects.filter(email=email).exists():
+            messages.error(request, f'Email {email} already exists.')
+            return redirect('faculty_dean_create_student')
+
+        try:
+            department = Department.objects.get(id=department_id, faculty=faculty)
+            level = Level.objects.get(id=level_id)
+            current_session = AcademicSession.objects.filter(is_active=True).first()
+
+            if not current_session:
+                messages.error(request, 'No active academic session found.')
+                return redirect('faculty_dean_create_student')
+
+            # Create user account
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                password=password
+            )
+
+            # Create student profile
+            student = Student.objects.create(
+                user=user,
+                matric_number=matric_number,
+                faculty=faculty,
+                department=department,
+                current_level=level,
+                admission_session=current_session,
+                current_session=current_session,
+                created_by=request.user
+            )
+
+            # Create student role
+            UserRole.objects.create(
+                user=user,
+                role='STUDENT',
+                faculty=faculty,
+                department=department
+            )
+
+            # Log the action
+            AuditLog.objects.create(
+                user=request.user,
+                action='CREATE_STUDENT',
+                description=f'Created student: {matric_number} - {first_name} {last_name}',
+                level='INFO'
+            )
+
+            messages.success(request, f'Student {matric_number} - {first_name} {last_name} created successfully!')
+            return redirect('faculty_dean_students')
+
+        except Department.DoesNotExist:
+            messages.error(request, 'Invalid department selected.')
+        except Level.DoesNotExist:
+            messages.error(request, 'Invalid level selected.')
+        except Exception as e:
+            messages.error(request, f'Error creating student: {str(e)}')
+
+        return redirect('faculty_dean_create_student')
+
+    # GET request - show form
+    departments = Department.objects.filter(faculty=faculty).order_by('name')
+    levels = Level.objects.all().order_by('name')
+    current_session = AcademicSession.objects.filter(is_active=True).first()
+
+    context = {
+        'faculty': faculty,
+        'departments': departments,
+        'levels': levels,
+        'current_session': current_session,
+    }
+
+    return render(request, 'faculty_dean_create_student.html', context)
+
+@login_required
+def faculty_dean_bulk_create_students(request):
+    """Faculty Dean Bulk Create Students"""
+    # Check if user has Faculty Dean role
+    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not faculty_dean_roles.exists():
+        messages.error(request, 'Access denied. Faculty Dean role required.')
+        return redirect('dashboard')
+
+    faculty_role = faculty_dean_roles.first()
+    faculty = faculty_role.faculty
+
+    if not faculty:
+        messages.error(request, 'No faculty assigned to your Faculty Dean role.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        students_data = request.POST.get('students_data', '').strip()
+        department_id = request.POST.get('department_id')
+        level_id = request.POST.get('level_id')
+
+        if not all([students_data, department_id, level_id]):
+            messages.error(request, 'All fields are required.')
+            return redirect('faculty_dean_bulk_create_students')
+
+        try:
+            department = Department.objects.get(id=department_id, faculty=faculty)
+            level = Level.objects.get(id=level_id)
+            current_session = AcademicSession.objects.filter(is_active=True).first()
+
+            if not current_session:
+                messages.error(request, 'No active academic session found.')
+                return redirect('faculty_dean_bulk_create_students')
+
+            # Parse students data (CSV format: first_name,last_name,matric_number,email,username,password)
+            lines = students_data.strip().split('\n')
+            created_count = 0
+            errors = []
+
+            for line_num, line in enumerate(lines, 1):
+                if not line.strip():
+                    continue
+
+                parts = [part.strip() for part in line.split(',')]
+                if len(parts) != 6:
+                    errors.append(f'Line {line_num}: Invalid format. Expected 6 fields, got {len(parts)}')
+                    continue
+
+                first_name, last_name, matric_number, email, username, password = parts
+                matric_number = matric_number.upper()
+                email = email.lower()
+                username = username.lower()
+
+                # Validation
+                if not all([first_name, last_name, matric_number, email, username, password]):
+                    errors.append(f'Line {line_num}: All fields are required')
+                    continue
+
+                # Check duplicates
+                if Student.objects.filter(matric_number=matric_number).exists():
+                    errors.append(f'Line {line_num}: Matric number {matric_number} already exists')
+                    continue
+
+                if User.objects.filter(username=username).exists():
+                    errors.append(f'Line {line_num}: Username {username} already exists')
+                    continue
+
+                if User.objects.filter(email=email).exists():
+                    errors.append(f'Line {line_num}: Email {email} already exists')
+                    continue
+
+                try:
+                    # Create user account
+                    user = User.objects.create_user(
+                        username=username,
+                        email=email,
+                        first_name=first_name,
+                        last_name=last_name,
+                        password=password
+                    )
+
+                    # Create student profile
+                    student = Student.objects.create(
+                        user=user,
+                        matric_number=matric_number,
+                        faculty=faculty,
+                        department=department,
+                        current_level=level,
+                        admission_session=current_session,
+                        current_session=current_session,
+                        created_by=request.user
+                    )
+
+                    # Create student role
+                    UserRole.objects.create(
+                        user=user,
+                        role='STUDENT',
+                        faculty=faculty,
+                        department=department
+                    )
+
+                    created_count += 1
+
+                except Exception as e:
+                    errors.append(f'Line {line_num}: Error creating student - {str(e)}')
+
+            # Log the action
+            AuditLog.objects.create(
+                user=request.user,
+                action='BULK_CREATE_STUDENTS',
+                description=f'Bulk created {created_count} students in {department.name}',
+                level='INFO'
+            )
+
+            if created_count > 0:
+                messages.success(request, f'Successfully created {created_count} students!')
+
+            if errors:
+                error_msg = f'{len(errors)} errors occurred:\n' + '\n'.join(errors[:10])  # Show first 10 errors
+                if len(errors) > 10:
+                    error_msg += f'\n... and {len(errors) - 10} more errors'
+                messages.error(request, error_msg)
+
+            if created_count > 0:
+                return redirect('faculty_dean_students')
+
+        except Department.DoesNotExist:
+            messages.error(request, 'Invalid department selected.')
+        except Level.DoesNotExist:
+            messages.error(request, 'Invalid level selected.')
+        except Exception as e:
+            messages.error(request, f'Error processing bulk creation: {str(e)}')
+
+        return redirect('faculty_dean_bulk_create_students')
+
+    # GET request - show form
+    departments = Department.objects.filter(faculty=faculty).order_by('name')
+    levels = Level.objects.all().order_by('name')
+    current_session = AcademicSession.objects.filter(is_active=True).first()
+
+    context = {
+        'faculty': faculty,
+        'departments': departments,
+        'levels': levels,
+        'current_session': current_session,
+    }
+
+    return render(request, 'faculty_dean_bulk_create_students.html', context)
+
+@login_required
+def generate_matric_number(request):
+    """Generate matriculation number"""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'GET method required'}, status=405)
+
+    # Check if user has Faculty Dean role
+    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not faculty_dean_roles.exists():
+        return JsonResponse({'error': 'Access denied. Faculty Dean role required.'}, status=403)
+
+    faculty_role = faculty_dean_roles.first()
+    faculty = faculty_role.faculty
+
+    if not faculty:
+        return JsonResponse({'error': 'No faculty assigned to your role.'}, status=400)
+
+    # Get current year
+    current_year = timezone.now().year
+    year_suffix = str(current_year)[-2:]  # Last 2 digits of year
+
+    # Get faculty code (first 3 letters)
+    faculty_code = faculty.code[:3].upper()
+
+    # Find the next available number
+    existing_numbers = Student.objects.filter(
+        matric_number__startswith=f"{faculty_code}/{year_suffix}/"
+    ).values_list('matric_number', flat=True)
+
+    # Extract numbers and find the highest
+    numbers = []
+    for matric in existing_numbers:
+        try:
+            number_part = matric.split('/')[-1]  # Get the last part after the last /
+            numbers.append(int(number_part))
+        except (ValueError, IndexError):
+            continue
+
+    next_number = max(numbers) + 1 if numbers else 1
+
+    # Generate matric number: FAC/YY/NNNN
+    matric_number = f"{faculty_code}/{year_suffix}/{next_number:04d}"
+
+    return JsonResponse({
+        'matric_number': matric_number,
+        'faculty_code': faculty_code,
+        'year': year_suffix,
+        'number': next_number
+    })
+
+@login_required
+def faculty_dean_edit_student(request, student_id):
+    """Edit student details"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required'}, status=405)
+
+    # Check if user has Faculty Dean role
+    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not faculty_dean_roles.exists():
+        return JsonResponse({'error': 'Access denied. Faculty Dean role required.'}, status=403)
+
+    faculty_role = faculty_dean_roles.first()
+    faculty = faculty_role.faculty
+
+    try:
+        student = Student.objects.get(id=student_id, faculty=faculty)
+    except Student.DoesNotExist:
+        return JsonResponse({'error': 'Student not found'}, status=404)
+
+    # Get form data
+    first_name = request.POST.get('first_name', '').strip()
+    last_name = request.POST.get('last_name', '').strip()
+    email = request.POST.get('email', '').strip().lower()
+    department_id = request.POST.get('department_id')
+    level_id = request.POST.get('level_id')
+
+    if not all([first_name, last_name, email, department_id, level_id]):
+        return JsonResponse({'error': 'All fields are required'}, status=400)
+
+    try:
+        department = Department.objects.get(id=department_id, faculty=faculty)
+        level = Level.objects.get(id=level_id)
+
+        # Check if email is unique (excluding current user)
+        if User.objects.filter(email=email).exclude(id=student.user.id).exists():
+            return JsonResponse({'error': f'Email {email} already exists'}, status=400)
+
+        # Update user details
+        student.user.first_name = first_name
+        student.user.last_name = last_name
+        student.user.email = email
+        student.user.save()
+
+        # Update student details
+        student.department = department
+        student.current_level = level
+        student.save()
+
+        # Update user role department
+        user_role = UserRole.objects.filter(user=student.user, role='STUDENT').first()
+        if user_role:
+            user_role.department = department
+            user_role.save()
+
+        # Log the action
+        AuditLog.objects.create(
+            user=request.user,
+            action='UPDATE_STUDENT',
+            description=f'Updated student: {student.matric_number} - {first_name} {last_name}',
+            level='INFO'
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Student {student.matric_number} updated successfully',
+            'student': {
+                'id': student.id,
+                'name': f'{first_name} {last_name}',
+                'email': email,
+                'department': department.name,
+                'level': level.name
+            }
+        })
+
+    except Department.DoesNotExist:
+        return JsonResponse({'error': 'Invalid department selected'}, status=400)
+    except Level.DoesNotExist:
+        return JsonResponse({'error': 'Invalid level selected'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': f'Error updating student: {str(e)}'}, status=500)
+
+@login_required
+def faculty_dean_delete_student(request, student_id):
+    """Delete a student"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required'}, status=405)
+
+    # Check if user has Faculty Dean role
+    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not faculty_dean_roles.exists():
+        return JsonResponse({'error': 'Access denied. Faculty Dean role required.'}, status=403)
+
+    faculty_role = faculty_dean_roles.first()
+    faculty = faculty_role.faculty
+
+    try:
+        student = Student.objects.get(id=student_id, faculty=faculty)
+    except Student.DoesNotExist:
+        return JsonResponse({'error': 'Student not found'}, status=404)
+
+    # Check if student has enrollments or results
+    if CourseEnrollment.objects.filter(student=student).exists():
+        return JsonResponse({'error': 'Cannot delete student with existing course enrollments'}, status=400)
+
+    if Result.objects.filter(enrollment__student=student).exists():
+        return JsonResponse({'error': 'Cannot delete student with existing results'}, status=400)
+
+    matric_number = student.matric_number
+    student_name = student.get_full_name()
+
+    # Delete user account (this will cascade delete student profile)
+    student.user.delete()
+
+    # Log the action
+    AuditLog.objects.create(
+        user=request.user,
+        action='DELETE_STUDENT',
+        description=f'Deleted student: {matric_number} - {student_name}',
+        level='INFO'
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': f'Student {matric_number} deleted successfully'
+    })
+
+@login_required
+def faculty_dean_progress_students(request):
+    """Progress students to next level automatically"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required'}, status=405)
+
+    # Check if user has Faculty Dean role
+    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not faculty_dean_roles.exists():
+        return JsonResponse({'error': 'Access denied. Faculty Dean role required.'}, status=403)
+
+    faculty_role = faculty_dean_roles.first()
+    faculty = faculty_role.faculty
+
+    if not faculty:
+        return JsonResponse({'error': 'No faculty assigned to your role.'}, status=400)
+
+    # Get the new academic session
+    new_session_id = request.POST.get('new_session_id')
+    if not new_session_id:
+        return JsonResponse({'error': 'New academic session is required'}, status=400)
+
+    try:
+        new_session = AcademicSession.objects.get(id=new_session_id)
+    except AcademicSession.DoesNotExist:
+        return JsonResponse({'error': 'Invalid academic session'}, status=400)
+
+    # Get all students in the faculty who can progress
+    students = Student.objects.filter(
+        faculty=faculty,
+        is_graduated=False
+    ).select_related('current_level', 'current_session')
+
+    progressed_count = 0
+    graduated_count = 0
+    errors = []
+
+    for student in students:
+        try:
+            if student.can_progress_to_next_level():
+                # Check if this would be graduation
+                current_level_value = int(student.current_level.name.split()[0])
+                next_level_value = current_level_value + 100
+
+                if student.progress_to_next_level(new_session, request.user):
+                    if next_level_value >= 400:  # Graduation
+                        graduated_count += 1
+                    else:
+                        progressed_count += 1
+            else:
+                # Student cannot progress (either graduated or at final level)
+                if not student.is_graduated:
+                    # Update current session even if not progressing level
+                    student.current_session = new_session
+                    student.save()
+
+        except Exception as e:
+            errors.append(f'Error progressing {student.matric_number}: {str(e)}')
+
+    # Log the action
+    AuditLog.objects.create(
+        user=request.user,
+        action='PROGRESS_STUDENTS',
+        description=f'Progressed {progressed_count} students, graduated {graduated_count} students to session {new_session.name}',
+        level='INFO'
+    )
+
+    result = {
+        'success': True,
+        'progressed_count': progressed_count,
+        'graduated_count': graduated_count,
+        'total_processed': progressed_count + graduated_count,
+        'errors_count': len(errors),
+        'message': f'Successfully processed {progressed_count + graduated_count} students. {progressed_count} progressed to next level, {graduated_count} graduated.'
+    }
+
+    if errors:
+        result['errors'] = errors[:10]  # Return first 10 errors
+        result['message'] += f' {len(errors)} errors occurred.'
+
+    return JsonResponse(result)
+
+# Utility function to automatically progress students when session changes
+def auto_progress_students_on_session_change(old_session, new_session):
+    """
+    Automatically progress students when a new session is activated.
+    This can be called from session management views.
+    """
+    try:
+        # Get all non-graduated students
+        students = Student.objects.filter(
+            is_graduated=False,
+            current_session=old_session
+        ).select_related('current_level', 'faculty')
+
+        progressed_count = 0
+        graduated_count = 0
+
+        for student in students:
+            try:
+                if student.can_progress_to_next_level():
+                    current_level_value = int(student.current_level.name.split()[0])
+                    next_level_value = current_level_value + 100
+
+                    if student.progress_to_next_level(new_session):
+                        if next_level_value >= 400:  # Graduation
+                            graduated_count += 1
+                        else:
+                            progressed_count += 1
+                else:
+                    # Update current session even if not progressing level
+                    student.current_session = new_session
+                    student.save()
+
+            except Exception as e:
+                # Log individual errors but continue processing
+                AuditLog.objects.create(
+                    user=None,  # System action
+                    action='AUTO_PROGRESS_ERROR',
+                    description=f'Error auto-progressing {student.matric_number}: {str(e)}',
+                    level='ERROR'
+                )
+
+        # Log the overall action
+        AuditLog.objects.create(
+            user=None,  # System action
+            action='AUTO_PROGRESS_STUDENTS',
+            description=f'Auto-progressed {progressed_count} students, graduated {graduated_count} students from {old_session.name} to {new_session.name}',
+            level='INFO'
+        )
+
+        return {
+            'success': True,
+            'progressed_count': progressed_count,
+            'graduated_count': graduated_count
+        }
+
+    except Exception as e:
+        AuditLog.objects.create(
+            user=None,
+            action='AUTO_PROGRESS_ERROR',
+            description=f'Error in auto-progression: {str(e)}',
+            level='ERROR'
+        )
+        return {
+            'success': False,
+            'error': str(e)
+        }
 
 @login_required
 def hod_department_summary(request):

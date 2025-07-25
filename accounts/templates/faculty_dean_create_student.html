@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Student - Faculty Dean{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">Create New Student</h1>
+                            <p class="mb-0 opacity-75">Add a new student to {{ faculty.name }}</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">
+                                <div class="h5 fw-bold mb-0">{{ current_session.name }}</div>
+                                <small class="opacity-75">Current Session</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Student Form -->
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0 fw-bold">Student Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="createStudentForm">
+                        {% csrf_token %}
+                        
+                        <!-- Personal Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="fw-bold text-primary mb-3">Personal Information</h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">First Name *</label>
+                                <input type="text" name="first_name" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Last Name *</label>
+                                <input type="text" name="last_name" class="form-control" required>
+                            </div>
+                        </div>
+
+                        <!-- Academic Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="fw-bold text-primary mb-3">Academic Information</h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Matriculation Number *</label>
+                                <div class="input-group">
+                                    <input type="text" name="matric_number" id="matricNumber" class="form-control" required>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="generateMatricNumber()">
+                                        <i class="bi bi-arrow-clockwise"></i> Generate
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Department *</label>
+                                <select name="department_id" class="form-select" required>
+                                    <option value="">Select Department</option>
+                                    {% for dept in departments %}
+                                    <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Starting Level *</label>
+                                <select name="level_id" class="form-select" required>
+                                    <option value="">Select Level</option>
+                                    {% for level in levels %}
+                                    <option value="{{ level.id }}">{{ level.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Account Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="fw-bold text-primary mb-3">Account Information</h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Email Address *</label>
+                                <input type="email" name="email" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Username *</label>
+                                <input type="text" name="username" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Password *</label>
+                                <div class="input-group">
+                                    <input type="password" name="password" id="password" class="form-control" required>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="generatePassword()">
+                                        <i class="bi bi-key"></i> Generate
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <a href="{% url 'faculty_dean_students' %}" class="btn btn-secondary">
+                                        <i class="bi bi-arrow-left me-1"></i>Back to Students
+                                    </a>
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="bi bi-person-plus me-1"></i>Create Student
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function generateMatricNumber() {
+    fetch('/api/faculty-dean/api/generate-matric/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.matric_number) {
+                document.getElementById('matricNumber').value = data.matric_number;
+            } else {
+                alert('Error generating matric number: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error generating matric number');
+        });
+}
+
+function generatePassword() {
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+    let password = '';
+    for (let i = 0; i < 8; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    document.getElementById('password').value = password;
+}
+
+// Auto-generate username from first and last name
+document.addEventListener('DOMContentLoaded', function() {
+    const firstNameInput = document.querySelector('input[name="first_name"]');
+    const lastNameInput = document.querySelector('input[name="last_name"]');
+    const usernameInput = document.querySelector('input[name="username"]');
+    const emailInput = document.querySelector('input[name="email"]');
+
+    function updateUsername() {
+        const firstName = firstNameInput.value.trim().toLowerCase();
+        const lastName = lastNameInput.value.trim().toLowerCase();
+        if (firstName && lastName) {
+            const username = firstName + '.' + lastName;
+            usernameInput.value = username;
+            emailInput.value = username + '@student.edu.ng';
+        }
+    }
+
+    firstNameInput.addEventListener('input', updateUsername);
+    lastNameInput.addEventListener('input', updateUsername);
+});
+</script>
+
+{% endblock %}

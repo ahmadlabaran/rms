@@ -167,6 +167,14 @@ urlpatterns = [
     path('faculty-dean/departments/reports/', views.faculty_dean_department_reports, name='faculty_dean_department_reports'),
     path('faculty-dean/departments/export/', views.faculty_dean_export_departments, name='faculty_dean_export_departments'),
 
+    # Faculty Dean Student Management
+    path('faculty-dean/create-student/', views.faculty_dean_create_student, name='faculty_dean_create_student'),
+    path('faculty-dean/bulk-create-students/', views.faculty_dean_bulk_create_students, name='faculty_dean_bulk_create_students'),
+    path('faculty-dean/api/generate-matric/', views.generate_matric_number, name='generate_matric_number'),
+    path('faculty-dean/api/student/<int:student_id>/edit/', views.faculty_dean_edit_student, name='faculty_dean_edit_student'),
+    path('faculty-dean/api/student/<int:student_id>/delete/', views.faculty_dean_delete_student, name='faculty_dean_delete_student'),
+    path('faculty-dean/api/progress-students/', views.faculty_dean_progress_students, name='faculty_dean_progress_students'),
+
     # Lecturer Professional Interface
     path('lecturer/', views.lecturer_dashboard, name='lecturer_dashboard'),
     path('lecturer/enroll-students/', views.lecturer_enroll_students, name='lecturer_enroll_students'),

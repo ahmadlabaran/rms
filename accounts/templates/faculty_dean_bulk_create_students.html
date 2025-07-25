@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block title %}Bulk Create Students - Faculty Dean{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">Bulk Create Students</h1>
+                            <p class="mb-0 opacity-75">Add multiple students to {{ faculty.name }} at once</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">
+                                <div class="h5 fw-bold mb-0">{{ current_session.name }}</div>
+                                <small class="opacity-75">Current Session</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-2"></i>Instructions</h6>
+                <p class="mb-2">Enter student data in CSV format, one student per line with the following format:</p>
+                <code>first_name,last_name,matric_number,email,username,password</code>
+                <p class="mt-2 mb-0"><strong>Example:</strong><br>
+                <code>John,Doe,CSC/24/0001,john.doe@student.edu.ng,john.doe,password123</code></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Create Form -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0 fw-bold">Bulk Student Creation</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="bulkCreateForm">
+                        {% csrf_token %}
+                        
+                        <!-- Common Settings -->
+                        <div class="row mb-4">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Department *</label>
+                                <select name="department_id" class="form-select" required>
+                                    <option value="">Select Department</option>
+                                    {% for dept in departments %}
+                                    <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Starting Level *</label>
+                                <select name="level_id" class="form-select" required>
+                                    <option value="">Select Level</option>
+                                    {% for level in levels %}
+                                    <option value="{{ level.id }}">{{ level.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Student Data -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <label class="form-label fw-bold">Student Data *</label>
+                                <textarea name="students_data" class="form-control" rows="15" 
+                                          placeholder="Enter student data here, one per line:&#10;John,Doe,CSC/24/0001,john.doe@student.edu.ng,john.doe,password123&#10;Jane,Smith,CSC/24/0002,jane.smith@student.edu.ng,jane.smith,password456" 
+                                          required></textarea>
+                                <div class="form-text">
+                                    Format: first_name,last_name,matric_number,email,username,password (one student per line)
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex gap-2 justify-content-between">
+                                    <div>
+                                        <button type="button" class="btn btn-outline-primary" onclick="generateSampleData()">
+                                            <i class="bi bi-file-text me-1"></i>Generate Sample Data
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="clearData()">
+                                            <i class="bi bi-trash me-1"></i>Clear Data
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <a href="{% url 'faculty_dean_students' %}" class="btn btn-secondary">
+                                            <i class="bi bi-arrow-left me-1"></i>Back to Students
+                                        </a>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="bi bi-people me-1"></i>Create Students
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sample Data Template -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0 fw-bold">Sample CSV Template</h6>
+                </div>
+                <div class="card-body">
+                    <pre class="mb-0" style="font-size: 12px;">John,Doe,CSC/24/0001,john.doe@student.edu.ng,john.doe,password123
+Jane,Smith,CSC/24/0002,jane.smith@student.edu.ng,jane.smith,password456
+Michael,Johnson,CSC/24/0003,michael.johnson@student.edu.ng,michael.johnson,password789
+Sarah,Williams,CSC/24/0004,sarah.williams@student.edu.ng,sarah.williams,passwordabc</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function generateSampleData() {
+    const sampleData = `John,Doe,CSC/24/0001,john.doe@student.edu.ng,john.doe,password123
+Jane,Smith,CSC/24/0002,jane.smith@student.edu.ng,jane.smith,password456
+Michael,Johnson,CSC/24/0003,michael.johnson@student.edu.ng,michael.johnson,password789
+Sarah,Williams,CSC/24/0004,sarah.williams@student.edu.ng,sarah.williams,passwordabc
+David,Brown,CSC/24/0005,david.brown@student.edu.ng,david.brown,password321`;
+    
+    document.querySelector('textarea[name="students_data"]').value = sampleData;
+}
+
+function clearData() {
+    if (confirm('Are you sure you want to clear all data?')) {
+        document.querySelector('textarea[name="students_data"]').value = '';
+    }
+}
+
+// Form validation
+document.getElementById('bulkCreateForm').addEventListener('submit', function(e) {
+    const studentsData = document.querySelector('textarea[name="students_data"]').value.trim();
+    const lines = studentsData.split('\n').filter(line => line.trim());
+    
+    if (lines.length === 0) {
+        e.preventDefault();
+        alert('Please enter student data');
+        return;
+    }
+    
+    // Basic validation
+    let hasErrors = false;
+    lines.forEach((line, index) => {
+        const parts = line.split(',');
+        if (parts.length !== 6) {
+            hasErrors = true;
+            alert(`Line ${index + 1}: Invalid format. Expected 6 fields, got ${parts.length}`);
+        }
+    });
+    
+    if (hasErrors) {
+        e.preventDefault();
+        return;
+    }
+    
+    if (!confirm(`You are about to create ${lines.length} students. Continue?`)) {
+        e.preventDefault();
+    }
+});
+</script>
+
+{% endblock %}

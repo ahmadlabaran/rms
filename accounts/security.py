@@ -36,12 +36,12 @@ def validate_username(username):
     return re.match(username_regex, username) is not None
 
 def validate_matric_number(matric_number):
-    """Simple matric number validation"""
+    """Simple matric number validation for format like 22A/UE/BICT/10016"""
     if not matric_number:
         return False
-    
-    # Basic format: ABC/YY/NNNN
-    matric_regex = r'^[A-Z]{2,4}/\d{2}/\d{4}$'
+
+    # Format: YYA/UE/DEPT/NNNNN (e.g., 22A/UE/BICT/10016)
+    matric_regex = r'^[0-9]{2}[A-Z]/[A-Z]{2}/[A-Z]{3,5}/[0-9]{4,6}$'
     return re.match(matric_regex, matric_number) is not None
 
 def validate_name(name):

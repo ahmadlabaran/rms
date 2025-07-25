@@ -13,7 +13,7 @@
                 <div class="card-body">
                     <div class="alert alert-info">
                         <strong>Format:</strong> first_name,middle_name,last_name,matric_number,email,username,password<br>
-                        <strong>Example:</strong> John,Michael,Doe,CSC/24/0001,john.doe@student.edu.ng,CSC/24/0001,csc-24-0001<br>
+                        <strong>Example:</strong> John,Michael,Doe,22A/UE/BICT/10016,john.doe@student.edu.ng,22A/UE/BICT/10016,22a-ue-bict-10016<br>
                         <small><strong>Note:</strong> Middle name can be empty. Username = matric number, Password = lowercase matric with dashes</small>
                     </div>
 
@@ -44,7 +44,7 @@
                         <div class="mb-3">
                             <label class="form-label">Student Data</label>
                             <textarea name="students_data" class="form-control" rows="10"
-                                      placeholder="Enter student data here, one per line&#10;Format: first_name,middle_name,last_name,matric_number,email,username,password" required></textarea>
+                                      placeholder="Enter student data here, one per line&#10;Format: first_name,middle_name,last_name,matric_number,email,username,password&#10;Example: John,Michael,Doe,22A/UE/BICT/10016,john.doe@student.edu.ng,22A/UE/BICT/10016,22a-ue-bict-10016" required></textarea>
                             <div class="form-text">Format: first_name,middle_name,last_name,matric_number,email,username,password (middle name can be empty)</div>
                         </div>
 
@@ -63,9 +63,9 @@
 
 <script>
 function generateSample() {
-    const sample = `John,Michael,Doe,CSC/24/0001,john.doe@student.edu.ng,CSC/24/0001,csc-24-0001
-Jane,,Smith,CSC/24/0002,jane.smith@student.edu.ng,CSC/24/0002,csc-24-0002
-Michael,David,Johnson,CSC/24/0003,michael.johnson@student.edu.ng,CSC/24/0003,csc-24-0003`;
+    const sample = `John,Michael,Doe,22A/UE/BICT/10016,john.doe@student.edu.ng,22A/UE/BICT/10016,22a-ue-bict-10016
+Jane,,Smith,22A/UE/BICT/10017,jane.smith@student.edu.ng,22A/UE/BICT/10017,22a-ue-bict-10017
+Michael,David,Johnson,22A/UE/BICT/10018,michael.johnson@student.edu.ng,22A/UE/BICT/10018,22a-ue-bict-10018`;
     document.querySelector('textarea[name="students_data"]').value = sample;
 }
 

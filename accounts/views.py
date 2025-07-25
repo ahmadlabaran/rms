@@ -9698,55 +9698,7 @@ def faculty_dean_bulk_create_students(request):
 
     return render(request, 'faculty_dean_bulk_create_students.html', context)
 
-@login_required
-def generate_matric_number(request):
-    """Generate matriculation number"""
-    if request.method != 'GET':
-        return JsonResponse({'error': 'GET method required'}, status=405)
 
-    # Check if user has Faculty Dean role
-    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
-    if not faculty_dean_roles.exists():
-        return JsonResponse({'error': 'Access denied. Faculty Dean role required.'}, status=403)
-
-    faculty_role = faculty_dean_roles.first()
-    faculty = faculty_role.faculty
-
-    if not faculty:
-        return JsonResponse({'error': 'No faculty assigned to your role.'}, status=400)
-
-    # Get current year
-    current_year = timezone.now().year
-    year_suffix = str(current_year)[-2:]  # Last 2 digits of year
-
-    # Get faculty code (first 3 letters)
-    faculty_code = faculty.code[:3].upper()
-
-    # Find the next available number
-    existing_numbers = Student.objects.filter(
-        matric_number__startswith=f"{faculty_code}/{year_suffix}/"
-    ).values_list('matric_number', flat=True)
-
-    # Extract numbers and find the highest
-    numbers = []
-    for matric in existing_numbers:
-        try:
-            number_part = matric.split('/')[-1]  # Get the last part after the last /
-            numbers.append(int(number_part))
-        except (ValueError, IndexError):
-            continue
-
-    next_number = max(numbers) + 1 if numbers else 1
-
-    # Generate matric number: FAC/YY/NNNN
-    matric_number = f"{faculty_code}/{year_suffix}/{next_number:04d}"
-
-    return JsonResponse({
-        'matric_number': matric_number,
-        'faculty_code': faculty_code,
-        'year': year_suffix,
-        'number': next_number
-    })
 
 @login_required
 def faculty_dean_edit_student(request, student_id):

@@ -32,10 +32,7 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Matric Number</label>
-                                <div class="input-group">
-                                    <input type="text" name="matric_number" id="matricNumber" class="form-control" required>
-                                    <button type="button" class="btn btn-outline-secondary" onclick="generateMatricNumber()">Generate</button>
-                                </div>
+                                <input type="text" name="matric_number" id="matricNumber" class="form-control" placeholder="e.g., 22A/UE/BICT/10016" required>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Department</label>
@@ -96,20 +93,7 @@
 </div>
 
 <script>
-function generateMatricNumber() {
-    fetch('/api/faculty-dean/api/generate-matric/')
-        .then(response => response.json())
-        .then(data => {
-            if (data.matric_number) {
-                document.getElementById('matricNumber').value = data.matric_number;
-                // Auto-generate username and password when matric number is generated
-                updateUsernameAndPassword();
-            } else {
-                alert('Error: ' + (data.error || 'Unknown error'));
-            }
-        })
-        .catch(error => alert('Error generating matric number'));
-}
+
 
 function generatePasswordFromMatric() {
     updateUsernameAndPassword();
@@ -124,8 +108,6 @@ function updateUsernameAndPassword() {
         // Password is the matric number in lowercase with - instead of /
         const password = matricNumber.toLowerCase().replace(/\//g, '-');
         document.getElementById('password').value = password;
-    } else {
-        alert('Please enter or generate a matric number first');
     }
 }
 

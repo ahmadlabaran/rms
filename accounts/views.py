@@ -7681,6 +7681,90 @@ def lecturer_course_students(request, course_id):
         return redirect('lecturer_courses')
 
 @login_required
+def lecturer_student_details(request, student_id):
+    """Get student details for lecturer"""
+    if request.method != 'GET' or request.headers.get('X-Requested-With') != 'XMLHttpRequest':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    # Check if user has Lecturer role
+    lecturer_roles = UserRole.objects.filter(user=request.user, role='LECTURER')
+    if not lecturer_roles.exists():
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    try:
+        student = Student.objects.select_related('user', 'department', 'current_level', 'faculty').get(id=student_id)
+
+        # Verify lecturer has access to this student (same faculty)
+        lecturer_faculty = lecturer_roles.first().faculty
+        if student.faculty != lecturer_faculty:
+            return JsonResponse({'error': 'Access denied'}, status=403)
+
+        student_data = {
+            'id': student.id,
+            'matric_number': student.matric_number,
+            'name': student.get_full_name(),
+            'email': student.user.email,
+            'department': student.department.name,
+            'level': student.current_level.name,
+            'is_active': student.user.is_active,
+            'admission_session': student.admission_session.name if student.admission_session else 'N/A',
+            'current_session': student.current_session.name if student.current_session else 'N/A'
+        }
+
+        return JsonResponse({
+            'success': True,
+            'student': student_data
+        })
+
+    except Student.DoesNotExist:
+        return JsonResponse({'error': 'Student not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+def lecturer_unenroll_student(request, enrollment_id):
+    """Unenroll a student from a course"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required'}, status=405)
+
+    # Check if user has Lecturer role
+    lecturer_roles = UserRole.objects.filter(user=request.user, role='LECTURER')
+    if not lecturer_roles.exists():
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    try:
+        enrollment = CourseEnrollment.objects.select_related('course', 'student', 'student__user').get(id=enrollment_id)
+
+        # Verify lecturer has access to this course
+        if not CourseAssignment.objects.filter(lecturer=request.user, course=enrollment.course).exists():
+            return JsonResponse({'error': 'You do not have permission to unenroll students from this course'}, status=403)
+
+        student_name = enrollment.student.get_full_name()
+        matric_number = enrollment.student.matric_number
+        course_code = enrollment.course.code
+
+        # Delete the enrollment
+        enrollment.delete()
+
+        # Log the action
+        AuditLog.objects.create(
+            user=request.user,
+            action='UNENROLL_STUDENT',
+            description=f'Unenrolled student {matric_number} ({student_name}) from course {course_code}',
+            level='INFO'
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Student {matric_number} has been unenrolled successfully'
+        })
+
+    except CourseEnrollment.DoesNotExist:
+        return JsonResponse({'error': 'Enrollment not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
 def lecturer_course_results(request, course_id):
     """View and manage results for a specific course"""
     # Check if user has Lecturer role

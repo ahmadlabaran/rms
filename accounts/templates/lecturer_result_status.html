@@ -244,8 +244,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function viewResults(courseId, sessionId) {
-    // This would open a modal or navigate to a detailed results view
-    alert('View results functionality - to be implemented');
+    // Navigate to the course results page
+    window.location.href = `/api/lecturer/course/${courseId}/results/`;
 }
 </script>
 

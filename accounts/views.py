@@ -7475,14 +7475,10 @@ def lecturer_enter_results(request):
             enrolled_students = CourseEnrollment.objects.filter(
                 course=selected_course,
                 session=selected_session
-            ).select_related('student', 'student__user').prefetch_related('result_set')
+            ).select_related('student', 'student__user', 'result')
 
-            # Add result data to each enrollment
-            for enrollment in enrolled_students:
-                try:
-                    enrollment.result = enrollment.result_set.first()
-                except:
-                    enrollment.result = None
+            # Result data is already available through select_related('result')
+            # No need for additional processing since OneToOneField is directly accessible
 
         except (Course.DoesNotExist, AcademicSession.DoesNotExist):
             messages.error(request, 'Invalid course or session selected.')
@@ -7812,18 +7808,11 @@ def lecturer_course_results(request, course_id):
         enrollments = CourseEnrollment.objects.filter(
             course=course,
             session=course.session
-        ).select_related('student', 'student__user').prefetch_related('result_set').order_by('student__matric_number')
-
-        # Add result data to each enrollment
-        for enrollment in enrollments:
-            try:
-                enrollment.result = enrollment.result_set.first()
-            except:
-                enrollment.result = None
+        ).select_related('student', 'student__user', 'result').order_by('student__matric_number')
 
         # Calculate statistics
         total_students = enrollments.count()
-        results_entered = enrollments.filter(result_set__isnull=False).count()
+        results_entered = enrollments.filter(result__isnull=False).count()
         results_pending = total_students - results_entered
 
         # Grade distribution
@@ -7831,7 +7820,8 @@ def lecturer_course_results(request, course_id):
         if results_entered > 0:
             from django.db.models import Count
             grade_distribution = Result.objects.filter(
-                enrollment__in=enrollments
+                enrollment__in=enrollments,
+                grade__isnull=False
             ).values('grade').annotate(count=Count('grade'))
 
             for item in grade_distribution:

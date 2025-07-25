@@ -1,0 +1,318 @@
+{% extends 'base.html' %}
+{% load role_tags %}
+
+{% block title %}{{ course.code }} Students - Lecturer{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Delegation Status Badges -->
+    {% show_delegation_badges user %}
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">{{ course.code }} - {{ course.title }}</h1>
+                            <p class="mb-0 opacity-75">
+                                {{ course.level.name }} • {{ course.credit_units }} Credit Units • {{ course.session.name }}
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">
+                                <div class="h3 fw-bold mb-0">{{ total_enrolled }}</div>
+                                <small class="opacity-75">Enrolled Students</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center h-100" style="border-left: 4px solid var(--ios-blue);">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <div class="h2 fw-bold mb-2" style="color: var(--ios-blue);">{{ total_enrolled }}</div>
+                    <div class="text-muted">Total Enrolled</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center h-100" style="border-left: 4px solid var(--ios-green);">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <div class="h2 fw-bold mb-2" style="color: var(--ios-green);">{{ active_students }}</div>
+                    <div class="text-muted">Active Students</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center h-100" style="border-left: 4px solid var(--ios-orange);">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <div class="h2 fw-bold mb-2" style="color: var(--ios-orange);">{{ course_departments.count }}</div>
+                    <div class="text-muted">Departments</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center h-100" style="border-left: 4px solid var(--ios-red);">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <div class="h2 fw-bold mb-2" style="color: var(--ios-red);">{{ course.level.name }}</div>
+                    <div class="text-muted">Level</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter and Search -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <select class="form-select form-select-sm" id="departmentFilter">
+                                <option value="">All Departments</option>
+                                {% for dept in course_departments %}
+                                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <select class="form-select form-select-sm" id="statusFilter">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <input type="text" class="form-control form-control-sm" placeholder="Search students..." id="searchInput">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Students List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">Enrolled Students</h5>
+                    <div>
+                        <a href="{% url 'lecturer_enroll_students' %}?course_id={{ course.id }}" class="btn btn-success btn-sm me-2">
+                            <i class="bi bi-person-plus me-1"></i>Enroll More
+                        </a>
+                        <a href="{% url 'lecturer_courses' %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left me-1"></i>Back to Courses
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if enrollments %}
+                        <!-- Desktop Table View -->
+                        <div class="d-none d-lg-block">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Matric Number</th>
+                                            <th>Student Name</th>
+                                            <th>Department</th>
+                                            <th>Level</th>
+                                            <th>Status</th>
+                                            <th>Enrolled Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="studentsTableBody">
+                                        {% for enrollment in enrollments %}
+                                        <tr class="student-row" 
+                                            data-department="{{ enrollment.student.department.id }}"
+                                            data-status="{% if enrollment.student.user.is_active %}active{% else %}inactive{% endif %}"
+                                            data-search="{{ enrollment.student.matric_number|lower }} {{ enrollment.student.get_full_name|lower }}">
+                                            <td>
+                                                <span class="fw-bold text-primary">{{ enrollment.student.matric_number }}</span>
+                                            </td>
+                                            <td>
+                                                <div class="fw-bold">{{ enrollment.student.get_full_name }}</div>
+                                                <small class="text-muted">{{ enrollment.student.user.email }}</small>
+                                            </td>
+                                            <td>{{ enrollment.student.department.name }}</td>
+                                            <td>
+                                                <span class="badge bg-info">{{ enrollment.student.current_level.name }}</span>
+                                            </td>
+                                            <td>
+                                                {% if enrollment.student.user.is_active %}
+                                                    <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <small>{{ enrollment.enrolled_at|date:"M d, Y" }}</small>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-info btn-sm" onclick="viewStudentDetails({{ enrollment.student.id }})">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger btn-sm" onclick="unenrollStudent({{ enrollment.id }}, '{{ enrollment.student.matric_number }}')">
+                                                        <i class="bi bi-person-dash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Card View -->
+                        <div class="d-lg-none" id="studentsCardContainer">
+                            {% for enrollment in enrollments %}
+                            <div class="card mb-3 student-card" 
+                                 data-department="{{ enrollment.student.department.id }}"
+                                 data-status="{% if enrollment.student.user.is_active %}active{% else %}inactive{% endif %}"
+                                 data-search="{{ enrollment.student.matric_number|lower }} {{ enrollment.student.get_full_name|lower }}">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-12 mb-2">
+                                            <h6 class="card-title mb-1 text-primary fw-bold">{{ enrollment.student.matric_number }}</h6>
+                                            <h5 class="mb-1">{{ enrollment.student.get_full_name }}</h5>
+                                            <small class="text-muted">{{ enrollment.student.user.email }}</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-6 mb-2">
+                                            <small class="text-muted d-block">Department</small>
+                                            <span>{{ enrollment.student.department.name }}</span>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <small class="text-muted d-block">Level</small>
+                                            <span class="badge bg-info">{{ enrollment.student.current_level.name }}</span>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <small class="text-muted d-block">Status</small>
+                                            {% if enrollment.student.user.is_active %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <small class="text-muted d-block">Enrolled</small>
+                                            <span>{{ enrollment.enrolled_at|date:"M d, Y" }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-outline-info btn-sm" onclick="viewStudentDetails({{ enrollment.student.id }})">
+                                                    <i class="bi bi-eye me-1"></i>View Details
+                                                </button>
+                                                <button class="btn btn-outline-danger btn-sm" onclick="unenrollStudent({{ enrollment.id }}, '{{ enrollment.student.matric_number }}')">
+                                                    <i class="bi bi-person-dash me-1"></i>Unenroll
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="bi bi-people display-1 text-muted"></i>
+                            </div>
+                            <h4 class="text-muted">No Students Enrolled</h4>
+                            <p class="text-muted">No students are currently enrolled in this course.</p>
+                            <a href="{% url 'lecturer_enroll_students' %}?course_id={{ course.id }}" class="btn btn-primary">
+                                <i class="bi bi-person-plus me-1"></i>Enroll Students
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Filter and search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const departmentFilter = document.getElementById('departmentFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const searchInput = document.getElementById('searchInput');
+    const studentRows = document.querySelectorAll('.student-row');
+    const studentCards = document.querySelectorAll('.student-card');
+
+    function filterStudents() {
+        const departmentValue = departmentFilter.value;
+        const statusValue = statusFilter.value;
+        const searchValue = searchInput.value.toLowerCase();
+
+        // Filter table rows
+        studentRows.forEach(row => {
+            const rowDepartment = row.dataset.department;
+            const rowStatus = row.dataset.status;
+            const rowSearch = row.dataset.search;
+
+            const departmentMatch = !departmentValue || rowDepartment === departmentValue;
+            const statusMatch = !statusValue || rowStatus === statusValue;
+            const searchMatch = !searchValue || rowSearch.includes(searchValue);
+
+            if (departmentMatch && statusMatch && searchMatch) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Filter cards
+        studentCards.forEach(card => {
+            const cardDepartment = card.dataset.department;
+            const cardStatus = card.dataset.status;
+            const cardSearch = card.dataset.search;
+
+            const departmentMatch = !departmentValue || cardDepartment === departmentValue;
+            const statusMatch = !statusValue || cardStatus === statusValue;
+            const searchMatch = !searchValue || cardSearch.includes(searchValue);
+
+            if (departmentMatch && statusMatch && searchMatch) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    departmentFilter.addEventListener('change', filterStudents);
+    statusFilter.addEventListener('change', filterStudents);
+    searchInput.addEventListener('input', filterStudents);
+});
+
+function viewStudentDetails(studentId) {
+    alert('View student details - to be implemented');
+}
+
+function unenrollStudent(enrollmentId, matricNumber) {
+    if (!confirm(`Are you sure you want to unenroll ${matricNumber} from this course?`)) {
+        return;
+    }
+    
+    // Implementation for unenrolling student
+    alert('Unenroll functionality - to be implemented');
+}
+</script>
+
+{% endblock %}

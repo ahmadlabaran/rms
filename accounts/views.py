@@ -7627,11 +7627,115 @@ def lecturer_resubmit(request):
 
 @login_required
 def lecturer_course_students(request, course_id):
-    return render(request, 'placeholder.html', {'page_title': 'Course Students', 'message': f'Students enrolled in course ID: {course_id}'})
+    """View students enrolled in a specific course"""
+    # Check if user has Lecturer role
+    lecturer_roles = UserRole.objects.filter(user=request.user, role='LECTURER')
+    if not lecturer_roles.exists():
+        messages.error(request, 'Access denied. Lecturer role required.')
+        return redirect('dashboard')
+
+    try:
+        course = Course.objects.select_related('level', 'session').prefetch_related('departments').get(id=course_id)
+
+        # Verify lecturer has access to this course
+        if not CourseAssignment.objects.filter(lecturer=request.user, course=course).exists():
+            messages.error(request, 'You do not have permission to view students for this course.')
+            return redirect('lecturer_courses')
+
+        # Get enrolled students
+        enrollments = CourseEnrollment.objects.filter(
+            course=course,
+            session=course.session
+        ).select_related('student', 'student__user', 'student__department', 'student__current_level').order_by('student__matric_number')
+
+        # Get enrollment statistics
+        total_enrolled = enrollments.count()
+        active_students = enrollments.filter(student__user__is_active=True).count()
+
+        # Get departments for this course
+        course_departments = course.departments.all()
+
+        # Statistics by department
+        dept_stats = {}
+        for dept in course_departments:
+            dept_count = enrollments.filter(student__department=dept).count()
+            dept_stats[dept.name] = dept_count
+
+        context = {
+            'course': course,
+            'enrollments': enrollments,
+            'total_enrolled': total_enrolled,
+            'active_students': active_students,
+            'course_departments': course_departments,
+            'dept_stats': dept_stats,
+        }
+
+        return render(request, 'lecturer_course_students.html', context)
+
+    except Course.DoesNotExist:
+        messages.error(request, 'Course not found.')
+        return redirect('lecturer_courses')
 
 @login_required
 def lecturer_course_results(request, course_id):
-    return render(request, 'placeholder.html', {'page_title': 'Course Results', 'message': f'Results for course ID: {course_id}'})
+    """View and manage results for a specific course"""
+    # Check if user has Lecturer role
+    lecturer_roles = UserRole.objects.filter(user=request.user, role='LECTURER')
+    if not lecturer_roles.exists():
+        messages.error(request, 'Access denied. Lecturer role required.')
+        return redirect('dashboard')
+
+    try:
+        course = Course.objects.select_related('level', 'session').get(id=course_id)
+
+        # Verify lecturer has access to this course
+        if not CourseAssignment.objects.filter(lecturer=request.user, course=course).exists():
+            messages.error(request, 'You do not have permission to view results for this course.')
+            return redirect('lecturer_courses')
+
+        # Get enrolled students with their results
+        enrollments = CourseEnrollment.objects.filter(
+            course=course,
+            session=course.session
+        ).select_related('student', 'student__user').prefetch_related('result_set').order_by('student__matric_number')
+
+        # Add result data to each enrollment
+        for enrollment in enrollments:
+            try:
+                enrollment.result = enrollment.result_set.first()
+            except:
+                enrollment.result = None
+
+        # Calculate statistics
+        total_students = enrollments.count()
+        results_entered = enrollments.filter(result_set__isnull=False).count()
+        results_pending = total_students - results_entered
+
+        # Grade distribution
+        grade_stats = {}
+        if results_entered > 0:
+            from django.db.models import Count
+            grade_distribution = Result.objects.filter(
+                enrollment__in=enrollments
+            ).values('grade').annotate(count=Count('grade'))
+
+            for item in grade_distribution:
+                grade_stats[item['grade']] = item['count']
+
+        context = {
+            'course': course,
+            'enrollments': enrollments,
+            'total_students': total_students,
+            'results_entered': results_entered,
+            'results_pending': results_pending,
+            'grade_stats': grade_stats,
+        }
+
+        return render(request, 'lecturer_course_results.html', context)
+
+    except Course.DoesNotExist:
+        messages.error(request, 'Course not found.')
+        return redirect('lecturer_courses')
 
 
 # ============================================================================

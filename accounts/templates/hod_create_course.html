@@ -264,33 +264,7 @@
 
                 </div>
             </div>
-            
-            <!-- Assessment Structure -->
-            <div class="form-section">
-                <h3 class="section-title">
-                    📊 Assessment Structure
-                </h3>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label" for="ca_percentage">Continuous Assessment (CA) %</label>
-                        <select id="ca_percentage" name="ca_percentage" class="form-input">
-                            <option value="30" selected>30% (Standard)</option>
-                            <option value="40">40% (High CA)</option>
-                            <option value="50">50% (Practical Heavy)</option>
-                            <option value="60">60% (Project Based)</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label" for="exam_percentage">Final Exam %</label>
-                        <input type="number" id="exam_percentage" name="exam_percentage" class="form-input" 
-                               value="70" readonly style="background: #f5f5f5;">
-                    </div>
-                </div>
-                
 
-            </div>
             
 
             
@@ -318,17 +292,10 @@ document.getElementById('code').addEventListener('input', function() {
     this.value = this.value.toUpperCase();
 });
 
-// Auto-calculate exam percentage
-document.getElementById('ca_percentage').addEventListener('change', function() {
-    const caPercentage = parseInt(this.value) || 0;
-    const examPercentage = 100 - caPercentage;
-    document.getElementById('exam_percentage').value = examPercentage;
-});
 
 // Clear form function
 function clearForm() {
     document.getElementById('courseForm').reset();
-    document.getElementById('exam_percentage').value = '70';
     document.getElementById('title').focus();
 }
 

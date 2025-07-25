@@ -7486,8 +7486,18 @@ def lecturer_enter_results(request):
     if request.method == 'POST' and selected_course and selected_session:
         save_as_draft = request.POST.get('save_as_draft') == 'true'
 
+        # Debug: Print POST data
+        print(f"POST request received. save_as_draft: {save_as_draft}")
+        print(f"POST data keys: {list(request.POST.keys())}")
+
+        # Get enrolled students for POST processing
+        enrolled_students_for_post = CourseEnrollment.objects.filter(
+            course=selected_course,
+            session=selected_session
+        ).select_related('student', 'student__user', 'result')
+
         try:
-            for enrollment in enrolled_students:
+            for enrollment in enrolled_students_for_post:
                 ca_score = request.POST.get(f'ca_score_{enrollment.id}')
                 exam_score = request.POST.get(f'exam_score_{enrollment.id}')
 
@@ -7507,6 +7517,9 @@ def lecturer_enter_results(request):
                         grade = 'D'
                     else:
                         grade = 'F'
+
+                    # Debug: Print result data
+                    print(f"Processing enrollment {enrollment.id}: CA={ca_score}, Exam={exam_score}, Total={total_score}, Grade={grade}, Status={'DRAFT' if save_as_draft else 'SUBMITTED'}")
 
                     # Create or update result
                     result, created = Result.objects.get_or_create(
@@ -7528,6 +7541,8 @@ def lecturer_enter_results(request):
                         result.grade = grade
                         result.status = 'DRAFT' if save_as_draft else 'SUBMITTED'
                         result.save()
+
+                    print(f"Result {'created' if created else 'updated'} for enrollment {enrollment.id} with status: {result.status}")
 
             if save_as_draft:
                 return JsonResponse({'success': True, 'message': 'Results saved as draft'})

@@ -23,8 +23,9 @@ from .models import (
     AcademicSession, Faculty, Department, Level, Course, CourseAssignment, CourseThreshold,
     Student, UserRole, AlternativeLogin, Notification, AuditLog, CourseEnrollment,
     Result, ResultApproval, CarryOverList, GradingScale, GradeRange, CarryOverCriteria,
-    StudentComplaint, PermissionDelegation, LevelProgression
+    StudentComplaint, PermissionDelegation, LevelProgression, ResultApprovalHistory
 )
+from .workflow_service import ResultWorkflowService
 from .serializers import (
     UserSerializer, LoginSerializer, AlternativeLoginSerializer,
     AcademicSessionSerializer, FacultySerializer, DepartmentSerializer,
@@ -1824,6 +1825,88 @@ def exam_officer_dashboard(request):
     }
 
     return render(request, 'exam_officer_dashboard.html', context)
+
+
+@login_required
+def exam_officer_pending_results(request):
+    """View for Exam Officer to review pending results"""
+    # Check if user has Exam Officer role
+    exam_officer_roles = UserRole.objects.filter(user=request.user, role='EXAM_OFFICER')
+    if not exam_officer_roles.exists():
+        messages.error(request, 'Access denied. Exam Officer role required.')
+        return redirect('dashboard')
+
+    # Get the faculty context
+    faculty = exam_officer_roles.first().faculty
+
+    # Get pending results for this faculty
+    pending_results = Result.objects.filter(
+        status='SUBMITTED_TO_EXAM_OFFICER',
+        enrollment__course__departments__faculty=faculty
+    ).select_related(
+        'enrollment__student__user',
+        'enrollment__course',
+        'enrollment__session',
+        'created_by'
+    ).prefetch_related(
+        'enrollment__course__departments'
+    ).order_by('-updated_at')
+
+    # Handle POST request for approval/rejection
+    if request.method == 'POST':
+        result_id = request.POST.get('result_id')
+        action = request.POST.get('action')
+        comments = request.POST.get('comments', '')
+
+        try:
+            result = Result.objects.get(id=result_id, status='SUBMITTED_TO_EXAM_OFFICER')
+
+            if action == 'approve':
+                success, message = ResultWorkflowService.approve_result(result, request.user, comments)
+                if success:
+                    messages.success(request, f'Result approved successfully for {result.enrollment.student.matric_number}')
+                else:
+                    messages.error(request, f'Error approving result: {message}')
+
+            elif action == 'reject':
+                if not comments.strip():
+                    messages.error(request, 'Rejection reason is required')
+                else:
+                    success, message = ResultWorkflowService.reject_result(result, request.user, comments)
+                    if success:
+                        messages.success(request, f'Result rejected and returned for correction')
+                    else:
+                        messages.error(request, f'Error rejecting result: {message}')
+
+            return redirect('exam_officer_pending_results')
+
+        except Result.DoesNotExist:
+            messages.error(request, 'Result not found or already processed')
+            return redirect('exam_officer_pending_results')
+        except Exception as e:
+            messages.error(request, f'Error processing result: {str(e)}')
+            return redirect('exam_officer_pending_results')
+
+    # Group results by course for better organization
+    results_by_course = {}
+    for result in pending_results:
+        course_key = f"{result.enrollment.course.code} - {result.enrollment.course.title}"
+        if course_key not in results_by_course:
+            results_by_course[course_key] = {
+                'course': result.enrollment.course,
+                'session': result.enrollment.session,
+                'results': []
+            }
+        results_by_course[course_key]['results'].append(result)
+
+    context = {
+        'pending_results': pending_results,
+        'results_by_course': results_by_course,
+        'faculty': faculty,
+        'total_pending': pending_results.count(),
+    }
+
+    return render(request, 'exam_officer_pending_results.html', context)
 
 
 # ============================================================================

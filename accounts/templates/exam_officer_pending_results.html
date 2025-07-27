@@ -1,0 +1,279 @@
+{% extends 'base.html' %}
+{% load role_tags %}
+
+{% block title %}Pending Results - Exam Officer{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Delegation Status Badges -->
+    {% show_delegation_badges user %}
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">Pending Results Review</h1>
+                            <p class="mb-0 opacity-75">Review and approve results submitted by lecturers</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">
+                                <div class="h3 fw-bold mb-0">{{ total_pending }}</div>
+                                <small class="opacity-75">Pending Results</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Faculty Info -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-building me-2 fs-4"></i>
+                    <div>
+                        <h6 class="mb-0">Faculty: {{ faculty.name }}</h6>
+                        <small>Reviewing results for courses in your faculty</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results by Course -->
+    {% if results_by_course %}
+        {% for course_key, course_data in results_by_course.items %}
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-0 fw-bold text-primary">{{ course_data.course.code }}</h5>
+                                <small class="text-muted">{{ course_data.course.title }} - {{ course_data.session.name }}</small>
+                            </div>
+                            <span class="badge bg-warning">{{ course_data.results|length }} Pending</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Matric Number</th>
+                                        <th>CA Score</th>
+                                        <th>Exam Score</th>
+                                        <th>Total</th>
+                                        <th>Grade</th>
+                                        <th>Lecturer</th>
+                                        <th>Submitted</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for result in course_data.results %}
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold">{{ result.enrollment.student.user.get_full_name }}</div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ result.enrollment.student.matric_number }}</span>
+                                        </td>
+                                        <td>{{ result.ca_score|floatformat:1 }}</td>
+                                        <td>{{ result.exam_score|floatformat:1 }}</td>
+                                        <td>
+                                            <span class="fw-bold">{{ result.total_score|floatformat:1 }}</span>
+                                        </td>
+                                        <td>
+                                            {% if result.grade == 'A' %}
+                                                <span class="badge bg-success">{{ result.grade }}</span>
+                                            {% elif result.grade == 'B' %}
+                                                <span class="badge bg-primary">{{ result.grade }}</span>
+                                            {% elif result.grade == 'C' %}
+                                                <span class="badge bg-info">{{ result.grade }}</span>
+                                            {% elif result.grade == 'D' %}
+                                                <span class="badge bg-warning">{{ result.grade }}</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">{{ result.grade }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">{{ result.created_by.get_full_name }}</small>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">{{ result.updated_at|date:"M d, H:i" }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-success" 
+                                                        onclick="approveResult({{ result.id }}, '{{ result.enrollment.student.matric_number }}')"
+                                                        title="Approve Result">
+                                                    <i class="bi bi-check-circle"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger" 
+                                                        onclick="rejectResult({{ result.id }}, '{{ result.enrollment.student.matric_number }}')"
+                                                        title="Reject Result">
+                                                    <i class="bi bi-x-circle"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Bulk Actions -->
+                        <div class="mt-3 p-3 bg-light rounded">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h6 class="mb-0">Bulk Actions for {{ course_data.course.code }}</h6>
+                                    <small class="text-muted">Apply action to all results in this course</small>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <button class="btn btn-success btn-sm me-2" 
+                                            onclick="bulkApprove('{{ course_key }}')">
+                                        <i class="bi bi-check-all me-1"></i>Approve All
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" 
+                                            onclick="bulkReject('{{ course_key }}')">
+                                        <i class="bi bi-x-circle me-1"></i>Reject All
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-3">
+                            <i class="bi bi-clipboard-check display-1 text-muted"></i>
+                        </div>
+                        <h4 class="text-muted">No Pending Results</h4>
+                        <p class="text-muted">All results have been reviewed. Great job!</p>
+                        <a href="{% url 'exam_officer_dashboard' %}" class="btn btn-primary">
+                            <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Approval Modal -->
+<div class="modal fade" id="approvalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Approve Result</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" id="approvalForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <input type="hidden" name="result_id" id="approvalResultId">
+                    <input type="hidden" name="action" value="approve">
+                    
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle me-2"></i>
+                        You are about to approve the result for student <strong id="approvalStudentId"></strong>.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Comments (Optional)</label>
+                        <textarea name="comments" class="form-control" rows="3" 
+                                  placeholder="Add any comments about this approval..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle me-1"></i>Approve Result
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Rejection Modal -->
+<div class="modal fade" id="rejectionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reject Result</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" id="rejectionForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <input type="hidden" name="result_id" id="rejectionResultId">
+                    <input type="hidden" name="action" value="reject">
+                    
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        You are about to reject the result for student <strong id="rejectionStudentId"></strong>.
+                        This will return the result to the lecturer for correction.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Rejection Reason <span class="text-danger">*</span></label>
+                        <textarea name="comments" class="form-control" rows="4" required
+                                  placeholder="Please provide a clear reason for rejection..."></textarea>
+                        <div class="form-text">This reason will be sent to the lecturer.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-x-circle me-1"></i>Reject Result
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function approveResult(resultId, studentId) {
+    document.getElementById('approvalResultId').value = resultId;
+    document.getElementById('approvalStudentId').textContent = studentId;
+    new bootstrap.Modal(document.getElementById('approvalModal')).show();
+}
+
+function rejectResult(resultId, studentId) {
+    document.getElementById('rejectionResultId').value = resultId;
+    document.getElementById('rejectionStudentId').textContent = studentId;
+    new bootstrap.Modal(document.getElementById('rejectionModal')).show();
+}
+
+function bulkApprove(courseKey) {
+    if (confirm('Are you sure you want to approve all results for this course?')) {
+        // Implementation for bulk approval
+        alert('Bulk approval feature will be implemented');
+    }
+}
+
+function bulkReject(courseKey) {
+    const reason = prompt('Please provide a reason for rejecting all results in this course:');
+    if (reason && reason.trim()) {
+        // Implementation for bulk rejection
+        alert('Bulk rejection feature will be implemented');
+    }
+}
+</script>
+
+{% endblock %}

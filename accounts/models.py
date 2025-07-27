@@ -284,7 +284,12 @@ class Result(models.Model):
     # Tracking who handled the result
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='results_created')
     last_modified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='results_modified')
-    
+
+    # Rejection tracking
+    rejected_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='results_rejected', help_text="User who rejected this result")
+    rejection_reason = models.TextField(null=True, blank=True, help_text="Reason for rejection")
+    rejection_date = models.DateTimeField(null=True, blank=True, help_text="When the result was rejected")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -351,6 +356,77 @@ class Result(models.Model):
                 result=self,
                 defaults={}
             )
+
+    def __str__(self):
+        return f"{self.enrollment.student.matric_number} - {self.enrollment.course.code} ({self.grade})"
+
+    def get_workflow_stage(self):
+        """Get the current workflow stage for display"""
+        stage_map = {
+            'DRAFT': 'Draft',
+            'SUBMITTED_TO_EXAM_OFFICER': 'Pending Exam Officer Review',
+            'APPROVED_BY_EXAM_OFFICER': 'Approved by Exam Officer',
+            'SUBMITTED_TO_HOD': 'Pending HOD Review',
+            'APPROVED_BY_HOD': 'Approved by HOD',
+            'SUBMITTED_TO_DEAN': 'Pending Faculty Dean Review',
+            'APPROVED_BY_DEAN': 'Approved by Faculty Dean',
+            'SUBMITTED_TO_DAAA': 'Pending DAAA Review',
+            'APPROVED_BY_DAAA': 'Approved by DAAA',
+            'SUBMITTED_TO_SENATE': 'Pending Senate Review',
+            'PUBLISHED': 'Published',
+            'REJECTED': 'Rejected',
+        }
+        return stage_map.get(self.status, self.status)
+
+    def get_next_approver_role(self):
+        """Get the role that should approve this result next"""
+        workflow_map = {
+            'SUBMITTED_TO_EXAM_OFFICER': 'EXAM_OFFICER',
+            'SUBMITTED_TO_HOD': 'HOD',
+            'SUBMITTED_TO_DEAN': 'FACULTY_DEAN',
+            'SUBMITTED_TO_DAAA': 'DAAA',
+            'SUBMITTED_TO_SENATE': 'SENATE',
+        }
+        return workflow_map.get(self.status)
+
+    def get_previous_status(self):
+        """Get the previous status in the workflow for rejection handling"""
+        previous_status_map = {
+            'SUBMITTED_TO_EXAM_OFFICER': 'DRAFT',
+            'SUBMITTED_TO_HOD': 'APPROVED_BY_EXAM_OFFICER',
+            'SUBMITTED_TO_DEAN': 'APPROVED_BY_HOD',
+            'SUBMITTED_TO_DAAA': 'APPROVED_BY_DEAN',
+            'SUBMITTED_TO_SENATE': 'APPROVED_BY_DAAA',
+        }
+        return previous_status_map.get(self.status)
+
+
+class ResultApprovalHistory(models.Model):
+    """Track the complete approval workflow history for each result"""
+    ACTION_CHOICES = [
+        ('SUBMITTED', 'Submitted'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+        ('FORWARDED', 'Forwarded'),
+    ]
+
+    result = models.ForeignKey(Result, on_delete=models.CASCADE, related_name='approval_history')
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    from_status = models.CharField(max_length=30, null=True, blank=True)
+    to_status = models.CharField(max_length=30)
+    actor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    actor_role = models.CharField(max_length=20)
+    comments = models.TextField(null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = "Result Approval History"
+        verbose_name_plural = "Result Approval Histories"
+
+    def __str__(self):
+        return f"{self.result} - {self.action} by {self.actor_role} at {self.timestamp}"
+
 
 # Track result approval workflow
 class ResultApproval(models.Model):

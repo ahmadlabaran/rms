@@ -121,15 +121,31 @@
                                     <div class="card-header d-flex justify-content-between align-items-center">
                                         <h6 class="mb-0 fw-bold text-primary">{{ submission.course.code }}</h6>
                                         {% if submission.status == 'DRAFT' %}
-                                            <span class="badge bg-warning">Draft</span>
-                                        {% elif submission.status == 'SUBMITTED' %}
-                                            <span class="badge bg-info">Submitted</span>
-                                        {% elif submission.status == 'APPROVED' %}
-                                            <span class="badge bg-success">Approved</span>
+                                            <span class="badge bg-secondary">Draft</span>
+                                        {% elif submission.status == 'SUBMITTED_TO_EXAM_OFFICER' %}
+                                            <span class="badge bg-warning">Submitted to Exam Officer</span>
+                                        {% elif submission.status == 'APPROVED_BY_EXAM_OFFICER' %}
+                                            <span class="badge bg-info">Approved by Exam Officer</span>
+                                        {% elif submission.status == 'SUBMITTED_TO_HOD' %}
+                                            <span class="badge bg-warning">Submitted to HOD</span>
+                                        {% elif submission.status == 'APPROVED_BY_HOD' %}
+                                            <span class="badge bg-info">Approved by HOD</span>
+                                        {% elif submission.status == 'SUBMITTED_TO_DEAN' %}
+                                            <span class="badge bg-warning">Submitted to Dean</span>
+                                        {% elif submission.status == 'APPROVED_BY_DEAN' %}
+                                            <span class="badge bg-info">Approved by Dean</span>
+                                        {% elif submission.status == 'SUBMITTED_TO_DAAA' %}
+                                            <span class="badge bg-warning">Submitted to DAAA</span>
+                                        {% elif submission.status == 'APPROVED_BY_DAAA' %}
+                                            <span class="badge bg-info">Approved by DAAA</span>
+                                        {% elif submission.status == 'SUBMITTED_TO_SENATE' %}
+                                            <span class="badge bg-warning">Submitted to Senate</span>
+                                        {% elif submission.status == 'PUBLISHED' %}
+                                            <span class="badge bg-success">Published</span>
                                         {% elif submission.status == 'REJECTED' %}
                                             <span class="badge bg-danger">Rejected</span>
-                                        {% elif submission.status == 'PUBLISHED' %}
-                                            <span class="badge bg-primary">Published</span>
+                                        {% else %}
+                                            <span class="badge bg-light text-dark">{{ submission.status }}</span>
                                         {% endif %}
                                     </div>
                                     <div class="card-body">

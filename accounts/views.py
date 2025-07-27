@@ -3,7 +3,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Count
+from django.db.models import Count, Avg
+from django.db import models
 from rest_framework import status, generics, viewsets, serializers
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
@@ -7500,6 +7501,15 @@ def lecturer_enter_results(request):
         # Debug: Print POST data
         print(f"POST request received. save_as_draft: {save_as_draft}")
         print(f"POST data keys: {list(request.POST.keys())}")
+        print(f"Number of enrolled students: {enrolled_students_for_post.count()}")
+
+        # Debug: Print specific score fields
+        for enrollment in enrolled_students_for_post:
+            ca_key = f'ca_score_{enrollment.id}'
+            exam_key = f'exam_score_{enrollment.id}'
+            ca_value = request.POST.get(ca_key)
+            exam_value = request.POST.get(exam_key)
+            print(f"Student {enrollment.student.matric_number} (ID: {enrollment.id}): CA={ca_value}, Exam={exam_value}")
 
         # Get enrolled students for POST processing
         enrolled_students_for_post = CourseEnrollment.objects.filter(
@@ -7526,7 +7536,41 @@ def lecturer_enter_results(request):
 
         try:
             validation_errors = []
+            results_processed = 0
 
+            # First pass: validate all scores
+            for enrollment in enrolled_students_for_post:
+                ca_score = request.POST.get(f'ca_score_{enrollment.id}')
+                exam_score = request.POST.get(f'exam_score_{enrollment.id}')
+
+                if ca_score or exam_score:
+                    try:
+                        ca_score = float(ca_score) if ca_score else 0
+                        exam_score = float(exam_score) if exam_score else 0
+
+                        # Validate against thresholds
+                        if ca_score > ca_max:
+                            validation_errors.append(f"{enrollment.student.matric_number}: CA score ({ca_score}) exceeds maximum ({ca_max})")
+                            continue
+
+                        if exam_score > exam_max:
+                            validation_errors.append(f"{enrollment.student.matric_number}: Exam score ({exam_score}) exceeds maximum ({exam_max})")
+                            continue
+
+                    except ValueError:
+                        validation_errors.append(f"{enrollment.student.matric_number}: Invalid score values")
+                        continue
+
+            # If there are validation errors, stop processing
+            if validation_errors:
+                error_message = "Score validation errors:\n" + "\n".join(validation_errors)
+                if save_as_draft:
+                    return JsonResponse({'success': False, 'error': error_message})
+                else:
+                    messages.error(request, error_message)
+                    return redirect('lecturer_enter_results')
+
+            # Second pass: process valid scores
             for enrollment in enrolled_students_for_post:
                 ca_score = request.POST.get(f'ca_score_{enrollment.id}')
                 exam_score = request.POST.get(f'exam_score_{enrollment.id}')
@@ -7534,16 +7578,6 @@ def lecturer_enter_results(request):
                 if ca_score or exam_score:
                     ca_score = float(ca_score) if ca_score else 0
                     exam_score = float(exam_score) if exam_score else 0
-
-                    # Validate against thresholds
-                    if ca_score > ca_max:
-                        validation_errors.append(f"{enrollment.student.matric_number}: CA score ({ca_score}) exceeds maximum ({ca_max})")
-                        continue
-
-                    if exam_score > exam_max:
-                        validation_errors.append(f"{enrollment.student.matric_number}: Exam score ({exam_score}) exceeds maximum ({exam_max})")
-                        continue
-
                     total_score = ca_score + exam_score
 
                     # Calculate grade
@@ -7558,8 +7592,11 @@ def lecturer_enter_results(request):
                     else:
                         grade = 'F'
 
+                    # Set correct status based on submission type
+                    status = 'DRAFT' if save_as_draft else 'SUBMITTED_TO_EXAM_OFFICER'
+
                     # Debug: Print result data
-                    print(f"Processing enrollment {enrollment.id}: CA={ca_score}, Exam={exam_score}, Total={total_score}, Grade={grade}, Status={'DRAFT' if save_as_draft else 'SUBMITTED'}")
+                    print(f"Processing enrollment {enrollment.id}: CA={ca_score}, Exam={exam_score}, Total={total_score}, Grade={grade}, Status={status}")
 
                     # Create or update result
                     result, created = Result.objects.get_or_create(
@@ -7569,8 +7606,9 @@ def lecturer_enter_results(request):
                             'exam_score': exam_score,
                             'total_score': total_score,
                             'grade': grade,
-                            'status': 'DRAFT' if save_as_draft else 'SUBMITTED',
-                            'entered_by': request.user
+                            'status': status,
+                            'created_by': request.user,
+                            'last_modified_by': request.user
                         }
                     )
 
@@ -7579,24 +7617,53 @@ def lecturer_enter_results(request):
                         result.exam_score = exam_score
                         result.total_score = total_score
                         result.grade = grade
-                        result.status = 'DRAFT' if save_as_draft else 'SUBMITTED'
+                        result.status = status
+                        result.last_modified_by = request.user
                         result.save()
 
+                    results_processed += 1
                     print(f"Result {'created' if created else 'updated'} for enrollment {enrollment.id} with status: {result.status}")
 
-            # Check for validation errors
-            if validation_errors:
-                error_message = "Score validation errors:\n" + "\n".join(validation_errors)
+            # Check if any results were processed
+            if results_processed == 0:
                 if save_as_draft:
-                    return JsonResponse({'success': False, 'error': error_message})
+                    return JsonResponse({'success': False, 'error': 'No valid scores found to save'})
                 else:
-                    messages.error(request, error_message)
+                    messages.warning(request, 'No results were submitted. Please enter scores for at least one student.')
                     return redirect('lecturer_enter_results')
 
             if save_as_draft:
-                return JsonResponse({'success': True, 'message': 'Results saved as draft'})
+                return JsonResponse({'success': True, 'message': f'{results_processed} results saved as draft'})
             else:
-                messages.success(request, 'Results submitted successfully!')
+                # Notify Exam Officer about result submission
+                try:
+                    # Get the faculty of the course
+                    course_faculty = selected_course.departments.first().faculty if selected_course.departments.exists() else None
+
+                    if course_faculty:
+                        # Find Exam Officers in this faculty
+                        exam_officers = UserRole.objects.filter(
+                            role='EXAM_OFFICER',
+                            faculty=course_faculty
+                        ).select_related('user')
+
+                        # Create notifications for each Exam Officer
+                        for exam_officer_role in exam_officers:
+                            Notification.objects.create(
+                                user=exam_officer_role.user,
+                                title='New Results Submitted',
+                                message=f'Lecturer {request.user.get_full_name()} has submitted {results_processed} results for {selected_course.code} - {selected_course.title} ({selected_session.name})',
+                                notification_type='RESULT_SUBMISSION',
+                                is_read=False
+                            )
+
+                        print(f"Notified {exam_officers.count()} Exam Officers about result submission")
+
+                except Exception as e:
+                    print(f"Error sending notifications: {str(e)}")
+                    # Don't fail the submission if notification fails
+
+                messages.success(request, f'{results_processed} results submitted successfully to Exam Officer!')
                 return redirect('lecturer_result_status')
 
         except Exception as e:
@@ -7690,9 +7757,10 @@ def lecturer_result_status(request):
     # Calculate summary statistics
     total_results = len(result_submissions)
     draft_count = len([r for r in result_submissions if r['status'] == 'DRAFT'])
-    submitted_count = len([r for r in result_submissions if r['status'] == 'SUBMITTED'])
-    approved_count = len([r for r in result_submissions if r['status'] == 'APPROVED'])
+    submitted_count = len([r for r in result_submissions if r['status'].startswith('SUBMITTED')])
+    approved_count = len([r for r in result_submissions if r['status'].startswith('APPROVED')])
     rejected_count = len([r for r in result_submissions if r['status'] == 'REJECTED'])
+    published_count = len([r for r in result_submissions if r['status'] == 'PUBLISHED'])
 
     # Get sessions for filtering
     sessions = AcademicSession.objects.all().order_by('-start_date')
@@ -7705,6 +7773,7 @@ def lecturer_result_status(request):
         'submitted_count': submitted_count,
         'approved_count': approved_count,
         'rejected_count': rejected_count,
+        'published_count': published_count,
     }
 
     return render(request, 'lecturer_result_status.html', context)

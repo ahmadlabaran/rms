@@ -7889,6 +7889,12 @@ def lecturer_enter_results(request):
     if request.method == 'POST' and selected_course and selected_session:
         save_as_draft = request.POST.get('save_as_draft') == 'true'
 
+        # Get enrolled students for POST processing first
+        enrolled_students_for_post = CourseEnrollment.objects.filter(
+            course=selected_course,
+            session=selected_session
+        ).select_related('student', 'student__user', 'result')
+
         # Debug: Print POST data
         print(f"POST request received. save_as_draft: {save_as_draft}")
         print(f"POST data keys: {list(request.POST.keys())}")
@@ -7901,12 +7907,6 @@ def lecturer_enter_results(request):
             ca_value = request.POST.get(ca_key)
             exam_value = request.POST.get(exam_key)
             print(f"Student {enrollment.student.matric_number} (ID: {enrollment.id}): CA={ca_value}, Exam={exam_value}")
-
-        # Get enrolled students for POST processing
-        enrolled_students_for_post = CourseEnrollment.objects.filter(
-            course=selected_course,
-            session=selected_session
-        ).select_related('student', 'student__user', 'result')
 
         # Get course threshold for validation
         course_assignment = CourseAssignment.objects.filter(

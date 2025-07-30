@@ -1720,12 +1720,16 @@ def lecturer_dashboard(request):
         ).count(),
     }
 
-    # Get correction requests (rejected results)
-    correction_requests = ResultApproval.objects.filter(
-        result__enrollment__course__in=lecturer_course_ids,
-        action='REJECTED',
-        sent_to=request.user
-    ).select_related('result__enrollment__student', 'result__enrollment__course')
+    # Get correction requests (rejected results) - Updated to use new rejection system
+    try:
+        correction_requests = Result.objects.filter(
+            enrollment__course__in=lecturer_course_ids,
+            status='DRAFT',
+            rejected_by__isnull=False
+        ).select_related('enrollment__student__user', 'enrollment__course', 'rejected_by')
+    except Exception as e:
+        # Fallback if database schema is not updated yet
+        correction_requests = Result.objects.none()
 
     # Get draft results count for notifications
     draft_results_count = stats['draft_results']

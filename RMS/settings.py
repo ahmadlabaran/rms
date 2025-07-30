@@ -250,3 +250,8 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
     },
 ]
+
+# Authentication URLs
+LOGIN_URL = '/api/login/'
+LOGIN_REDIRECT_URL = '/api/dashboard/'
+LOGOUT_REDIRECT_URL = '/api/login/'

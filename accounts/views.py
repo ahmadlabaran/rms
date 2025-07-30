@@ -7904,9 +7904,12 @@ def lecturer_enter_results(request):
         for enrollment in enrolled_students_for_post:
             ca_key = f'ca_score_{enrollment.id}'
             exam_key = f'exam_score_{enrollment.id}'
-            ca_value = request.POST.get(ca_key)
-            exam_value = request.POST.get(exam_key)
-            print(f"Student {enrollment.student.matric_number} (ID: {enrollment.id}): CA={ca_value}, Exam={exam_value}")
+            ca_value = request.POST.get(ca_key, '').strip()
+            exam_value = request.POST.get(exam_key, '').strip()
+            print(f"Student {enrollment.student.matric_number} (ID: {enrollment.id}): CA='{ca_value}' (len={len(ca_value)}), Exam='{exam_value}' (len={len(exam_value)})")
+
+            # Check if values are considered truthy
+            print(f"  CA truthy: {bool(ca_value)}, Exam truthy: {bool(exam_value)}, Either truthy: {bool(ca_value or exam_value)}")
 
         # Get course threshold for validation
         course_assignment = CourseAssignment.objects.filter(
@@ -7931,13 +7934,23 @@ def lecturer_enter_results(request):
 
             # First pass: validate all scores
             for enrollment in enrolled_students_for_post:
-                ca_score = request.POST.get(f'ca_score_{enrollment.id}')
-                exam_score = request.POST.get(f'exam_score_{enrollment.id}')
+                ca_score_str = request.POST.get(f'ca_score_{enrollment.id}', '').strip()
+                exam_score_str = request.POST.get(f'exam_score_{enrollment.id}', '').strip()
 
-                if ca_score or exam_score:
+                # Check if at least one score is provided and not empty
+                if ca_score_str or exam_score_str:
                     try:
-                        ca_score = float(ca_score) if ca_score else 0
-                        exam_score = float(exam_score) if exam_score else 0
+                        ca_score = float(ca_score_str) if ca_score_str else 0.0
+                        exam_score = float(exam_score_str) if exam_score_str else 0.0
+
+                        # Validate scores are not negative
+                        if ca_score < 0:
+                            validation_errors.append(f"{enrollment.student.matric_number}: CA score cannot be negative")
+                            continue
+
+                        if exam_score < 0:
+                            validation_errors.append(f"{enrollment.student.matric_number}: Exam score cannot be negative")
+                            continue
 
                         # Validate against thresholds
                         if ca_score > ca_max:
@@ -7948,8 +7961,8 @@ def lecturer_enter_results(request):
                             validation_errors.append(f"{enrollment.student.matric_number}: Exam score ({exam_score}) exceeds maximum ({exam_max})")
                             continue
 
-                    except ValueError:
-                        validation_errors.append(f"{enrollment.student.matric_number}: Invalid score values")
+                    except (ValueError, TypeError):
+                        validation_errors.append(f"{enrollment.student.matric_number}: Invalid score values - please enter valid numbers")
                         continue
 
             # If there are validation errors, stop processing
@@ -7963,67 +7976,75 @@ def lecturer_enter_results(request):
 
             # Second pass: process valid scores
             for enrollment in enrolled_students_for_post:
-                ca_score = request.POST.get(f'ca_score_{enrollment.id}')
-                exam_score = request.POST.get(f'exam_score_{enrollment.id}')
+                ca_score_str = request.POST.get(f'ca_score_{enrollment.id}', '').strip()
+                exam_score_str = request.POST.get(f'exam_score_{enrollment.id}', '').strip()
 
-                if ca_score or exam_score:
-                    ca_score = float(ca_score) if ca_score else 0
-                    exam_score = float(exam_score) if exam_score else 0
-                    total_score = ca_score + exam_score
+                # Check if at least one score is provided and not empty
+                if ca_score_str or exam_score_str:
+                    try:
+                        ca_score = float(ca_score_str) if ca_score_str else 0.0
+                        exam_score = float(exam_score_str) if exam_score_str else 0.0
+                        total_score = ca_score + exam_score
 
-                    # Calculate grade using faculty-specific thresholds
-                    course = enrollment.course
-                    faculty = course.departments.first().faculty if course.departments.exists() else None
+                        # Calculate grade using faculty-specific thresholds
+                        course = enrollment.course
+                        faculty = course.departments.first().faculty if course.departments.exists() else None
 
-                    if faculty:
-                        grade = GradingThreshold.get_grade_for_score(faculty, total_score)
-                    else:
-                        # Fallback to default grading if no faculty found
-                        if total_score >= 70:
-                            grade = 'A'
-                        elif total_score >= 60:
-                            grade = 'B'
-                        elif total_score >= 50:
-                            grade = 'C'
-                        elif total_score >= 45:
-                            grade = 'D'
+                        if faculty:
+                            grade = GradingThreshold.get_grade_for_score(faculty, total_score)
                         else:
-                            grade = 'F'
+                            # Fallback to default grading if no faculty found
+                            if total_score >= 70:
+                                grade = 'A'
+                            elif total_score >= 60:
+                                grade = 'B'
+                            elif total_score >= 50:
+                                grade = 'C'
+                            elif total_score >= 45:
+                                grade = 'D'
+                            else:
+                                grade = 'F'
 
-                    # Set correct status based on submission type
-                    status = 'DRAFT' if save_as_draft else 'SUBMITTED_TO_EXAM_OFFICER'
+                        # Set correct status based on submission type
+                        status = 'DRAFT' if save_as_draft else 'SUBMITTED_TO_EXAM_OFFICER'
 
-                    # Debug: Print result data
-                    print(f"Processing enrollment {enrollment.id}: CA={ca_score}, Exam={exam_score}, Total={total_score}, Grade={grade}, Status={status}")
+                        # Debug: Print result data
+                        print(f"Processing enrollment {enrollment.id}: CA={ca_score}, Exam={exam_score}, Total={total_score}, Grade={grade}, Status={status}")
 
-                    # Create or update result
-                    result, created = Result.objects.get_or_create(
-                        enrollment=enrollment,
-                        defaults={
-                            'ca_score': ca_score,
-                            'exam_score': exam_score,
-                            'total_score': total_score,
-                            'grade': grade,
-                            'status': status,
-                            'created_by': request.user,
-                            'last_modified_by': request.user
-                        }
-                    )
+                        # Create or update result
+                        result, created = Result.objects.get_or_create(
+                            enrollment=enrollment,
+                            defaults={
+                                'ca_score': ca_score,
+                                'exam_score': exam_score,
+                                'total_score': total_score,
+                                'grade': grade,
+                                'status': status,
+                                'created_by': request.user,
+                                'last_modified_by': request.user
+                            }
+                        )
 
-                    if not created:
-                        result.ca_score = ca_score
-                        result.exam_score = exam_score
-                        result.total_score = total_score
-                        result.grade = grade
-                        result.status = status
-                        result.last_modified_by = request.user
-                        result.save()
+                        if not created:
+                            result.ca_score = ca_score
+                            result.exam_score = exam_score
+                            result.total_score = total_score
+                            result.grade = grade
+                            result.status = status
+                            result.last_modified_by = request.user
+                            result.save()
 
-                    results_processed += 1
-                    print(f"Result {'created' if created else 'updated'} for enrollment {enrollment.id} with status: {result.status}")
+                        results_processed += 1
+                        print(f"Result {'created' if created else 'updated'} for enrollment {enrollment.id} with status: {result.status}")
+
+                    except (ValueError, TypeError) as e:
+                        print(f"Error processing scores for enrollment {enrollment.id}: {e}")
+                        continue
 
             # Check if any results were processed
+            print(f"Final check: results_processed = {results_processed}")
             if results_processed == 0:
+                print("No results were processed - returning error")
                 if save_as_draft:
                     return JsonResponse({'success': False, 'error': 'No valid scores found to save'})
                 else:

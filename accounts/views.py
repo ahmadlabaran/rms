@@ -23,7 +23,8 @@ from .models import (
     AcademicSession, Faculty, Department, Level, Course, CourseAssignment, CourseThreshold,
     Student, UserRole, AlternativeLogin, Notification, AuditLog, CourseEnrollment,
     Result, ResultApproval, CarryOverList, GradingScale, GradeRange, CarryOverCriteria,
-    StudentComplaint, PermissionDelegation, LevelProgression, ResultApprovalHistory
+    StudentComplaint, PermissionDelegation, LevelProgression, ResultApprovalHistory,
+    ResultPublication, GradingThreshold, CarryOverStudent
 )
 from .workflow_service import ResultWorkflowService
 from .serializers import (
@@ -1907,6 +1908,127 @@ def exam_officer_pending_results(request):
     }
 
     return render(request, 'exam_officer_pending_results.html', context)
+
+
+@login_required
+def exam_officer_carryover_students(request):
+    """View for Exam Officer to manage carry-over students"""
+    # Check if user has Exam Officer role
+    exam_officer_roles = UserRole.objects.filter(user=request.user, role='EXAM_OFFICER')
+    if not exam_officer_roles.exists():
+        messages.error(request, 'Access denied. Exam Officer role required.')
+        return redirect('dashboard')
+
+    # Get the faculty context
+    faculty = exam_officer_roles.first().faculty
+
+    # Handle POST request for actions
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'identify_carryovers':
+            # Identify carry-over students for the current session
+            session_id = request.POST.get('session_id')
+            try:
+                session = AcademicSession.objects.get(id=session_id) if session_id else None
+                count = CarryOverStudent.identify_carryover_students(session)
+                messages.success(request, f'Identified {count} new carry-over students.')
+            except Exception as e:
+                messages.error(request, f'Error identifying carry-over students: {str(e)}')
+
+        elif action == 'update_status':
+            carryover_id = request.POST.get('carryover_id')
+            new_status = request.POST.get('status')
+            notes = request.POST.get('notes', '')
+
+            try:
+                carryover = CarryOverStudent.objects.get(
+                    id=carryover_id,
+                    faculty=faculty
+                )
+                carryover.status = new_status
+                carryover.notes = notes
+                if new_status == 'NOTIFIED':
+                    carryover.notified_at = timezone.now()
+                carryover.save()
+
+                messages.success(request, f'Status updated for {carryover.student.matric_number}')
+
+            except CarryOverStudent.DoesNotExist:
+                messages.error(request, 'Carry-over record not found.')
+            except Exception as e:
+                messages.error(request, f'Error updating status: {str(e)}')
+
+        return redirect('exam_officer_carryover_students')
+
+    # Get filters
+    level_filter = request.GET.get('level')
+    department_filter = request.GET.get('department')
+    status_filter = request.GET.get('status')
+    session_filter = request.GET.get('session')
+
+    # Get carry-over students for this faculty
+    carryover_students = CarryOverStudent.objects.filter(
+        faculty=faculty
+    ).select_related(
+        'student__user',
+        'course',
+        'session',
+        'department',
+        'level'
+    ).order_by('-identified_at')
+
+    # Apply filters
+    if level_filter:
+        carryover_students = carryover_students.filter(level__id=level_filter)
+    if department_filter:
+        carryover_students = carryover_students.filter(department__id=department_filter)
+    if status_filter:
+        carryover_students = carryover_students.filter(status=status_filter)
+    if session_filter:
+        carryover_students = carryover_students.filter(session__id=session_filter)
+
+    # Group by level and department for organization
+    carryovers_by_level = {}
+    for carryover in carryover_students:
+        level_name = carryover.level.name
+        if level_name not in carryovers_by_level:
+            carryovers_by_level[level_name] = {}
+
+        dept_name = carryover.department.name
+        if dept_name not in carryovers_by_level[level_name]:
+            carryovers_by_level[level_name][dept_name] = []
+
+        carryovers_by_level[level_name][dept_name].append(carryover)
+
+    # Get filter options
+    levels = Level.objects.all().order_by('name')
+    departments = Department.objects.filter(faculty=faculty).order_by('name')
+    sessions = AcademicSession.objects.all().order_by('-start_date')
+
+    # Statistics
+    total_carryovers = carryover_students.count()
+    status_stats = {}
+    for status_choice in CarryOverStudent.STATUS_CHOICES:
+        status_code = status_choice[0]
+        status_stats[status_code] = carryover_students.filter(status=status_code).count()
+
+    context = {
+        'faculty': faculty,
+        'carryover_students': carryover_students,
+        'carryovers_by_level': carryovers_by_level,
+        'levels': levels,
+        'departments': departments,
+        'sessions': sessions,
+        'total_carryovers': total_carryovers,
+        'status_stats': status_stats,
+        'level_filter': level_filter,
+        'department_filter': department_filter,
+        'status_filter': status_filter,
+        'session_filter': session_filter,
+    }
+
+    return render(request, 'exam_officer_carryover_students.html', context)
 
 
 # ============================================================================
@@ -6520,6 +6642,188 @@ def faculty_dean_dashboard(request):
     return render(request, 'faculty_dean_dashboard.html', context)
 
 
+@login_required
+def faculty_dean_grading_thresholds(request):
+    """Faculty Dean interface for managing grading thresholds"""
+    # Check if user has Faculty Dean role
+    dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not dean_roles.exists():
+        messages.error(request, 'Access denied. Faculty Dean role required.')
+        return redirect('dashboard')
+
+    # Get the faculty context
+    faculty = dean_roles.first().faculty
+
+    # Handle POST request to update thresholds
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'create_default':
+            # Create default thresholds
+            GradingThreshold.create_default_thresholds(faculty, request.user)
+            messages.success(request, 'Default grading thresholds created successfully!')
+
+        elif action == 'update_threshold':
+            threshold_id = request.POST.get('threshold_id')
+            min_score = request.POST.get('min_score')
+            max_score = request.POST.get('max_score')
+            grade_points = request.POST.get('grade_points')
+
+            try:
+                threshold = GradingThreshold.objects.get(
+                    id=threshold_id,
+                    faculty=faculty
+                )
+
+                # Validate scores
+                min_score = float(min_score)
+                max_score = float(max_score)
+                grade_points = float(grade_points)
+
+                if min_score < 0 or min_score > 100:
+                    messages.error(request, 'Minimum score must be between 0 and 100.')
+                elif max_score < 0 or max_score > 100:
+                    messages.error(request, 'Maximum score must be between 0 and 100.')
+                elif min_score > max_score:
+                    messages.error(request, 'Minimum score cannot be greater than maximum score.')
+                elif grade_points < 0 or grade_points > 5:
+                    messages.error(request, 'Grade points must be between 0 and 5.')
+                else:
+                    threshold.min_score = min_score
+                    threshold.max_score = max_score
+                    threshold.grade_points = grade_points
+                    threshold.save()
+
+                    messages.success(request, f'Grade {threshold.grade_letter} threshold updated successfully!')
+
+                    # Log the action
+                    AuditLog.objects.create(
+                        user=request.user,
+                        action='UPDATE_GRADING_THRESHOLD',
+                        description=f'Updated grading threshold for grade {threshold.grade_letter} in {faculty.name}',
+                        level='INFO'
+                    )
+
+            except GradingThreshold.DoesNotExist:
+                messages.error(request, 'Grading threshold not found.')
+            except ValueError:
+                messages.error(request, 'Invalid score values. Please enter valid numbers.')
+            except Exception as e:
+                messages.error(request, f'Error updating threshold: {str(e)}')
+
+        return redirect('faculty_dean_grading_thresholds')
+
+    # Get existing thresholds for this faculty
+    thresholds = GradingThreshold.objects.filter(faculty=faculty).order_by('-min_score')
+
+    # Check if default thresholds exist
+    has_thresholds = thresholds.exists()
+
+    context = {
+        'faculty': faculty,
+        'thresholds': thresholds,
+        'has_thresholds': has_thresholds,
+    }
+
+    return render(request, 'faculty_dean_grading_thresholds.html', context)
+
+
+@login_required
+def faculty_dean_carryover_students(request):
+    """Faculty Dean interface for viewing carry-over students"""
+    # Check if user has Faculty Dean role
+    dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not dean_roles.exists():
+        messages.error(request, 'Access denied. Faculty Dean role required.')
+        return redirect('dashboard')
+
+    # Get the faculty context
+    faculty = dean_roles.first().faculty
+
+    # Get filters
+    level_filter = request.GET.get('level')
+    department_filter = request.GET.get('department')
+    status_filter = request.GET.get('status')
+    session_filter = request.GET.get('session')
+
+    # Get carry-over students for this faculty
+    carryover_students = CarryOverStudent.objects.filter(
+        faculty=faculty
+    ).select_related(
+        'student__user',
+        'course',
+        'session',
+        'department',
+        'level'
+    ).order_by('level__name', 'department__name', 'student__matric_number')
+
+    # Apply filters
+    if level_filter:
+        carryover_students = carryover_students.filter(level__id=level_filter)
+    if department_filter:
+        carryover_students = carryover_students.filter(department__id=department_filter)
+    if status_filter:
+        carryover_students = carryover_students.filter(status=status_filter)
+    if session_filter:
+        carryover_students = carryover_students.filter(session__id=session_filter)
+
+    # Group by level and department for organization
+    carryovers_by_level = {}
+    for carryover in carryover_students:
+        level_name = carryover.level.name
+        if level_name not in carryovers_by_level:
+            carryovers_by_level[level_name] = {}
+
+        dept_name = carryover.department.name
+        if dept_name not in carryovers_by_level[level_name]:
+            carryovers_by_level[level_name][dept_name] = []
+
+        carryovers_by_level[level_name][dept_name].append(carryover)
+
+    # Get filter options
+    levels = Level.objects.all().order_by('name')
+    departments = Department.objects.filter(faculty=faculty).order_by('name')
+    sessions = AcademicSession.objects.all().order_by('-start_date')
+
+    # Statistics
+    total_carryovers = carryover_students.count()
+    status_stats = {}
+    for status_choice in CarryOverStudent.STATUS_CHOICES:
+        status_code = status_choice[0]
+        status_stats[status_code] = carryover_students.filter(status=status_code).count()
+
+    # Department-wise statistics
+    dept_stats = {}
+    for dept in departments:
+        dept_carryovers = carryover_students.filter(department=dept)
+        dept_stats[dept.name] = {
+            'total': dept_carryovers.count(),
+            'by_level': {}
+        }
+        for level in levels:
+            level_count = dept_carryovers.filter(level=level).count()
+            if level_count > 0:
+                dept_stats[dept.name]['by_level'][level.name] = level_count
+
+    context = {
+        'faculty': faculty,
+        'carryover_students': carryover_students,
+        'carryovers_by_level': carryovers_by_level,
+        'levels': levels,
+        'departments': departments,
+        'sessions': sessions,
+        'total_carryovers': total_carryovers,
+        'status_stats': status_stats,
+        'dept_stats': dept_stats,
+        'level_filter': level_filter,
+        'department_filter': department_filter,
+        'status_filter': status_filter,
+        'session_filter': session_filter,
+    }
+
+    return render(request, 'faculty_dean_carryover_students.html', context)
+
+
 # Faculty Dean Placeholder Views (to be implemented)
 @login_required
 def faculty_dean_departments(request):
@@ -7663,17 +7967,24 @@ def lecturer_enter_results(request):
                     exam_score = float(exam_score) if exam_score else 0
                     total_score = ca_score + exam_score
 
-                    # Calculate grade
-                    if total_score >= 70:
-                        grade = 'A'
-                    elif total_score >= 60:
-                        grade = 'B'
-                    elif total_score >= 50:
-                        grade = 'C'
-                    elif total_score >= 45:
-                        grade = 'D'
+                    # Calculate grade using faculty-specific thresholds
+                    course = enrollment.course
+                    faculty = course.departments.first().faculty if course.departments.exists() else None
+
+                    if faculty:
+                        grade = GradingThreshold.get_grade_for_score(faculty, total_score)
                     else:
-                        grade = 'F'
+                        # Fallback to default grading if no faculty found
+                        if total_score >= 70:
+                            grade = 'A'
+                        elif total_score >= 60:
+                            grade = 'B'
+                        elif total_score >= 50:
+                            grade = 'C'
+                        elif total_score >= 45:
+                            grade = 'D'
+                        else:
+                            grade = 'F'
 
                     # Set correct status based on submission type
                     status = 'DRAFT' if save_as_draft else 'SUBMITTED_TO_EXAM_OFFICER'

@@ -100,6 +100,84 @@ class CourseThreshold(models.Model):
         return self.ca_max_score + self.exam_max_score
 
 
+class GradingThreshold(models.Model):
+    """Faculty-specific grading thresholds set by Faculty Deans"""
+    GRADE_CHOICES = [
+        ('A', 'A - Excellent'),
+        ('B', 'B - Very Good'),
+        ('C', 'C - Good'),
+        ('D', 'D - Pass'),
+        ('F', 'F - Fail'),
+    ]
+
+    faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, related_name='grading_thresholds')
+    grade_letter = models.CharField(max_length=1, choices=GRADE_CHOICES)
+    min_score = models.DecimalField(max_digits=5, decimal_places=2, help_text="Minimum score for this grade")
+    max_score = models.DecimalField(max_digits=5, decimal_places=2, help_text="Maximum score for this grade")
+    grade_points = models.DecimalField(max_digits=3, decimal_places=2, help_text="Grade points for GPA calculation", default=0.0)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='grading_thresholds_created')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('faculty', 'grade_letter')
+        ordering = ['-min_score']  # Order by highest score first
+        verbose_name = "Grading Threshold"
+        verbose_name_plural = "Grading Thresholds"
+
+    def __str__(self):
+        return f"{self.faculty.name} - {self.grade_letter}: {self.min_score}-{self.max_score} ({self.grade_points} pts)"
+
+    @classmethod
+    def get_grade_for_score(cls, faculty, score):
+        """Get the appropriate grade for a score in a specific faculty"""
+        try:
+            threshold = cls.objects.filter(
+                faculty=faculty,
+                min_score__lte=score,
+                max_score__gte=score
+            ).first()
+            return threshold.grade_letter if threshold else 'F'
+        except Exception:
+            return 'F'
+
+    @classmethod
+    def get_grade_points_for_score(cls, faculty, score):
+        """Get the grade points for a score in a specific faculty"""
+        try:
+            threshold = cls.objects.filter(
+                faculty=faculty,
+                min_score__lte=score,
+                max_score__gte=score
+            ).first()
+            return threshold.grade_points if threshold else 0.0
+        except Exception:
+            return 0.0
+
+    @classmethod
+    def create_default_thresholds(cls, faculty, created_by):
+        """Create default grading thresholds for a faculty"""
+        default_thresholds = [
+            {'grade_letter': 'A', 'min_score': 70.0, 'max_score': 100.0, 'grade_points': 4.0},
+            {'grade_letter': 'B', 'min_score': 60.0, 'max_score': 69.99, 'grade_points': 3.0},
+            {'grade_letter': 'C', 'min_score': 50.0, 'max_score': 59.99, 'grade_points': 2.0},
+            {'grade_letter': 'D', 'min_score': 45.0, 'max_score': 49.99, 'grade_points': 1.0},
+            {'grade_letter': 'F', 'min_score': 0.0, 'max_score': 44.99, 'grade_points': 0.0},
+        ]
+
+        for threshold_data in default_thresholds:
+            cls.objects.get_or_create(
+                faculty=faculty,
+                grade_letter=threshold_data['grade_letter'],
+                defaults={
+                    'min_score': threshold_data['min_score'],
+                    'max_score': threshold_data['max_score'],
+                    'grade_points': threshold_data['grade_points'],
+                    'created_by': created_by
+                }
+            )
+
+
 class Student(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='student_profile', null=True, blank=True)
     matric_number = models.CharField(max_length=20, unique=True)
@@ -466,6 +544,121 @@ class CarryOverList(models.Model):
     
     class Meta:
         unique_together = ['session', 'result']
+
+
+class CarryOverStudent(models.Model):
+    """Automatically identified carry-over students based on failed results"""
+    STATUS_CHOICES = [
+        ('IDENTIFIED', 'Identified'),
+        ('NOTIFIED', 'Notified'),
+        ('REGISTERED', 'Registered for Retake'),
+        ('COMPLETED', 'Completed Retake'),
+    ]
+
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='carryover_records')
+    result = models.OneToOneField(Result, on_delete=models.CASCADE, related_name='carryover_record')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    session = models.ForeignKey(AcademicSession, on_delete=models.CASCADE)
+    faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE)
+    level = models.ForeignKey(Level, on_delete=models.CASCADE)
+
+    # Failure details
+    failed_score = models.DecimalField(max_digits=5, decimal_places=2)
+    failed_grade = models.CharField(max_length=1)
+    passing_threshold = models.DecimalField(max_digits=5, decimal_places=2)
+
+    # Management fields
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='IDENTIFIED')
+    identified_at = models.DateTimeField(auto_now_add=True)
+    notified_at = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True, help_text="Administrative notes")
+
+    class Meta:
+        unique_together = ('student', 'course', 'session')
+        ordering = ['level__name', 'department__name', 'student__matric_number']
+        verbose_name = "Carry-Over Student"
+        verbose_name_plural = "Carry-Over Students"
+
+    def __str__(self):
+        return f"{self.student.matric_number} - {self.course.code} ({self.failed_grade}: {self.failed_score})"
+
+    @classmethod
+    def identify_carryover_students(cls, session=None):
+        """Automatically identify carry-over students based on failed results"""
+        from django.db.models import Q
+
+        # Get all published results for the session
+        results_query = Result.objects.filter(status='PUBLISHED')
+        if session:
+            results_query = results_query.filter(enrollment__session=session)
+
+        carryover_count = 0
+
+        for result in results_query.select_related(
+            'enrollment__student',
+            'enrollment__course',
+            'enrollment__session',
+            'enrollment__course__departments'
+        ):
+            # Get faculty from course departments
+            course = result.enrollment.course
+            if not course.departments.exists():
+                continue
+
+            department = course.departments.first()
+            faculty = department.faculty
+
+            # Check if this is a failing grade based on faculty thresholds
+            if result.grade == 'F' or result.total_score < 45:  # Default failing threshold
+                # Get the actual passing threshold for this faculty
+                passing_threshold = cls._get_passing_threshold(faculty)
+
+                if result.total_score < passing_threshold:
+                    # Create or update carry-over record
+                    carryover, created = cls.objects.get_or_create(
+                        student=result.enrollment.student,
+                        course=course,
+                        session=result.enrollment.session,
+                        defaults={
+                            'result': result,
+                            'faculty': faculty,
+                            'department': department,
+                            'level': course.level,
+                            'failed_score': result.total_score,
+                            'failed_grade': result.grade,
+                            'passing_threshold': passing_threshold,
+                        }
+                    )
+
+                    if created:
+                        carryover_count += 1
+
+        return carryover_count
+
+    @classmethod
+    def _get_passing_threshold(cls, faculty):
+        """Get the minimum passing score for a faculty"""
+        try:
+            # Get the minimum score for grade D (passing grade)
+            d_threshold = GradingThreshold.objects.filter(
+                faculty=faculty,
+                grade_letter='D'
+            ).first()
+            return d_threshold.min_score if d_threshold else 45.0
+        except Exception:
+            return 45.0  # Default passing threshold
+
+    def get_retake_status(self):
+        """Get human-readable retake status"""
+        status_map = {
+            'IDENTIFIED': 'Needs to retake course',
+            'NOTIFIED': 'Student notified',
+            'REGISTERED': 'Registered for retake',
+            'COMPLETED': 'Retake completed',
+        }
+        return status_map.get(self.status, self.status)
+
 
 # User roles in the system
 class UserRole(models.Model):

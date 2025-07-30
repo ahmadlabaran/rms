@@ -92,6 +92,8 @@ urlpatterns = [
     path('faculty-dean/course-assignments/', views.faculty_dean_course_assignments, name='faculty_dean_course_assignments'),
     path('faculty-dean/assign-course/', views.faculty_dean_assign_course, name='faculty_dean_assign_course'),
     path('faculty-dean/unassign-course/<int:assignment_id>/', views.faculty_dean_unassign_course, name='faculty_dean_unassign_course'),
+    path('faculty-dean/grading-thresholds/', views.faculty_dean_grading_thresholds, name='faculty_dean_grading_thresholds'),
+    path('faculty-dean/carryover-students/', views.faculty_dean_carryover_students, name='faculty_dean_carryover_students'),
 
     # Delete functionality for testing
     path('super-admin/delete-user/<int:user_id>/', views.super_admin_delete_user, name='super_admin_delete_user'),
@@ -211,6 +213,7 @@ urlpatterns = [
     path('exam-officer/student-list/', views.exam_officer_student_list, name='exam_officer_student_list'),
     path('exam-officer/student-records/', views.exam_officer_student_records, name='exam_officer_student_records'),
     path('exam-officer/carryovers/', views.exam_officer_carryovers, name='exam_officer_carryovers'),
+    path('exam-officer/carryover-students/', views.exam_officer_carryover_students, name='exam_officer_carryover_students'),
     path('exam-officer/carryover-export/', views.exam_officer_carryover_export, name='exam_officer_carryover_export'),
     path('exam-officer/export/students/', views.exam_officer_export_students, name='exam_officer_export_students'),
     path('exam-officer/export/gpa/', views.exam_officer_export_gpa, name='exam_officer_export_gpa'),

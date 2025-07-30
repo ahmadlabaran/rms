@@ -8,7 +8,7 @@ from django.conf import settings
 sys.path.append('C:\\Users\\Public\\Documents\\RMS')
 
 # Set up Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'rms.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'RMS.settings')
 django.setup()
 
 from django.test import RequestFactory, Client

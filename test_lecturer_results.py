@@ -4,15 +4,26 @@ Test script for lecturer result submission system
 """
 import os
 import sys
-import django
-from django.conf import settings
+
+# Ensure we're in the correct directory
+project_dir = os.path.dirname(os.path.abspath(__file__))
+os.chdir(project_dir)
 
 # Add the project directory to the Python path
-sys.path.append('C:\\Users\\Public\\Documents\\RMS')
+if project_dir not in sys.path:
+    sys.path.insert(0, project_dir)
 
-# Set up Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'rms.settings')
+# Set up Django environment
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'RMS.settings')
+
+# Import Django and setup
+import django
 django.setup()
+
+# Fix ALLOWED_HOSTS for testing
+from django.conf import settings
+if 'testserver' not in settings.ALLOWED_HOSTS:
+    settings.ALLOWED_HOSTS.extend(['127.0.0.1', 'localhost', 'testserver'])
 
 from django.test import Client
 from django.contrib.auth.models import User

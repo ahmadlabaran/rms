@@ -113,8 +113,8 @@
                                onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none'"
                                placeholder="Enter new password">
                         <button type="button" onclick="togglePassword('new_password')"
-                                style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 16px;">
-                            👁️
+                                style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 12px; font-weight: 500;">
+                            Show
                         </button>
                     </div>
                 </div>
@@ -130,8 +130,8 @@
                                onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none'"
                                placeholder="Confirm new password">
                         <button type="button" onclick="togglePassword('confirm_password')"
-                                style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 16px;">
-                            👁️
+                                style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 12px; font-weight: 500;">
+                            Show
                         </button>
                     </div>
                 </div>
@@ -367,10 +367,10 @@
 
         if (field.type === 'password') {
             field.type = 'text';
-            button.textContent = '🙈';
+            button.textContent = 'Hide';
         } else {
             field.type = 'password';
-            button.textContent = '👁️';
+            button.textContent = 'Show';
         }
     }
 
@@ -383,9 +383,9 @@
         document.getElementById('new_password').type = 'password';
         document.getElementById('confirm_password').type = 'password';
 
-        // Reset button icons
+        // Reset button text
         document.querySelectorAll('button[onclick*="togglePassword"]').forEach(btn => {
-            btn.textContent = '👁️';
+            btn.textContent = 'Show';
         });
     }
 

@@ -7870,6 +7870,10 @@ def lecturer_enter_results(request):
                 session=selected_session
             ).select_related('student', 'student__user', 'result')
 
+            print(f"GET request - Found {enrolled_students.count()} enrolled students for course {selected_course.code} in session {selected_session.name}")
+            for enrollment in enrolled_students:
+                print(f"  Student: {enrollment.student.matric_number} (ID: {enrollment.id})")
+
             # Get course assignment and threshold
             course_assignment = CourseAssignment.objects.filter(
                 course=selected_course,
@@ -7898,6 +7902,7 @@ def lecturer_enter_results(request):
         # Debug: Print POST data
         print(f"POST request received. save_as_draft: {save_as_draft}")
         print(f"POST data keys: {list(request.POST.keys())}")
+        print(f"POST data items: {dict(request.POST.items())}")
         print(f"Number of enrolled students: {enrolled_students_for_post.count()}")
 
         # Debug: Print specific score fields
@@ -7910,6 +7915,17 @@ def lecturer_enter_results(request):
 
             # Check if values are considered truthy
             print(f"  CA truthy: {bool(ca_value)}, Exam truthy: {bool(exam_value)}, Either truthy: {bool(ca_value or exam_value)}")
+
+            # Try to convert to float to see if there are conversion issues
+            try:
+                if ca_value:
+                    ca_float = float(ca_value)
+                    print(f"  CA converts to: {ca_float}")
+                if exam_value:
+                    exam_float = float(exam_value)
+                    print(f"  Exam converts to: {exam_float}")
+            except Exception as e:
+                print(f"  Conversion error: {e}")
 
         # Get course threshold for validation
         course_assignment = CourseAssignment.objects.filter(
@@ -7932,38 +7948,41 @@ def lecturer_enter_results(request):
             validation_errors = []
             results_processed = 0
 
-            # First pass: validate all scores
+            # First pass: validate all scores (SIMPLIFIED FOR DEBUGGING)
+            print("Starting first pass validation...")
             for enrollment in enrolled_students_for_post:
                 ca_score_str = request.POST.get(f'ca_score_{enrollment.id}', '').strip()
                 exam_score_str = request.POST.get(f'exam_score_{enrollment.id}', '').strip()
 
+                print(f"Validating enrollment {enrollment.id}: CA='{ca_score_str}', Exam='{exam_score_str}'")
+
                 # Check if at least one score is provided and not empty
                 if ca_score_str or exam_score_str:
+                    print(f"  Found scores for enrollment {enrollment.id}")
                     try:
                         ca_score = float(ca_score_str) if ca_score_str else 0.0
                         exam_score = float(exam_score_str) if exam_score_str else 0.0
+                        print(f"  Converted scores: CA={ca_score}, Exam={exam_score}")
 
-                        # Validate scores are not negative
-                        if ca_score < 0:
-                            validation_errors.append(f"{enrollment.student.matric_number}: CA score cannot be negative")
+                        # Simplified validation - just check for reasonable ranges
+                        if ca_score < 0 or ca_score > 100:
+                            validation_errors.append(f"{enrollment.student.matric_number}: CA score must be between 0 and 100")
                             continue
 
-                        if exam_score < 0:
-                            validation_errors.append(f"{enrollment.student.matric_number}: Exam score cannot be negative")
+                        if exam_score < 0 or exam_score > 100:
+                            validation_errors.append(f"{enrollment.student.matric_number}: Exam score must be between 0 and 100")
                             continue
 
-                        # Validate against thresholds
-                        if ca_score > ca_max:
-                            validation_errors.append(f"{enrollment.student.matric_number}: CA score ({ca_score}) exceeds maximum ({ca_max})")
-                            continue
+                        print(f"  Validation passed for enrollment {enrollment.id}")
 
-                        if exam_score > exam_max:
-                            validation_errors.append(f"{enrollment.student.matric_number}: Exam score ({exam_score}) exceeds maximum ({exam_max})")
-                            continue
-
-                    except (ValueError, TypeError):
+                    except (ValueError, TypeError) as e:
+                        print(f"  Conversion error for enrollment {enrollment.id}: {e}")
                         validation_errors.append(f"{enrollment.student.matric_number}: Invalid score values - please enter valid numbers")
                         continue
+                else:
+                    print(f"  No scores found for enrollment {enrollment.id}")
+
+            print(f"First pass complete. Validation errors: {len(validation_errors)}")
 
             # If there are validation errors, stop processing
             if validation_errors:

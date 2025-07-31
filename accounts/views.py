@@ -8459,43 +8459,168 @@ def lecturer_course_results(request, course_id):
 
 
 # ============================================================================
-# EXAM OFFICER PLACEHOLDER VIEWS (to be implemented)
+# EXAM OFFICER ADDITIONAL VIEWS (Placeholder implementations)
 # ============================================================================
 
 @login_required
-def exam_officer_pending_results(request):
-    level = request.GET.get('level', '100')
-    return render(request, 'placeholder.html', {'page_title': f'Pending Results - {level}L', 'message': f'Review pending results for {level}L students'})
-
-@login_required
 def exam_officer_validate_results(request):
+    """Validate results functionality - placeholder"""
     level = request.GET.get('level', '100')
-    return render(request, 'placeholder.html', {'page_title': f'Validate Results - {level}L', 'message': f'Validate results for {level}L students'})
+    return render(request, 'placeholder.html', {
+        'page_title': f'Validate Results - {level}L',
+        'message': f'Validate results for {level}L students',
+        'back_url': 'exam_officer_dashboard'
+    })
 
 @login_required
 def exam_officer_approve_results(request):
+    """Approve results functionality - placeholder"""
     level = request.GET.get('level', '100')
-    return render(request, 'placeholder.html', {'page_title': f'Approve Results - {level}L', 'message': f'Approve results for {level}L students'})
+    return render(request, 'placeholder.html', {
+        'page_title': f'Approve Results - {level}L',
+        'message': f'Approve results for {level}L students',
+        'back_url': 'exam_officer_dashboard'
+    })
 
 @login_required
 def exam_officer_reject_results(request):
+    """Reject results functionality - placeholder"""
     level = request.GET.get('level', '100')
-    return render(request, 'placeholder.html', {'page_title': f'Rejection Notes - {level}L', 'message': f'Manage rejection notes for {level}L'})
+    return render(request, 'placeholder.html', {
+        'page_title': f'Rejection Notes - {level}L',
+        'message': f'Manage rejection notes for {level}L',
+        'back_url': 'exam_officer_dashboard'
+    })
 
 @login_required
 def exam_officer_submit_to_hod(request):
+    """Submit to HOD functionality - placeholder"""
     level = request.GET.get('level', '100')
-    return render(request, 'placeholder.html', {'page_title': f'Submit to HOD - {level}L', 'message': f'Submit approved results to HOD for {level}L'})
+    return render(request, 'placeholder.html', {
+        'page_title': f'Submit to HOD - {level}L',
+        'message': f'Submit approved results to HOD for {level}L',
+        'back_url': 'exam_officer_dashboard'
+    })
 
 @login_required
 def exam_officer_result_history(request):
+    """Result history functionality - placeholder"""
     level = request.GET.get('level', '100')
-    return render(request, 'placeholder.html', {'page_title': f'Result History - {level}L', 'message': f'View result history for {level}L'})
+    return render(request, 'placeholder.html', {
+        'page_title': f'Result History - {level}L',
+        'message': f'View result history for {level}L',
+        'back_url': 'exam_officer_dashboard'
+    })
 
 @login_required
 def exam_officer_add_students(request):
+    """Add students functionality - placeholder"""
     level = request.GET.get('level', '100')
-    return render(request, 'placeholder.html', {'page_title': f'Add Students - {level}L', 'message': f'Add new students to {level}L'})
+    return render(request, 'placeholder.html', {
+        'page_title': f'Add Students - {level}L',
+        'message': f'Add new students to {level}L',
+        'back_url': 'exam_officer_dashboard'
+    })
+
+@login_required
+def exam_officer_bulk_students(request):
+    """Bulk upload students functionality - placeholder"""
+    level = request.GET.get('level', '100')
+    return render(request, 'placeholder.html', {
+        'page_title': f'Bulk Upload Students - {level}L',
+        'message': f'Bulk upload students for {level}L',
+        'back_url': 'exam_officer_dashboard'
+    })
+
+@login_required
+def exam_officer_student_list(request):
+    """Student list functionality - placeholder"""
+    level = request.GET.get('level', '100')
+    return render(request, 'placeholder.html', {
+        'page_title': f'Student List - {level}L',
+        'message': f'View student list for {level}L',
+        'back_url': 'exam_officer_dashboard'
+    })
+
+@login_required
+def exam_officer_student_records(request):
+    """Student records functionality - placeholder"""
+    level = request.GET.get('level', '100')
+    return render(request, 'placeholder.html', {
+        'page_title': f'Student Records - {level}L',
+        'message': f'View student records for {level}L',
+        'back_url': 'exam_officer_dashboard'
+    })
+
+@login_required
+def exam_officer_carryovers(request):
+    """Carryovers functionality - placeholder"""
+    level = request.GET.get('level', '100')
+    return render(request, 'placeholder.html', {
+        'page_title': f'View Carryovers - {level}L',
+        'message': f'View carryovers for {level}L',
+        'back_url': 'exam_officer_dashboard'
+    })
+
+@login_required
+def exam_officer_carryover_export(request):
+    """Carryover export functionality - placeholder"""
+    level = request.GET.get('level', '100')
+    return render(request, 'placeholder.html', {
+        'page_title': f'Export Carryovers - {level}L',
+        'message': f'Export carryovers for {level}L',
+        'back_url': 'exam_officer_dashboard'
+    })
+
+@login_required
+def exam_officer_export_gpa(request):
+    """Export GPA functionality - placeholder"""
+    level = request.GET.get('level', '100')
+    return render(request, 'placeholder.html', {
+        'page_title': f'Export GPA - {level}L',
+        'message': f'Export GPA sheet for {level}L',
+        'back_url': 'exam_officer_dashboard'
+    })
+
+@login_required
+def exam_officer_export_results(request):
+    """Export results functionality - placeholder"""
+    level = request.GET.get('level', '100')
+    return render(request, 'placeholder.html', {
+        'page_title': f'Export Results - {level}L',
+        'message': f'Export all results for {level}L',
+        'back_url': 'exam_officer_dashboard'
+    })
+
+@login_required
+def exam_officer_export_approved(request):
+    """Export approved results functionality - placeholder"""
+    level = request.GET.get('level', '100')
+    return render(request, 'placeholder.html', {
+        'page_title': f'Export Approved - {level}L',
+        'message': f'Export approved results for {level}L',
+        'back_url': 'exam_officer_dashboard'
+    })
+
+@login_required
+def exam_officer_export_carryovers(request):
+    """Export carryovers by course functionality - placeholder"""
+    level = request.GET.get('level', '100')
+    return render(request, 'placeholder.html', {
+        'page_title': f'Export Carryovers by Course - {level}L',
+        'message': f'Export carryovers by course for {level}L',
+        'back_url': 'exam_officer_dashboard'
+    })
+
+@login_required
+def exam_officer_export_carryover_students(request):
+    """Export carryover students functionality - placeholder"""
+    level = request.GET.get('level', '100')
+    return render(request, 'placeholder.html', {
+        'page_title': f'Export Carryover Students - {level}L',
+        'message': f'Export carryover students for {level}L',
+        'back_url': 'exam_officer_dashboard'
+    })
 
 @login_required
 def exam_officer_bulk_students(request):
@@ -8559,30 +8684,7 @@ def exam_officer_export_students(request):
         messages.error(request, f'Export failed: {str(e)}')
         return redirect('exam_officer_dashboard')
 
-@login_required
-def exam_officer_export_gpa(request):
-    level = request.GET.get('level', '100')
-    return render(request, 'placeholder.html', {'page_title': f'Export GPA - {level}L', 'message': f'Export GPA sheet for {level}L'})
-
-@login_required
-def exam_officer_export_results(request):
-    level = request.GET.get('level', '100')
-    return render(request, 'placeholder.html', {'page_title': f'Export Results - {level}L', 'message': f'Export all results for {level}L'})
-
-@login_required
-def exam_officer_export_approved(request):
-    level = request.GET.get('level', '100')
-    return render(request, 'placeholder.html', {'page_title': f'Export Approved - {level}L', 'message': f'Export approved results for {level}L'})
-
-@login_required
-def exam_officer_export_carryovers(request):
-    level = request.GET.get('level', '100')
-    return render(request, 'placeholder.html', {'page_title': f'Export Carryovers by Course - {level}L', 'message': f'Export carryovers by course for {level}L'})
-
-@login_required
-def exam_officer_export_carryover_students(request):
-    level = request.GET.get('level', '100')
-    return render(request, 'placeholder.html', {'page_title': f'Export Carryover Students - {level}L', 'message': f'Export carryover students for {level}L'})
+# Placeholder export functions removed - implement as needed
 
 @login_required
 def exam_officer_review_result(request, result_id):

@@ -3,6 +3,9 @@ Django==5.2.5
 djangorestframework==3.16.1
 django-cors-headers==4.7.0
 
+# Export functionality
+openpyxl==3.1.2
+
 # Database
 # SQLite is included with Python, no additional requirements
 

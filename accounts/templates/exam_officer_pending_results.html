@@ -45,9 +45,42 @@
         </div>
     </div>
 
+    <!-- Bulk Actions -->
+    {% if pending_results %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <form method="post" id="bulkForm">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <button type="button" id="selectAll" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-check-all me-1"></i>Select All
+                                </button>
+                                <button type="button" id="selectNone" class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-x me-1"></i>Clear Selection
+                                </button>
+                                <span id="selectedCount" class="text-muted ms-3">0 selected</span>
+                            </div>
+                            <div>
+                                <button type="submit" name="action" value="bulk_approve" class="btn btn-success btn-sm" id="bulkApprove" disabled>
+                                    <i class="bi bi-check-circle me-1"></i>Bulk Approve Selected
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Results by Course -->
     {% if results_by_course %}
-        {% for course_key, course_data in results_by_course.items %}
+        <form method="post" id="resultsForm">
+            {% csrf_token %}
+            {% for course_key, course_data in results_by_course.items %}
         <div class="row mb-4">
             <div class="col-12">
                 <div class="card">
@@ -65,6 +98,9 @@
                             <table class="table table-hover">
                                 <thead class="table-light">
                                     <tr>
+                                        <th width="40">
+                                            <input type="checkbox" class="form-check-input course-select-all" data-course="{{ course_data.course.id }}">
+                                        </th>
                                         <th>Student</th>
                                         <th>Matric Number</th>
                                         <th>CA Score</th>
@@ -79,6 +115,9 @@
                                 <tbody>
                                     {% for result in course_data.results %}
                                     <tr>
+                                        <td>
+                                            <input type="checkbox" class="form-check-input result-checkbox" name="selected_results" value="{{ result.id }}">
+                                        </td>
                                         <td>
                                             <div class="fw-bold">{{ result.enrollment.student.user.get_full_name }}</div>
                                         </td>
@@ -153,6 +192,7 @@
             </div>
         </div>
         {% endfor %}
+        </form>
     {% else %}
         <div class="row">
             <div class="col-12">
@@ -259,6 +299,92 @@ function rejectResult(resultId, studentId) {
     document.getElementById('rejectionStudentId').textContent = studentId;
     new bootstrap.Modal(document.getElementById('rejectionModal')).show();
 }
+
+// Bulk selection functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllBtn = document.getElementById('selectAll');
+    const selectNoneBtn = document.getElementById('selectNone');
+    const bulkApproveBtn = document.getElementById('bulkApprove');
+    const selectedCountSpan = document.getElementById('selectedCount');
+    const bulkForm = document.getElementById('bulkForm');
+
+    function updateSelectedCount() {
+        const checkboxes = document.querySelectorAll('.result-checkbox:checked');
+        const count = checkboxes.length;
+        selectedCountSpan.textContent = `${count} selected`;
+        bulkApproveBtn.disabled = count === 0;
+
+        // Update bulk form with selected results
+        const existingInputs = bulkForm.querySelectorAll('input[name="selected_results"]');
+        existingInputs.forEach(input => input.remove());
+
+        checkboxes.forEach(checkbox => {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'selected_results';
+            hiddenInput.value = checkbox.value;
+            bulkForm.appendChild(hiddenInput);
+        });
+    }
+
+    // Select all functionality
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function() {
+            document.querySelectorAll('.result-checkbox').forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            updateSelectedCount();
+        });
+    }
+
+    // Select none functionality
+    if (selectNoneBtn) {
+        selectNoneBtn.addEventListener('click', function() {
+            document.querySelectorAll('.result-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            updateSelectedCount();
+        });
+    }
+
+    // Course-level select all
+    document.querySelectorAll('.course-select-all').forEach(courseCheckbox => {
+        courseCheckbox.addEventListener('change', function() {
+            const courseId = this.dataset.course;
+            const courseCheckboxes = document.querySelectorAll(`.result-checkbox[data-course="${courseId}"]`);
+            courseCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateSelectedCount();
+        });
+    });
+
+    // Individual checkbox change
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('result-checkbox')) {
+            updateSelectedCount();
+        }
+    });
+
+    // Bulk approve confirmation
+    if (bulkForm) {
+        bulkForm.addEventListener('submit', function(e) {
+            const selectedCount = document.querySelectorAll('.result-checkbox:checked').length;
+            if (selectedCount === 0) {
+                e.preventDefault();
+                alert('Please select at least one result to approve.');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to approve ${selectedCount} selected result(s)?`)) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    // Initial count update
+    updateSelectedCount();
+});
 
 function bulkApprove(courseKey) {
     if (confirm('Are you sure you want to approve all results for this course?')) {

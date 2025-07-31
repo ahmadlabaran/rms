@@ -1800,7 +1800,7 @@ def exam_officer_dashboard(request):
     approved_results = Result.objects.filter(
         enrollment__course__departments__faculty=faculty,
         enrollment__student__current_level=current_level,
-        status__in=['APPROVED_BY_EXAM_OFFICER', 'SUBMITTED_TO_HOD']
+        status__in=['APPROVED_BY_EXAM_OFFICER', 'SUBMITTED_TO_DEAN', 'APPROVED_BY_DEAN', 'SUBMITTED_TO_DAAA', 'APPROVED_BY_DAAA', 'SUBMITTED_TO_SENATE', 'PUBLISHED']
     )
 
     carryover_students = CarryOverList.objects.filter(
@@ -1862,12 +1862,52 @@ def exam_officer_pending_results(request):
 
     # Handle POST request for approval/rejection
     if request.method == 'POST':
-        result_id = request.POST.get('result_id')
         action = request.POST.get('action')
+
+        # Handle bulk actions
+        if action == 'bulk_approve':
+            result_ids = request.POST.getlist('selected_results')
+            if not result_ids:
+                messages.error(request, 'No results selected for bulk approval.')
+                return redirect('exam_officer_pending_results')
+
+            approved_count = 0
+            failed_count = 0
+
+            for result_id in result_ids:
+                try:
+                    result = Result.objects.get(
+                        id=result_id,
+                        status='SUBMITTED_TO_EXAM_OFFICER',
+                        enrollment__course__departments__faculty=faculty
+                    )
+                    success, message = ResultWorkflowService.approve_result(result, request.user, 'Bulk approval')
+                    if success:
+                        approved_count += 1
+                    else:
+                        failed_count += 1
+                except Result.DoesNotExist:
+                    failed_count += 1
+                except Exception:
+                    failed_count += 1
+
+            if approved_count > 0:
+                messages.success(request, f'Successfully approved {approved_count} result(s).')
+            if failed_count > 0:
+                messages.warning(request, f'Failed to approve {failed_count} result(s).')
+
+            return redirect('exam_officer_pending_results')
+
+        # Handle single result actions
+        result_id = request.POST.get('result_id')
         comments = request.POST.get('comments', '')
 
         try:
-            result = Result.objects.get(id=result_id, status='SUBMITTED_TO_EXAM_OFFICER')
+            result = Result.objects.get(
+                id=result_id,
+                status='SUBMITTED_TO_EXAM_OFFICER',
+                enrollment__course__departments__faculty=faculty
+            )
 
             if action == 'approve':
                 success, message = ResultWorkflowService.approve_result(result, request.user, comments)
@@ -8176,11 +8216,104 @@ def lecturer_result_status(request):
 
 @login_required
 def lecturer_corrections(request):
-    return render(request, 'placeholder.html', {'page_title': 'Correction Requests', 'message': 'View and handle correction requests'})
+    """View and handle rejected results that need correction"""
+    # Check if user has Lecturer role
+    lecturer_roles = UserRole.objects.filter(user=request.user, role='LECTURER')
+    if not lecturer_roles.exists():
+        messages.error(request, 'Access denied. Lecturer role required.')
+        return redirect('dashboard')
+
+    # Get lecturer's courses
+    assigned_courses = CourseAssignment.objects.filter(
+        lecturer=request.user
+    ).select_related('course', 'course__session')
+
+    # Get rejected results for lecturer's courses
+    rejected_results = []
+    for assignment in assigned_courses:
+        enrollments = CourseEnrollment.objects.filter(
+            course=assignment.course,
+            session=assignment.course.session
+        )
+
+        course_rejected = Result.objects.filter(
+            enrollment__in=enrollments,
+            status='REJECTED',
+            created_by=request.user
+        ).select_related(
+            'enrollment__student__user',
+            'enrollment__course',
+            'rejected_by'
+        ).order_by('-rejection_date')
+
+        for result in course_rejected:
+            rejected_results.append({
+                'result': result,
+                'course': assignment.course,
+                'session': assignment.course.session,
+            })
+
+    context = {
+        'rejected_results': rejected_results,
+        'total_rejected': len(rejected_results),
+    }
+
+    return render(request, 'lecturer_corrections.html', context)
 
 @login_required
 def lecturer_resubmit(request):
-    return render(request, 'placeholder.html', {'page_title': 'Resubmit Results', 'message': 'Resubmit corrected results'})
+    """Resubmit corrected results"""
+    if request.method == 'POST':
+        result_id = request.POST.get('result_id')
+        ca_score = request.POST.get('ca_score')
+        exam_score = request.POST.get('exam_score')
+
+        try:
+            result = Result.objects.get(
+                id=result_id,
+                status='REJECTED',
+                created_by=request.user
+            )
+
+            # Update scores
+            if ca_score:
+                result.ca_score = float(ca_score)
+            if exam_score:
+                result.exam_score = float(exam_score)
+
+            # Calculate total and grade
+            if result.ca_score is not None and result.exam_score is not None:
+                result.total_score = result.ca_score + result.exam_score
+                result.grade = result.calculate_grade()
+                result.is_carry_over = result.total_score < 45
+
+            # Reset rejection fields and resubmit
+            result.rejected_by = None
+            result.rejection_reason = None
+            result.rejection_date = None
+            result.status = 'SUBMITTED_TO_EXAM_OFFICER'
+            result.last_modified_by = request.user
+            result.save()
+
+            # Create approval history
+            ResultApprovalHistory.objects.create(
+                result=result,
+                action='SUBMITTED',
+                actor=request.user,
+                actor_role='LECTURER',
+                comments=f'Resubmitted after correction'
+            )
+
+            messages.success(request, f'Result resubmitted successfully for {result.enrollment.student.matric_number}')
+
+        except Result.DoesNotExist:
+            messages.error(request, 'Result not found or you do not have permission to modify it.')
+        except ValueError:
+            messages.error(request, 'Invalid score values provided.')
+        except Exception as e:
+            messages.error(request, f'Error resubmitting result: {str(e)}')
+
+    return redirect('lecturer_corrections')
 
 @login_required
 def lecturer_course_students(request, course_id):
@@ -8484,13 +8617,90 @@ def exam_officer_approve_results(request):
 
 @login_required
 def exam_officer_reject_results(request):
-    """Reject results functionality - placeholder"""
-    level = request.GET.get('level', '100')
-    return render(request, 'placeholder.html', {
-        'page_title': f'Rejection Notes - {level}L',
-        'message': f'Manage rejection notes for {level}L',
-        'back_url': 'exam_officer_dashboard'
-    })
+    """Exam Officer Result Rejection Management"""
+    # Check if user has Exam Officer role
+    exam_officer_roles = UserRole.objects.filter(user=request.user, role='EXAM_OFFICER')
+    if not exam_officer_roles.exists():
+        messages.error(request, 'Access denied. Exam Officer role required.')
+        return redirect('dashboard')
+
+    # Get the faculty context
+    faculty = exam_officer_roles.first().faculty
+    level_param = request.GET.get('level', '100')
+
+    try:
+        level = Level.objects.get(numeric_value=int(level_param))
+    except (Level.DoesNotExist, ValueError):
+        level = Level.objects.filter(numeric_value=100).first()
+
+    # Handle single result rejection
+    if request.method == 'POST':
+        result_id = request.POST.get('result_id')
+        action = request.POST.get('action')
+        rejection_reason = request.POST.get('rejection_reason', '').strip()
+
+        if action == 'reject_single' and result_id:
+            try:
+                result = Result.objects.get(
+                    id=result_id,
+                    status='SUBMITTED_TO_EXAM_OFFICER',
+                    enrollment__course__departments__faculty=faculty
+                )
+
+                if not rejection_reason:
+                    messages.error(request, 'Rejection reason is required.')
+                    return redirect(f'{request.path}?level={level_param}')
+
+                # Reject the result
+                success, message = ResultWorkflowService.reject_result(result, request.user, rejection_reason)
+
+                if success:
+                    messages.success(request, f'Result rejected for {result.enrollment.student.matric_number}. Lecturer has been notified.')
+                else:
+                    messages.error(request, f'Error rejecting result: {message}')
+
+            except Result.DoesNotExist:
+                messages.error(request, 'Result not found or already processed.')
+            except Exception as e:
+                messages.error(request, f'Error processing rejection: {str(e)}')
+
+        return redirect(f'{request.path}?level={level_param}')
+
+    # Get rejected results for this faculty and level
+    rejected_results = Result.objects.filter(
+        status='REJECTED',
+        enrollment__course__departments__faculty=faculty,
+        enrollment__student__current_level=level
+    ).select_related(
+        'enrollment__student__user',
+        'enrollment__course',
+        'enrollment__session',
+        'rejected_by'
+    ).order_by('-rejection_date')
+
+    # Get pending results that can be rejected
+    pending_results = Result.objects.filter(
+        status='SUBMITTED_TO_EXAM_OFFICER',
+        enrollment__course__departments__faculty=faculty,
+        enrollment__student__current_level=level
+    ).select_related(
+        'enrollment__student__user',
+        'enrollment__course',
+        'enrollment__session',
+        'created_by'
+    ).order_by('-updated_at')
+
+    context = {
+        'rejected_results': rejected_results,
+        'pending_results': pending_results,
+        'faculty': faculty,
+        'current_level': level,
+        'levels': Level.objects.all().order_by('numeric_value'),
+        'total_rejected': rejected_results.count(),
+        'total_pending': pending_results.count(),
+    }
+
+    return render(request, 'exam_officer_reject_results.html', context)
 
 @login_required
 def exam_officer_submit_to_hod(request):

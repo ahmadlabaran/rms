@@ -1,56 +1,125 @@
 """
 Reporting Service for RMS
-Handles Excel and PDF report generation
+Handles CSV and Excel report generation without pandas dependency
 """
 
 import io
-import pandas as pd
+import csv
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.contrib.auth.models import User
 from django.db.models import Count, Avg, Q
 from .models import (
-    Student, Result, Course, Faculty, Department, Level, 
+    Student, Result, Course, Faculty, Department, Level,
     AcademicSession, CourseEnrollment, CarryOverList
 )
+
+try:
+    import openpyxl
+    from openpyxl import Workbook
+    EXCEL_AVAILABLE = True
+except ImportError:
+    EXCEL_AVAILABLE = False
 
 
 class ReportingService:
     """Service class for generating reports and exports"""
-    
+
+    @staticmethod
+    def generate_csv_response(data, filename):
+        """
+        Generate CSV file response
+
+        Args:
+            data: List of dictionaries
+            filename: Name of the file
+
+        Returns:
+            HttpResponse with CSV file
+        """
+        if not data:
+            # Return empty CSV if no data
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = f'attachment; filename="{filename}.csv"'
+            return response
+
+        # Create CSV response
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{filename}.csv"'
+
+        # Get field names from first row
+        fieldnames = data[0].keys()
+        writer = csv.DictWriter(response, fieldnames=fieldnames)
+
+        # Write header and data
+        writer.writeheader()
+        for row in data:
+            writer.writerow(row)
+
+        return response
+
     @staticmethod
     def generate_excel_response(data, filename, sheet_name="Sheet1"):
         """
-        Generate Excel file response
-        
+        Generate Excel file response (fallback to CSV if openpyxl not available)
+
         Args:
-            data: List of dictionaries or DataFrame
+            data: List of dictionaries
             filename: Name of the file
             sheet_name: Name of the Excel sheet
-        
+
         Returns:
-            HttpResponse with Excel file
+            HttpResponse with Excel or CSV file
         """
-        # Create DataFrame if data is list of dicts
-        if isinstance(data, list):
-            df = pd.DataFrame(data)
-        else:
-            df = data
-        
-        # Create Excel file in memory
+        if not EXCEL_AVAILABLE:
+            # Fallback to CSV if openpyxl is not available
+            return ReportingService.generate_csv_response(data, filename)
+
+        if not data:
+            # Return empty Excel if no data
+            wb = Workbook()
+            ws = wb.active
+            ws.title = sheet_name
+
+            output = io.BytesIO()
+            wb.save(output)
+            output.seek(0)
+
+            response = HttpResponse(
+                output.getvalue(),
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{filename}.xlsx"'
+            return response
+
+        # Create workbook and worksheet
+        wb = Workbook()
+        ws = wb.active
+        ws.title = sheet_name
+
+        # Get field names from first row
+        fieldnames = list(data[0].keys())
+
+        # Write header
+        for col_num, header in enumerate(fieldnames, 1):
+            ws.cell(row=1, column=col_num, value=header)
+
+        # Write data
+        for row_num, row_data in enumerate(data, 2):
+            for col_num, field in enumerate(fieldnames, 1):
+                ws.cell(row=row_num, column=col_num, value=row_data.get(field, ''))
+
+        # Save to BytesIO
         output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, sheet_name=sheet_name, index=False)
-        
+        wb.save(output)
         output.seek(0)
-        
+
         # Create HTTP response
         response = HttpResponse(
             output.getvalue(),
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
         response['Content-Disposition'] = f'attachment; filename="{filename}.xlsx"'
-        
         return response
     
     @staticmethod

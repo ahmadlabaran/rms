@@ -14,18 +14,19 @@ from .models import (
 class ResultWorkflowService:
     """Service class to handle result approval workflow"""
     
-    # Define the workflow chain
+    # Define the workflow chain (HOD step removed as requested)
     WORKFLOW_CHAIN = {
         'DRAFT': 'SUBMITTED_TO_EXAM_OFFICER',
         'SUBMITTED_TO_EXAM_OFFICER': 'APPROVED_BY_EXAM_OFFICER',
-        'APPROVED_BY_EXAM_OFFICER': 'SUBMITTED_TO_HOD',
-        'SUBMITTED_TO_HOD': 'APPROVED_BY_HOD',
-        'APPROVED_BY_HOD': 'SUBMITTED_TO_DEAN',
+        'APPROVED_BY_EXAM_OFFICER': 'SUBMITTED_TO_DEAN',  # Skip HOD, go directly to Dean
         'SUBMITTED_TO_DEAN': 'APPROVED_BY_DEAN',
         'APPROVED_BY_DEAN': 'SUBMITTED_TO_DAAA',
         'SUBMITTED_TO_DAAA': 'APPROVED_BY_DAAA',
         'APPROVED_BY_DAAA': 'SUBMITTED_TO_SENATE',
         'SUBMITTED_TO_SENATE': 'PUBLISHED',
+        # Legacy HOD workflow (for existing results)
+        'SUBMITTED_TO_HOD': 'APPROVED_BY_HOD',
+        'APPROVED_BY_HOD': 'SUBMITTED_TO_DEAN',
     }
     
     # Define who can approve at each stage
@@ -40,10 +41,11 @@ class ResultWorkflowService:
     # Define previous status for rejection handling
     PREVIOUS_STATUS = {
         'SUBMITTED_TO_EXAM_OFFICER': 'DRAFT',
-        'SUBMITTED_TO_HOD': 'APPROVED_BY_EXAM_OFFICER',
-        'SUBMITTED_TO_DEAN': 'APPROVED_BY_HOD',
+        'SUBMITTED_TO_DEAN': 'APPROVED_BY_EXAM_OFFICER',  # Updated to skip HOD
         'SUBMITTED_TO_DAAA': 'APPROVED_BY_DEAN',
         'SUBMITTED_TO_SENATE': 'APPROVED_BY_DAAA',
+        # Legacy HOD workflow
+        'SUBMITTED_TO_HOD': 'APPROVED_BY_EXAM_OFFICER',
     }
     
     @classmethod

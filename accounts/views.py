@@ -1775,7 +1775,10 @@ def exam_officer_dashboard(request):
     # Get current level from query parameter or default to 100L
     level_param = request.GET.get('level', '100')
     try:
-        current_level = Level.objects.get(numeric_value=int(level_param))
+        # Use filter().first() to avoid MultipleObjectsReturned errors
+        current_level = Level.objects.filter(numeric_value=int(level_param)).first()
+        if not current_level:
+            raise Level.DoesNotExist()
     except (Level.DoesNotExist, ValueError):
         current_level = levels.first()
 

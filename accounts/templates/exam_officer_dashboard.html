@@ -26,16 +26,38 @@
 </div>
 
 <!-- Level Selector -->
-<div class="ios-card" style="margin-bottom: 32px;">
-    <h2 style="color: var(--text-primary); margin-bottom: 16px; font-size: 20px; font-weight: 600;">Select Academic Level</h2>
-    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px;">
-        {% for level in levels %}
-        <a href="{% url 'exam_officer_dashboard' %}?level={{ level.numeric_value }}" 
-           class="btn {% if current_level.id == level.id %}btn-primary{% else %}btn-secondary{% endif %} btn-compact"
-           style="text-align: center;">
-            {{ level.name }}
-        </a>
-        {% endfor %}
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h5 class="card-title fw-bold text-primary mb-0">Select Academic Level</h5>
+                <small class="text-muted">Choose level to view results for specific students</small>
+            </div>
+            <div class="col-md-6">
+                <div class="row g-2">
+                    {% for level in levels %}
+                    <div class="col-auto">
+                        <a href="{% url 'exam_officer_dashboard' %}?level={{ level.numeric_value }}"
+                           class="btn {% if current_level.id == level.id %}btn-primary{% else %}btn-outline-secondary{% endif %} btn-sm">
+                            {{ level.name }}
+                            {% if level.id == current_level.id %}
+                                <span class="badge bg-light text-primary ms-1">{{ stats.pending_results }}</span>
+                            {% endif %}
+                        </a>
+                    </div>
+                    {% endfor %}
+                    <div class="col-auto">
+                        <a href="{% url 'exam_officer_dashboard' %}?level=all"
+                           class="btn {% if show_all_levels %}btn-success{% else %}btn-outline-success{% endif %} btn-sm">
+                            <i class="bi bi-list-ul me-1"></i>All Levels
+                            {% if show_all_levels %}
+                                <span class="badge bg-light text-success ms-1">{{ stats.pending_results }}</span>
+                            {% endif %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -75,199 +97,281 @@
     </div>
 </div>
 
-<!-- Main Dashboard Grid -->
+<!-- Core Actions Section -->
 <div class="row mb-4">
-
-    <!-- Result Review & Validation -->
-    <div class="col-lg-6 mb-4">
-        <div class="card border-0 shadow-sm h-100">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
             <div class="card-body">
-                <h2 class="card-title text-primary mb-4 fw-bold">Result Review & Validation</h2>
-
-                <div class="mb-4">
-                    <h5 class="text-secondary mb-3 fw-semibold">Review Operations</h5>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <a href="{% url 'exam_officer_pending_results' %}?level={{ current_level.numeric_value }}" class="btn btn-primary w-100 btn-sm">Pending Results</a>
-                        </div>
-                        <div class="col-6">
-                            <a href="{% url 'exam_officer_validate_results' %}?level={{ current_level.numeric_value }}" class="btn btn-primary w-100 btn-sm">Validate Results</a>
-                        </div>
-                        <div class="col-6">
-                            <a href="{% url 'exam_officer_approve_results' %}?level={{ current_level.numeric_value }}" class="btn btn-outline-secondary w-100 btn-sm">Approve Results</a>
-                        </div>
-                        <div class="col-6">
-                            <a href="{% url 'exam_officer_reject_results' %}?level={{ current_level.numeric_value }}" class="btn btn-outline-secondary w-100 btn-sm">Rejection Notes</a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <h5 class="text-secondary mb-3 fw-semibold">Result Flow Control</h5>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <a href="{% url 'exam_officer_submit_to_hod' %}?level={{ current_level.numeric_value }}" class="btn btn-success w-100 btn-sm">Submit to HOD</a>
-                        </div>
-                        <div class="col-6">
-                            <a href="{% url 'exam_officer_result_history' %}?level={{ current_level.numeric_value }}" class="btn btn-outline-secondary w-100 btn-sm">Result History</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Student & Carryover Management -->
-    <div class="col-lg-6 mb-4">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
-                <h2 class="card-title text-primary mb-4 fw-bold">Student & Carryover Management</h2>
-
-                <div class="mb-4">
-                    <h5 class="text-secondary mb-3 fw-semibold">Student Operations</h5>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <a href="{% url 'exam_officer_add_students' %}?level={{ current_level.numeric_value }}" class="btn btn-primary w-100 btn-sm">Add Students</a>
-                        </div>
-                        <div class="col-6">
-                            <a href="{% url 'exam_officer_bulk_students' %}?level={{ current_level.numeric_value }}" class="btn btn-primary w-100 btn-sm">Bulk Upload</a>
-                        </div>
-                        <div class="col-6">
-                            <a href="{% url 'exam_officer_student_list' %}?level={{ current_level.numeric_value }}" class="btn btn-outline-secondary w-100 btn-sm">Student List</a>
-                        </div>
-                        <div class="col-6">
-                            <a href="{% url 'exam_officer_student_records' %}?level={{ current_level.numeric_value }}" class="btn btn-outline-secondary w-100 btn-sm">Student Records</a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <h5 class="text-secondary mb-3 fw-semibold">Carryover Management</h5>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <a href="{% url 'exam_officer_carryovers' %}?level={{ current_level.numeric_value }}" class="btn btn-warning w-100 btn-sm">View Carryovers</a>
-                        </div>
-                        <div class="col-6">
-                            <a href="{% url 'exam_officer_carryover_export' %}?level={{ current_level.numeric_value }}" class="btn btn-outline-warning w-100 btn-sm">Export Carryovers</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Export & Reporting Section -->
-<div class="row mb-4">
-
-    <!-- Export & Reporting -->
-    <div class="col-lg-8 mb-4">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
-                <h2 class="card-title text-primary mb-4 fw-bold">Export & Reporting</h2>
-
+                <h5 class="card-title text-primary mb-3 fw-bold">Core Actions</h5>
                 <div class="row g-3">
-                    <div class="col-md-4 text-center">
-                        <h6 class="text-secondary mb-3 fw-semibold">Student Data</h6>
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'exam_officer_export_students' %}?level={{ current_level.numeric_value }}" class="btn btn-primary btn-sm">Student List</a>
-                            <a href="{% url 'exam_officer_export_gpa' %}?level={{ current_level.numeric_value }}" class="btn btn-outline-primary btn-sm">GPA Sheet</a>
-                        </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'exam_officer_pending_results' %}?level={{ current_level.numeric_value }}" class="btn btn-primary w-100">
+                            <i class="bi bi-clock-history me-2"></i>
+                            <div>
+                                <div class="fw-bold">Pending Results</div>
+                                <small class="opacity-75">{{ stats.pending_results }} awaiting review</small>
+                            </div>
+                        </a>
                     </div>
-
-                    <div class="col-md-4 text-center">
-                        <h6 class="text-secondary mb-3 fw-semibold">Results</h6>
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'exam_officer_export_results' %}?level={{ current_level.numeric_value }}" class="btn btn-success btn-sm">All Results</a>
-                            <a href="{% url 'exam_officer_export_approved' %}?level={{ current_level.numeric_value }}" class="btn btn-outline-success btn-sm">Approved Only</a>
-                        </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'exam_officer_reject_results' %}?level={{ current_level.numeric_value }}" class="btn btn-outline-danger w-100">
+                            <i class="bi bi-x-circle me-2"></i>
+                            <div>
+                                <div class="fw-bold">Rejected Results</div>
+                                <small class="opacity-75">Manage rejections</small>
+                            </div>
+                        </a>
                     </div>
-
-                    <div class="col-md-4 text-center">
-                        <h6 class="text-secondary mb-3 fw-semibold">Carryovers</h6>
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'exam_officer_export_carryovers' %}?level={{ current_level.numeric_value }}" class="btn btn-warning btn-sm">By Course</a>
-                            <a href="{% url 'exam_officer_export_carryover_students' %}?level={{ current_level.numeric_value }}" class="btn btn-outline-warning btn-sm">By Student</a>
-                        </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'exam_officer_carryovers' %}?level={{ current_level.numeric_value }}" class="btn btn-outline-warning w-100">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <div>
+                                <div class="fw-bold">Carryovers</div>
+                                <small class="opacity-75">{{ stats.carryover_students }} students</small>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'exam_officer_result_history' %}?level={{ current_level.numeric_value }}" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-archive me-2"></i>
+                            <div>
+                                <div class="fw-bold">Result History</div>
+                                <small class="opacity-75">View processed results</small>
+                            </div>
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Quick Actions & Alerts -->
-    <div class="col-lg-4 mb-4">
-        <div class="card border-0 shadow-sm h-100">
+<!-- Results Overview Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-light">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h5 class="mb-0 fw-bold text-primary">
+                            <i class="bi bi-file-earmark-text me-2"></i>Submitted Results Overview
+                        </h5>
+                        <small class="text-muted">Results submitted by lecturers for {% if show_all_levels %}All Levels{% else %}{{ current_level.name }}{% endif %}</small>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <select class="form-select form-select-sm" id="departmentFilter">
+                                    <option value="">All Departments</option>
+                                    {% for dept in departments %}
+                                    <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select form-select-sm" id="courseFilter">
+                                    <option value="">All Courses</option>
+                                    {% for course in courses %}
+                                    <option value="{{ course.id }}">{{ course.code }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-outline-secondary btn-sm w-100" onclick="clearFilters()">
+                                    <i class="bi bi-x-circle me-1"></i>Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="card-body">
-                <h2 class="card-title text-primary mb-4 fw-bold">Quick Actions</h2>
-
-                <!-- Urgent Actions -->
-                <div class="mb-4">
-                    <h6 class="text-secondary mb-3 fw-semibold">Urgent Actions</h6>
-                    {% if stats.pending_results > 0 %}
-                        <div class="alert alert-danger border-0 py-2 mb-2">
-                            <div class="fw-semibold small">{{ stats.pending_results }} Pending Result(s)</div>
-                            <div class="text-muted small">Awaiting your review</div>
+                {% if results_by_category %}
+                    <!-- Department-wise Results -->
+                    {% for dept_name, dept_data in results_by_category.items %}
+                    <div class="mb-4 department-section" data-department="{{ dept_data.department_id }}">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold text-secondary mb-0">
+                                <i class="bi bi-building me-2"></i>{{ dept_name }}
+                            </h6>
+                            <span class="badge bg-info">{{ dept_data.total_results }} result(s)</span>
                         </div>
-                    {% endif %}
 
-                    {% if stats.carryover_students > 0 %}
-                        <div class="alert alert-warning border-0 py-2 mb-2">
-                            <div class="fw-semibold small">{{ stats.carryover_students }} Carryover(s)</div>
-                            <div class="text-muted small">Need attention</div>
+                        <!-- Course-wise Results within Department -->
+                        {% for course_code, course_data in dept_data.courses.items %}
+                        <div class="card mb-3 course-section" data-course="{{ course_data.course_id }}">
+                            <div class="card-header py-2">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <div class="fw-semibold text-primary">{{ course_code }}</div>
+                                        <small class="text-muted">{{ course_data.course_title }}</small>
+                                    </div>
+                                    <div class="col-md-4 text-end">
+                                        <span class="badge bg-warning me-2">{{ course_data.results|length }} pending</span>
+                                        <a href="{% url 'exam_officer_pending_results' %}?course={{ course_data.course_id }}&level={{ current_level.numeric_value }}"
+                                           class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-eye me-1"></i>Review
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row">
+                                    {% for result in course_data.results|slice:":3" %}
+                                    <div class="col-md-4 mb-2">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-2">
+                                                <i class="bi bi-person-circle text-muted"></i>
+                                            </div>
+                                            <div>
+                                                <div class="small fw-semibold">{{ result.enrollment.student.matric_number }}</div>
+                                                <div class="small text-muted">{{ result.enrollment.student.user.get_full_name|truncatechars:20 }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                    {% if course_data.results|length > 3 %}
+                                    <div class="col-md-4 mb-2">
+                                        <div class="text-muted small">
+                                            <i class="bi bi-three-dots me-1"></i>
+                                            and {{ course_data.results|length|add:"-3" }} more student(s)
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
-                    {% endif %}
-                </div>
-
-                <!-- Quick Links -->
-                <div>
-                    <h6 class="text-secondary mb-3 fw-semibold">Quick Links</h6>
-                    <div class="d-grid gap-2">
-                        <a href="{% url 'exam_officer_pending_results' %}?level={{ current_level.numeric_value }}" class="btn btn-primary btn-sm">Review Results</a>
-                        <a href="{% url 'exam_officer_add_students' %}?level={{ current_level.numeric_value }}" class="btn btn-outline-secondary btn-sm">Add Students</a>
-                        <a href="{% url 'exam_officer_carryovers' %}?level={{ current_level.numeric_value }}" class="btn btn-outline-secondary btn-sm">Manage Carryovers</a>
+                        {% empty %}
+                        <div class="text-muted text-center py-3">
+                            <i class="bi bi-inbox me-2"></i>No results submitted for this department
+                        </div>
+                        {% endfor %}
                     </div>
-                </div>
+                    {% empty %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                        <h5 class="text-muted mt-3">No Results Submitted</h5>
+                        <p class="text-muted">No results have been submitted by lecturers for {{ current_level.name }} yet.</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                        <h5 class="text-muted mt-3">No Results Submitted</h5>
+                        <p class="text-muted">No results have been submitted by lecturers for {{ current_level.name }} yet.</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
-<!-- Recent Results Awaiting Review -->
-<div class="ios-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h2 style="color: var(--text-primary); font-size: 20px; font-weight: 600; margin: 0;">Recent Results - {{ current_level.name }}</h2>
-        <a href="{% url 'exam_officer_pending_results' %}?level={{ current_level.numeric_value }}" style="color: var(--ios-blue); text-decoration: none; font-weight: 500;">View All</a>
-    </div>
-    
-    {% if pending_results %}
-        {% for result in pending_results|slice:":5" %}
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--surface-secondary); border-radius: 12px; margin-bottom: 12px; border: 1px solid var(--border-light);">
-            <div>
-                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
-                    {{ result.enrollment.student.matric_number }} - {{ result.enrollment.course.code }}
-                </div>
-                <div style="color: var(--text-secondary); font-size: 14px;">
-                    {{ result.enrollment.course.title }} • Total: {{ result.total_score }} ({{ result.grade }})
-                </div>
-                <div style="color: var(--text-tertiary); font-size: 12px;">
-                    Submitted: {{ result.updated_at|date:"M d, Y H:i" }}
-                </div>
-            </div>
-            <div style="display: flex; gap: 8px;">
-                <a href="{% url 'exam_officer_review_result' result.id %}" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">Review</a>
-                <a href="{% url 'exam_officer_approve_single' result.id %}" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;">Quick Approve</a>
-            </div>
-        </div>
-        {% endfor %}
-    {% else %}
-        <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
-            <div style="width: 60px; height: 60px; background: var(--ios-blue-ultra-light); border-radius: 15px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
-                <div style="width: 30px; height: 30px; background: var(--ios-blue); border-radius: 8px; opacity: 0.6;"></div>
-            </div>
-            <p>No pending results for {{ current_level.name }}</p>
-        </div>
-    {% endif %}
-</div>
 
 {% endblock %}
+
+<script>
+// Auto-refresh statistics every 30 seconds
+setInterval(function() {
+    location.reload();
+}, 30000);
+
+// Filter functionality for results overview
+document.addEventListener('DOMContentLoaded', function() {
+    const departmentFilter = document.getElementById('departmentFilter');
+    const courseFilter = document.getElementById('courseFilter');
+
+    if (departmentFilter) {
+        departmentFilter.addEventListener('change', function() {
+            filterResults();
+        });
+    }
+
+    if (courseFilter) {
+        courseFilter.addEventListener('change', function() {
+            filterResults();
+        });
+    }
+});
+
+function filterResults() {
+    const departmentFilter = document.getElementById('departmentFilter');
+    const courseFilter = document.getElementById('courseFilter');
+
+    const selectedDepartment = departmentFilter ? departmentFilter.value : '';
+    const selectedCourse = courseFilter ? courseFilter.value : '';
+
+    // Show/hide department sections
+    const departmentSections = document.querySelectorAll('.department-section');
+    departmentSections.forEach(section => {
+        const departmentId = section.getAttribute('data-department');
+        const shouldShowDept = !selectedDepartment || departmentId === selectedDepartment;
+
+        if (shouldShowDept) {
+            section.style.display = 'block';
+
+            // Filter courses within this department
+            const courseSections = section.querySelectorAll('.course-section');
+            let visibleCourses = 0;
+
+            courseSections.forEach(courseSection => {
+                const courseId = courseSection.getAttribute('data-course');
+                const shouldShowCourse = !selectedCourse || courseId === selectedCourse;
+
+                if (shouldShowCourse) {
+                    courseSection.style.display = 'block';
+                    visibleCourses++;
+                } else {
+                    courseSection.style.display = 'none';
+                }
+            });
+
+            // Hide department if no courses are visible
+            if (visibleCourses === 0 && selectedCourse) {
+                section.style.display = 'none';
+            }
+        } else {
+            section.style.display = 'none';
+        }
+    });
+
+    // Show message if no results are visible
+    const visibleSections = document.querySelectorAll('.department-section[style="display: block;"], .department-section:not([style])');
+    const noResultsMessage = document.getElementById('noResultsMessage');
+
+    if (visibleSections.length === 0 && (selectedDepartment || selectedCourse)) {
+        if (!noResultsMessage) {
+            const message = document.createElement('div');
+            message.id = 'noResultsMessage';
+            message.className = 'text-center py-5';
+            message.innerHTML = `
+                <i class="bi bi-funnel text-muted" style="font-size: 3rem;"></i>
+                <h5 class="text-muted mt-3">No Results Match Filter</h5>
+                <p class="text-muted">No results found for the selected filters. Try adjusting your selection.</p>
+            `;
+            document.querySelector('.card-body').appendChild(message);
+        }
+    } else if (noResultsMessage) {
+        noResultsMessage.remove();
+    }
+}
+
+function clearFilters() {
+    const departmentFilter = document.getElementById('departmentFilter');
+    const courseFilter = document.getElementById('courseFilter');
+
+    if (departmentFilter) departmentFilter.value = '';
+    if (courseFilter) courseFilter.value = '';
+
+    // Show all sections
+    const allSections = document.querySelectorAll('.department-section, .course-section');
+    allSections.forEach(section => {
+        section.style.display = 'block';
+    });
+
+    // Remove no results message
+    const noResultsMessage = document.getElementById('noResultsMessage');
+    if (noResultsMessage) {
+        noResultsMessage.remove();
+    }
+}
+</script>

@@ -1772,42 +1772,66 @@ def exam_officer_dashboard(request):
     # Get all levels
     levels = Level.objects.all().order_by('numeric_value')
 
-    # Get current level from query parameter or default to 100L
-    level_param = request.GET.get('level', '100')
-    try:
-        # Use filter().first() to avoid MultipleObjectsReturned errors
-        current_level = Level.objects.filter(numeric_value=int(level_param)).first()
-        if not current_level:
-            raise Level.DoesNotExist()
-    except (Level.DoesNotExist, ValueError):
-        current_level = levels.first()
+    # Get current level from query parameter or default to 'all'
+    level_param = request.GET.get('level', 'all')
+    show_all_levels = level_param == 'all'
+
+    if show_all_levels:
+        current_level = None
+    else:
+        try:
+            # Use filter().first() to avoid MultipleObjectsReturned errors
+            current_level = Level.objects.filter(numeric_value=int(level_param)).first()
+            if not current_level:
+                raise Level.DoesNotExist()
+        except (Level.DoesNotExist, ValueError):
+            current_level = None
+            show_all_levels = True
 
     # Get departments in this faculty
     departments = Department.objects.filter(faculty=faculty)
 
-    # Calculate statistics for current level
-    level_students = Student.objects.filter(
-        faculty=faculty,
-        current_level=current_level
-    )
+    # Calculate statistics for current level or all levels
+    if show_all_levels:
+        level_students = Student.objects.filter(faculty=faculty)
+        pending_results = Result.objects.filter(
+            enrollment__course__departments__faculty=faculty,
+            status='SUBMITTED_TO_EXAM_OFFICER'
+        )
+    else:
+        level_students = Student.objects.filter(
+            faculty=faculty,
+            current_level=current_level
+        )
+        pending_results = Result.objects.filter(
+            enrollment__course__departments__faculty=faculty,
+            enrollment__student__current_level=current_level,
+            status='SUBMITTED_TO_EXAM_OFFICER'
+        )
 
-    pending_results = Result.objects.filter(
-        enrollment__course__departments__faculty=faculty,
-        enrollment__student__current_level=current_level,
-        status='SUBMITTED_TO_EXAM_OFFICER'
-    )
+    if show_all_levels:
+        approved_results = Result.objects.filter(
+            enrollment__course__departments__faculty=faculty,
+            status__in=['APPROVED_BY_EXAM_OFFICER', 'SUBMITTED_TO_DEAN', 'APPROVED_BY_DEAN', 'SUBMITTED_TO_DAAA', 'APPROVED_BY_DAAA', 'SUBMITTED_TO_SENATE', 'PUBLISHED']
+        )
+    else:
+        approved_results = Result.objects.filter(
+            enrollment__course__departments__faculty=faculty,
+            enrollment__student__current_level=current_level,
+            status__in=['APPROVED_BY_EXAM_OFFICER', 'SUBMITTED_TO_DEAN', 'APPROVED_BY_DEAN', 'SUBMITTED_TO_DAAA', 'APPROVED_BY_DAAA', 'SUBMITTED_TO_SENATE', 'PUBLISHED']
+        )
 
-    approved_results = Result.objects.filter(
-        enrollment__course__departments__faculty=faculty,
-        enrollment__student__current_level=current_level,
-        status__in=['APPROVED_BY_EXAM_OFFICER', 'SUBMITTED_TO_DEAN', 'APPROVED_BY_DEAN', 'SUBMITTED_TO_DAAA', 'APPROVED_BY_DAAA', 'SUBMITTED_TO_SENATE', 'PUBLISHED']
-    )
-
-    carryover_students = CarryOverList.objects.filter(
-        faculty=faculty,
-        result__enrollment__student__current_level=current_level,
-        session=current_session
-    ).values('result__enrollment__student').distinct()
+    if show_all_levels:
+        carryover_students = CarryOverList.objects.filter(
+            faculty=faculty,
+            session=current_session
+        ).values('result__enrollment__student').distinct()
+    else:
+        carryover_students = CarryOverList.objects.filter(
+            faculty=faculty,
+            result__enrollment__student__current_level=current_level,
+            session=current_session
+        ).values('result__enrollment__student').distinct()
 
     stats = {
         'total_students': level_students.count(),
@@ -1816,20 +1840,86 @@ def exam_officer_dashboard(request):
         'carryover_students': carryover_students.count(),
     }
 
-    # Get recent pending results for display
-    recent_pending = pending_results.select_related(
-        'enrollment__student',
-        'enrollment__course'
-    ).order_by('-updated_at')[:10]
+    # Get categorized results for enhanced display
+    results_by_category = {}
+
+    # Get all pending results for this level and faculty (with better filtering)
+    if show_all_levels:
+        all_pending_results = Result.objects.filter(
+            status='SUBMITTED_TO_EXAM_OFFICER',
+            enrollment__course__departments__faculty=faculty
+        ).select_related(
+            'enrollment__student__user',
+            'enrollment__course',
+            'enrollment__session'
+        ).prefetch_related('enrollment__course__departments')
+    else:
+        all_pending_results = Result.objects.filter(
+            status='SUBMITTED_TO_EXAM_OFFICER',
+            enrollment__course__departments__faculty=faculty,
+            enrollment__student__current_level=current_level
+        ).select_related(
+            'enrollment__student__user',
+            'enrollment__course',
+            'enrollment__session'
+        ).prefetch_related('enrollment__course__departments')
+
+    # Get all courses for filter dropdown
+    if show_all_levels:
+        courses = Course.objects.filter(
+            departments__faculty=faculty,
+            session=current_session
+        ).distinct().order_by('code')
+    else:
+        courses = Course.objects.filter(
+            departments__faculty=faculty,
+            session=current_session,
+            level=current_level
+        ).distinct().order_by('code')
+
+    # Organize results by department and course
+    for result in all_pending_results:
+        course = result.enrollment.course
+
+        # Get the department (courses can belong to multiple departments)
+        course_departments = course.departments.filter(faculty=faculty)
+        if not course_departments.exists():
+            continue
+
+        department = course_departments.first()
+        dept_name = department.name
+
+        # Initialize department if not exists
+        if dept_name not in results_by_category:
+            results_by_category[dept_name] = {
+                'department_id': department.id,
+                'total_results': 0,
+                'courses': {}
+            }
+
+        # Initialize course if not exists
+        course_code = course.code
+        if course_code not in results_by_category[dept_name]['courses']:
+            results_by_category[dept_name]['courses'][course_code] = {
+                'course_id': course.id,
+                'course_title': course.title,
+                'results': []
+            }
+
+        # Add result to course
+        results_by_category[dept_name]['courses'][course_code]['results'].append(result)
+        results_by_category[dept_name]['total_results'] += 1
 
     context = {
         'faculty': faculty,
         'current_session': current_session,
         'levels': levels,
         'current_level': current_level,
+        'show_all_levels': show_all_levels,
         'departments': departments,
+        'courses': courses,
         'stats': stats,
-        'pending_results': recent_pending,
+        'results_by_category': results_by_category,
     }
 
     return render(request, 'exam_officer_dashboard.html', context)

@@ -5243,29 +5243,49 @@ def faculty_dean_students(request):
         return redirect('dashboard')
 
     # Get search parameters
-    search_query = request.GET.get('search', '')
-    department_filter = request.GET.get('department', '')
-    level_filter = request.GET.get('level', '')
+    search_query = request.GET.get('search', '').strip()
+    department_filter = request.GET.get('department', '').strip()
+    level_filter = request.GET.get('level', '').strip()
+    session_filter = request.GET.get('session', '').strip()
 
     # Get students in this faculty
-    students = Student.objects.filter(faculty=faculty).select_related('department', 'user')
+    students = Student.objects.filter(faculty=faculty).select_related('department', 'user', 'current_level', 'current_session')
 
-    # Apply filters
+    # Apply search filters
     if search_query:
         students = students.filter(
             Q(matric_number__icontains=search_query) |
             Q(user__first_name__icontains=search_query) |
-            Q(user__last_name__icontains=search_query)
+            Q(user__last_name__icontains=search_query) |
+            Q(user__email__icontains=search_query)
         )
 
+    # Apply department filter
     if department_filter:
-        students = students.filter(department_id=department_filter)
+        try:
+            students = students.filter(department_id=int(department_filter))
+        except (ValueError, TypeError):
+            pass
 
+    # Apply level filter
     if level_filter:
-        students = students.filter(current_level__name=level_filter)
+        try:
+            students = students.filter(current_level__numeric_value=int(level_filter))
+        except (ValueError, TypeError):
+            pass
+
+    # Apply session filter
+    if session_filter:
+        try:
+            students = students.filter(current_session_id=int(session_filter))
+        except (ValueError, TypeError):
+            pass
 
     # Get departments for filter
     departments = Department.objects.filter(faculty=faculty).order_by('name')
+
+    # Order students for consistent pagination
+    students = students.order_by('matric_number')
 
     # Pagination
     from django.core.paginator import Paginator
@@ -5308,6 +5328,7 @@ def faculty_dean_students(request):
         'search_query': search_query,
         'department_filter': department_filter,
         'level_filter': level_filter,
+        'session_filter': session_filter,
         'academic_sessions': academic_sessions,
         'levels': levels,
     }
@@ -7687,8 +7708,10 @@ def lecturer_enroll_students(request):
     if request.method == 'GET' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         search_query = request.GET.get('search', '').strip()
         course_id = request.GET.get('course_id')
+        level_filter = request.GET.get('level', '').strip()
+        browse_mode = request.GET.get('browse', '').strip()
 
-        if search_query and course_id:
+        if (search_query or browse_mode) and course_id:
             try:
                 course = Course.objects.get(id=course_id)
 
@@ -7705,17 +7728,18 @@ def lecturer_enroll_students(request):
                     any('general' in dept.name.lower() for dept in course.departments.all())
                 )
 
-                if is_general_studies:
-                    # For General Studies courses, search across ALL students university-wide
-                    students = Student.objects.filter(
+                # Build search filters
+                search_filters = Q()
+                if search_query and not browse_mode:
+                    search_filters = (
                         Q(matric_number__icontains=search_query) |
                         Q(user__first_name__icontains=search_query) |
                         Q(user__last_name__icontains=search_query)
-                        # No faculty/department restriction for General Studies
-                    ).exclude(
-                        courseenrollment__course=course,
-                        courseenrollment__session=course.session
-                    ).select_related('user', 'current_level', 'department', 'faculty').order_by('matric_number')
+                    )
+
+                if is_general_studies:
+                    # For General Studies courses, search across ALL students university-wide
+                    students = Student.objects.filter(search_filters)
                 else:
                     # For regular courses, search within the same faculty
                     course_faculty = None
@@ -7723,14 +7747,25 @@ def lecturer_enroll_students(request):
                         course_faculty = course.departments.first().faculty
 
                     students = Student.objects.filter(
-                        Q(matric_number__icontains=search_query) |
-                        Q(user__first_name__icontains=search_query) |
-                        Q(user__last_name__icontains=search_query),
+                        search_filters,
                         faculty=course_faculty  # Search across all departments in the faculty
-                    ).exclude(
-                        courseenrollment__course=course,
-                        courseenrollment__session=course.session
-                    ).select_related('user', 'current_level', 'department').order_by('matric_number')
+                    )
+
+                # Apply level filter if specified
+                if level_filter:
+                    students = students.filter(current_level__numeric_value=level_filter)
+
+                # Exclude already enrolled students
+                students = students.exclude(
+                    courseenrollment__course=course,
+                    courseenrollment__session=course.session
+                ).select_related('user', 'current_level', 'department', 'faculty').order_by('matric_number')
+
+                # Limit results for performance
+                if browse_mode:
+                    students = students[:100]  # Higher limit for browse mode
+                else:
+                    students = students[:50]   # Standard limit for search
 
                 student_data = []
                 for student in students:

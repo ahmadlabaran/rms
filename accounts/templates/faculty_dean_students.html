@@ -109,38 +109,65 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title fw-bold mb-3">Filter Students</h5>
-                    
-                    <div class="row">
-                        <div class="col-md-3 mb-2">
-                            <select class="form-select form-select-sm">
-                                <option>All Departments</option>
-                                {% for department in departments %}
-                                <option value="{{ department.id }}">{{ department.name }}</option>
-                                {% endfor %}
-                            </select>
+                    <form method="get" id="searchForm">
+                        <h5 class="card-title fw-bold mb-3">Search & Filter Students</h5>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-semibold">Search</label>
+                                <input type="text"
+                                       name="search"
+                                       class="form-control"
+                                       placeholder="Search by matric number, name, or email..."
+                                       value="{{ search_query }}"
+                                       id="searchInput">
+                                <small class="text-muted">Search by matric number, first name, last name, or email</small>
+                            </div>
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label fw-semibold">Department</label>
+                                <select name="department" class="form-select" id="departmentFilter">
+                                    <option value="">All Departments</option>
+                                    {% for department in departments %}
+                                    <option value="{{ department.id }}" {% if department_filter == department.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ department.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label fw-semibold">Level</label>
+                                <select name="level" class="form-select" id="levelFilter">
+                                    <option value="">All Levels</option>
+                                    <option value="100" {% if level_filter == "100" %}selected{% endif %}>100 Level</option>
+                                    <option value="200" {% if level_filter == "200" %}selected{% endif %}>200 Level</option>
+                                    <option value="300" {% if level_filter == "300" %}selected{% endif %}>300 Level</option>
+                                    <option value="400" {% if level_filter == "400" %}selected{% endif %}>400 Level</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label fw-semibold">Session</label>
+                                <select name="session" class="form-select" id="sessionFilter">
+                                    <option value="">All Sessions</option>
+                                    {% for session in academic_sessions %}
+                                    <option value="{{ session.id }}" {% if session_filter == session.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ session.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label fw-semibold">&nbsp;</label>
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-search me-1"></i>Search
+                                    </button>
+                                    <a href="{% url 'faculty_dean_students' %}" class="btn btn-outline-secondary btn-sm">
+                                        <i class="bi bi-x-circle me-1"></i>Clear
+                                    </a>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-3 mb-2">
-                            <select class="form-select form-select-sm">
-                                <option>All Levels</option>
-                                <option value="100">100 Level</option>
-                                <option value="200">200 Level</option>
-                                <option value="300">300 Level</option>
-                                <option value="400">400 Level</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3 mb-2">
-                            <select class="form-select form-select-sm">
-                                <option>All Sessions</option>
-                                {% for session in sessions %}
-                                <option value="{{ session.id }}">{{ session.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-3 mb-2">
-                            <input type="text" class="form-control form-control-sm" placeholder="Search matric number...">
-                        </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -371,6 +398,87 @@
 </div>
 
 <script>
+// Real-time search functionality
+let searchTimeout;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const departmentFilter = document.getElementById('departmentFilter');
+    const levelFilter = document.getElementById('levelFilter');
+    const sessionFilter = document.getElementById('sessionFilter');
+    const searchForm = document.getElementById('searchForm');
+
+    // Auto-submit form on filter changes (with debouncing for search input)
+    function handleFilterChange() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            searchForm.submit();
+        }, 500); // 500ms delay for search input
+    }
+
+    function handleSelectChange() {
+        searchForm.submit(); // Immediate submit for select changes
+    }
+
+    // Add event listeners
+    if (searchInput) {
+        searchInput.addEventListener('input', handleFilterChange);
+    }
+
+    if (departmentFilter) {
+        departmentFilter.addEventListener('change', handleSelectChange);
+    }
+
+    if (levelFilter) {
+        levelFilter.addEventListener('change', handleSelectChange);
+    }
+
+    if (sessionFilter) {
+        sessionFilter.addEventListener('change', handleSelectChange);
+    }
+
+    // Show search status
+    const searchQuery = searchInput ? searchInput.value.trim() : '';
+    if (searchQuery || departmentFilter?.value || levelFilter?.value || sessionFilter?.value) {
+        showSearchStatus();
+    }
+});
+
+function showSearchStatus() {
+    const searchQuery = document.getElementById('searchInput')?.value.trim() || '';
+    const departmentFilter = document.getElementById('departmentFilter')?.value || '';
+    const levelFilter = document.getElementById('levelFilter')?.value || '';
+    const sessionFilter = document.getElementById('sessionFilter')?.value || '';
+
+    let statusText = 'Showing ';
+    let filters = [];
+
+    if (searchQuery) filters.push(`search: "${searchQuery}"`);
+    if (departmentFilter) filters.push('department filtered');
+    if (levelFilter) filters.push('level filtered');
+    if (sessionFilter) filters.push('session filtered');
+
+    if (filters.length > 0) {
+        statusText += 'filtered results (' + filters.join(', ') + ')';
+
+        // Add status indicator
+        const existingStatus = document.getElementById('searchStatus');
+        if (existingStatus) existingStatus.remove();
+
+        const statusDiv = document.createElement('div');
+        statusDiv.id = 'searchStatus';
+        statusDiv.className = 'alert alert-info py-2 mb-3';
+        statusDiv.innerHTML = `
+            <small><i class="bi bi-funnel me-1"></i>${statusText}</small>
+        `;
+
+        const studentsCard = document.querySelector('.row .col-12 .card');
+        if (studentsCard) {
+            studentsCard.parentNode.insertBefore(statusDiv, studentsCard);
+        }
+    }
+}
+
 function viewStudent(studentId) {
     // Get student data from the page
     const studentCard = document.querySelector(`[onclick*="viewStudent(${studentId})"]`).closest('.card-body, tr');

@@ -1993,18 +1993,28 @@ def exam_officer_pending_results(request):
         comments = request.POST.get('comments', '')
 
         try:
+            # First, try to get the result without status restriction to check if it exists
             result = Result.objects.get(
                 id=result_id,
-                status='SUBMITTED_TO_EXAM_OFFICER',
                 enrollment__course__departments__faculty=faculty
             )
+
+            # Check if result is in the correct status for processing
+            if result.status != 'SUBMITTED_TO_EXAM_OFFICER':
+                if result.status == 'APPROVED_BY_EXAM_OFFICER':
+                    messages.info(request, f'Result for {result.enrollment.student.matric_number} has already been approved.')
+                elif result.status == 'REJECTED':
+                    messages.info(request, f'Result for {result.enrollment.student.matric_number} has already been rejected.')
+                else:
+                    messages.warning(request, f'Result for {result.enrollment.student.matric_number} is not available for processing (Status: {result.get_status_display()}).')
+                return redirect('exam_officer_pending_results')
 
             if action == 'approve':
                 success, message = ResultWorkflowService.approve_result(result, request.user, comments)
                 if success:
-                    messages.success(request, f'Result approved successfully for {result.enrollment.student.matric_number}')
+                    messages.success(request, f'✅ Result approved successfully for {result.enrollment.student.matric_number}. Status updated to: {result.get_status_display()}')
                 else:
-                    messages.error(request, f'Error approving result: {message}')
+                    messages.error(request, f'❌ Error approving result: {message}')
 
             elif action == 'reject':
                 if not comments.strip():
@@ -2012,17 +2022,17 @@ def exam_officer_pending_results(request):
                 else:
                     success, message = ResultWorkflowService.reject_result(result, request.user, comments)
                     if success:
-                        messages.success(request, f'Result rejected and returned for correction')
+                        messages.success(request, f'✅ Result rejected and returned to lecturer for correction: {result.enrollment.student.matric_number}')
                     else:
-                        messages.error(request, f'Error rejecting result: {message}')
+                        messages.error(request, f'❌ Error rejecting result: {message}')
 
             return redirect('exam_officer_pending_results')
 
         except Result.DoesNotExist:
-            messages.error(request, 'Result not found or already processed')
+            messages.error(request, '❌ Result not found. It may have been processed by another user or does not belong to your faculty.')
             return redirect('exam_officer_pending_results')
         except Exception as e:
-            messages.error(request, f'Error processing result: {str(e)}')
+            messages.error(request, f'❌ Unexpected error processing result: {str(e)}')
             return redirect('exam_officer_pending_results')
 
     # Group results by course for better organization
@@ -8839,13 +8849,121 @@ def exam_officer_submit_to_hod(request):
 
 @login_required
 def exam_officer_result_history(request):
-    """Result history functionality - placeholder"""
-    level = request.GET.get('level', '100')
-    return render(request, 'placeholder.html', {
-        'page_title': f'Result History - {level}L',
-        'message': f'View result history for {level}L',
-        'back_url': 'exam_officer_dashboard'
-    })
+    """View processed results history"""
+    # Check if user has Exam Officer role
+    exam_officer_roles = UserRole.objects.filter(user=request.user, role='EXAM_OFFICER')
+    if not exam_officer_roles.exists():
+        messages.error(request, 'Access denied. Exam Officer role required.')
+        return redirect('dashboard')
+
+    # Get the faculty context
+    faculty = exam_officer_roles.first().faculty
+
+    # Get level parameter
+    level_param = request.GET.get('level', 'all')
+    show_all_levels = level_param == 'all'
+
+    # Get all levels for filter
+    levels = Level.objects.all().order_by('numeric_value')
+
+    if show_all_levels:
+        current_level = None
+    else:
+        try:
+            current_level = Level.objects.filter(numeric_value=int(level_param)).first()
+            if not current_level:
+                current_level = None
+                show_all_levels = True
+        except (ValueError, TypeError):
+            current_level = None
+            show_all_levels = True
+
+    # Get processed results (approved, rejected, or further in workflow)
+    processed_statuses = [
+        'APPROVED_BY_EXAM_OFFICER',
+        'SUBMITTED_TO_DEAN',
+        'APPROVED_BY_DEAN',
+        'SUBMITTED_TO_DAAA',
+        'APPROVED_BY_DAAA',
+        'SUBMITTED_TO_SENATE',
+        'PUBLISHED',
+        'REJECTED'
+    ]
+
+    if show_all_levels:
+        processed_results = Result.objects.filter(
+            status__in=processed_statuses,
+            enrollment__course__departments__faculty=faculty
+        )
+    else:
+        processed_results = Result.objects.filter(
+            status__in=processed_statuses,
+            enrollment__course__departments__faculty=faculty,
+            enrollment__student__current_level=current_level
+        )
+
+    processed_results = processed_results.select_related(
+        'enrollment__student__user',
+        'enrollment__course',
+        'enrollment__session',
+        'created_by',
+        'last_modified_by'
+    ).prefetch_related(
+        'enrollment__course__departments'
+    ).order_by('-updated_at')
+
+    # Get filter parameters
+    status_filter = request.GET.get('status', '')
+    course_filter = request.GET.get('course', '')
+
+    # Apply additional filters
+    if status_filter:
+        processed_results = processed_results.filter(status=status_filter)
+
+    if course_filter:
+        try:
+            processed_results = processed_results.filter(enrollment__course_id=int(course_filter))
+        except (ValueError, TypeError):
+            pass
+
+    # Get unique courses for filter dropdown
+    if show_all_levels:
+        courses = Course.objects.filter(
+            departments__faculty=faculty
+        ).distinct().order_by('code')
+    else:
+        courses = Course.objects.filter(
+            departments__faculty=faculty,
+            level=current_level
+        ).distinct().order_by('code')
+
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(processed_results, 20)
+    page_number = request.GET.get('page')
+    results_page = paginator.get_page(page_number)
+
+    # Statistics
+    stats = {
+        'total_processed': processed_results.count(),
+        'approved': processed_results.filter(status__in=['APPROVED_BY_EXAM_OFFICER', 'SUBMITTED_TO_DEAN', 'APPROVED_BY_DEAN', 'SUBMITTED_TO_DAAA', 'APPROVED_BY_DAAA', 'SUBMITTED_TO_SENATE', 'PUBLISHED']).count(),
+        'rejected': processed_results.filter(status='REJECTED').count(),
+    }
+
+    context = {
+        'processed_results': results_page,
+        'faculty': faculty,
+        'current_level': current_level,
+        'show_all_levels': show_all_levels,
+        'levels': levels,
+        'courses': courses,
+        'stats': stats,
+        'status_filter': status_filter,
+        'course_filter': course_filter,
+        'processed_statuses': processed_statuses,
+    }
+
+    return render(request, 'exam_officer_result_history.html', context)
 
 @login_required
 def exam_officer_add_students(request):

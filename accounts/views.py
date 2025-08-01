@@ -8257,7 +8257,7 @@ def lecturer_upload_csv_results(request):
                             grade = 'F'
 
                     preview_data.append({
-                        'enrollment': enrollment,
+                        'enrollment_id': enrollment.id,  # Store ID instead of object
                         'matric_number': matric_number,
                         'student_name': student_name,
                         'ca_score': ca_score,

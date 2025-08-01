@@ -8053,14 +8053,17 @@ def lecturer_download_csv_template(request):
     writer.writerow(['# 2. Fill in student names in the second column (for verification)'])
     writer.writerow(['# 3. Enter CA Score (0-30) in the third column'])
     writer.writerow(['# 4. Enter Exam Score (0-70) in the fourth column'])
-    writer.writerow(['# 5. You can add as many students as needed'])
-    writer.writerow(['# 6. Save this file and upload it through CSV Upload option'])
-    writer.writerow(['# 7. Select your course during upload process'])
-    writer.writerow(['# 8. You will be able to review and edit before final submission'])
+    writer.writerow(['# 5. LEAVE Total Score and Grade columns EMPTY (auto-calculated)'])
+    writer.writerow(['# 6. You can add as many students as needed'])
+    writer.writerow(['# 7. Save this file and upload it through CSV Upload option'])
+    writer.writerow(['# 8. Select your course during upload process'])
+    writer.writerow(['# 9. You will be able to review and edit before final submission'])
     writer.writerow([])
     writer.writerow(['# IMPORTANT NOTES:'])
     writer.writerow(['# - Students will be automatically enrolled in your course during upload'])
     writer.writerow(['# - Leave scores empty if student did not take the exam'])
+    writer.writerow(['# - Total Score = CA Score + Exam Score (auto-calculated)'])
+    writer.writerow(['# - Grade is auto-calculated: A(70+), B(60+), C(50+), D(45+), F(<45)'])
     writer.writerow(['# - You can edit scores in the review table before submission'])
     writer.writerow(['# - Only students registered in the system can have results entered'])
     writer.writerow(['# - Decimal scores are allowed (e.g., 25.5, 67.8)'])
@@ -8071,7 +8074,9 @@ def lecturer_download_csv_template(request):
         'Student Matric Number',
         'Student Name',
         'CA Score (Max 30)',
-        'Exam Score (Max 70)'
+        'Exam Score (Max 70)',
+        'Total Score (Auto)',
+        'Grade (Auto)'
     ])
 
     # Add sample rows with examples
@@ -8079,26 +8084,41 @@ def lecturer_download_csv_template(request):
         'EXAMPLE/2023/001',
         'John Doe',
         '25.0',
-        '65.0'
+        '65.0',
+        '90.0',
+        'A'
     ])
     writer.writerow([
         'EXAMPLE/2023/002',
         'Jane Smith',
         '28.5',
-        '70.0'
+        '70.0',
+        '98.5',
+        'A'
     ])
     writer.writerow([
         'EXAMPLE/2023/003',
         'Bob Johnson',
+        '20.0',
+        '45.0',
+        '65.0',
+        'B'
+    ])
+    writer.writerow([
+        'EXAMPLE/2023/004',
+        'Alice Brown',
+        '',
+        '',
         '',
         ''
     ])
     writer.writerow([])
     writer.writerow(['# Add your students below this line:'])
+    writer.writerow(['# Note: Total Score and Grade columns will be auto-calculated during upload'])
 
     # Add empty rows for lecturer to fill
     for i in range(15):
-        writer.writerow(['', '', '', ''])
+        writer.writerow(['', '', '', '', '', ''])
 
     return response
 

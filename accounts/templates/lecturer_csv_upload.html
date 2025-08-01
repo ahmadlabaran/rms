@@ -53,14 +53,14 @@
                             <li>Fill in the CA Score and Exam Score columns</li>
                             <li>Do not modify Student Matric Number or Student Name</li>
                             <li>Save the file and upload it here</li>
-                            <li>Review the preview before final submission</li>
+                            <li>Review and edit the results in the interactive table before submission</li>
                         </ol>
                     </div>
 
                     <!-- Download Template Button -->
                     <div class="row mb-4">
                         <div class="col-12">
-                            <a href="{% url 'lecturer_download_csv_template' %}?course_id={{ course.id }}&session_id={{ session.id }}" 
+                            <a href="{% url 'lecturer_download_csv_template' %}?course_id={{ course.id }}&session_id={{ session.id }}"
                                class="btn btn-outline-primary">
                                 <i class="bi bi-download me-1"></i>Download CSV Template
                             </a>
@@ -74,7 +74,7 @@
                             <div class="col-md-8">
                                 <div class="mb-3">
                                     <label for="csv_file" class="form-label fw-semibold">Select CSV File</label>
-                                    <input type="file" class="form-control" id="csv_file" name="csv_file" 
+                                    <input type="file" class="form-control" id="csv_file" name="csv_file"
                                            accept=".csv" required>
                                     <div class="form-text">Maximum file size: 5MB. Only CSV files are allowed.</div>
                                 </div>
@@ -110,76 +110,102 @@
     {% endif %}
 
     {% if show_preview %}
-    <!-- Preview Section -->
+    <!-- Interactive Editable Results Table -->
     <div class="row">
         <div class="col-12">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-success text-white">
                     <h5 class="mb-0 fw-bold">
-                        <i class="bi bi-eye me-2"></i>Preview Results
+                        <i class="bi bi-pencil-square me-2"></i>Review & Edit Results
                     </h5>
-                    <small>Review the data below and confirm to submit to Exam Officer</small>
+                    <small>Edit scores, add students, or remove entries before final submission</small>
                 </div>
                 <div class="card-body">
-                    <!-- Summary -->
-                    <div class="alert alert-success">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <strong>Total Records:</strong> {{ preview_data|length }}
+                    <!-- Summary Panel -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="alert alert-info mb-0">
+                                <strong>Total Records:</strong> <span id="totalRecords">{{ preview_data|length }}</span>
                             </div>
-                            <div class="col-md-6">
-                                <strong>Course:</strong> {{ course.code }} - {{ course.title }}
+                        </div>
+                        <div class="col-md-4">
+                            <div class="alert alert-success mb-0">
+                                <strong>Valid Entries:</strong> <span id="validEntries">0</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="alert alert-warning mb-0">
+                                <strong>Incomplete:</strong> <span id="incompleteEntries">0</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Preview Table -->
+                    <!-- Interactive Table -->
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="resultsTable">
                             <thead class="table-light">
                                 <tr>
+                                    <th>Row</th>
                                     <th>Matric Number</th>
                                     <th>Student Name</th>
-                                    <th>CA Score</th>
-                                    <th>Exam Score</th>
+                                    <th>CA Score (Max 30)</th>
+                                    <th>Exam Score (Max 70)</th>
                                     <th>Total Score</th>
                                     <th>Grade</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for data in preview_data %}
-                                <tr>
+                                <tr data-row="{{ forloop.counter }}" data-matric="{{ data.matric_number }}">
+                                    <td class="fw-bold text-secondary">{{ forloop.counter }}</td>
                                     <td class="fw-bold text-primary">{{ data.matric_number }}</td>
                                     <td>{{ data.student_name }}</td>
                                     <td>
-                                        {% if data.ca_score is not None %}
-                                            <span class="badge bg-info">{{ data.ca_score|floatformat:1 }}</span>
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
+                                        <input type="number"
+                                               class="form-control form-control-sm ca-score-input"
+                                               value="{% if data.ca_score is not None %}{{ data.ca_score|floatformat:1 }}{% endif %}"
+                                               min="0" max="30" step="0.1"
+                                               placeholder="Enter CA Score"
+                                               data-row="{{ forloop.counter }}"
+                                               onchange="calculateTotal({{ forloop.counter }})">
+                                        <div class="invalid-feedback"></div>
                                     </td>
                                     <td>
-                                        {% if data.exam_score is not None %}
-                                            <span class="badge bg-info">{{ data.exam_score|floatformat:1 }}</span>
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
+                                        <input type="number"
+                                               class="form-control form-control-sm exam-score-input"
+                                               value="{% if data.exam_score is not None %}{{ data.exam_score|floatformat:1 }}{% endif %}"
+                                               min="0" max="70" step="0.1"
+                                               placeholder="Enter Exam Score"
+                                               data-row="{{ forloop.counter }}"
+                                               onchange="calculateTotal({{ forloop.counter }})">
+                                        <div class="invalid-feedback"></div>
                                     </td>
                                     <td>
-                                        {% if data.total_score is not None %}
-                                            <span class="badge bg-primary">{{ data.total_score|floatformat:1 }}</span>
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
+                                        <span class="badge bg-primary total-score" data-row="{{ forloop.counter }}">
+                                            {% if data.total_score is not None %}{{ data.total_score|floatformat:1 }}{% else %}-{% endif %}
+                                        </span>
                                     </td>
                                     <td>
-                                        {% if data.grade %}
-                                            <span class="badge {% if data.grade == 'A' %}bg-success{% elif data.grade == 'B' %}bg-primary{% elif data.grade == 'C' %}bg-info{% elif data.grade == 'D' %}bg-warning{% else %}bg-danger{% endif %}">
-                                                {{ data.grade }}
-                                            </span>
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
+                                        <span class="badge grade-badge" data-row="{{ forloop.counter }}">
+                                            {% if data.grade %}{{ data.grade }}{% else %}-{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge validation-status" data-row="{{ forloop.counter }}">
+                                            {% if data.ca_score is not None and data.exam_score is not None %}
+                                                <span class="badge bg-success">Valid</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">Incomplete</span>
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                                onclick="removeRow({{ forloop.counter }})" title="Remove Row">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -187,20 +213,26 @@
                         </table>
                     </div>
 
-                    <!-- Confirmation Form -->
+                    <!-- Add New Student Row -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button type="button" class="btn btn-outline-primary" onclick="showAddStudentModal()">
+                                <i class="bi bi-plus-circle me-1"></i>Add Another Student
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Final Submission -->
                     <div class="row mt-4">
                         <div class="col-12">
                             <div class="d-flex gap-2 justify-content-end">
-                                <a href="{% url 'lecturer_upload_csv_results' %}?course_id={{ course.id }}&session_id={{ session.id }}" 
+                                <a href="{% url 'lecturer_upload_csv_results' %}?course_id={{ course.id }}&session_id={{ session.id }}"
                                    class="btn btn-secondary">
                                     <i class="bi bi-arrow-left me-1"></i>Back to Upload
                                 </a>
-                                <form method="post" class="d-inline">
-                                    {% csrf_token %}
-                                    <button type="submit" name="confirm_upload" class="btn btn-success">
-                                        <i class="bi bi-check-circle me-1"></i>Confirm & Submit to Exam Officer
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-success" id="submitButton" onclick="submitResults()" disabled>
+                                    <i class="bi bi-check-circle me-1"></i>Submit to Exam Officer
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -209,6 +241,38 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- Add Student Modal -->
+    <div class="modal fade" id="addStudentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Student Result</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addStudentForm">
+                        <div class="mb-3">
+                            <label class="form-label">Student Matric Number</label>
+                            <input type="text" class="form-control" id="newMatricNumber" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">CA Score (Max 30)</label>
+                            <input type="number" class="form-control" id="newCAScore" min="0" max="30" step="0.1">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Exam Score (Max 70)</label>
+                            <input type="number" class="form-control" id="newExamScore" min="0" max="70" step="0.1">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="addStudentRow()">Add Student</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Back to Dashboard -->
     <div class="row mt-4">
@@ -245,6 +309,310 @@
     border-radius: 8px;
     font-weight: 500;
 }
+
+.form-control-sm {
+    font-size: 0.875rem;
+}
+
+.validation-status .badge {
+    font-size: 0.75rem;
+}
+
+.grade-badge.bg-success {
+    background-color: #198754 !important;
+}
+
+.grade-badge.bg-primary {
+    background-color: #0d6efd !important;
+}
+
+.grade-badge.bg-info {
+    background-color: #0dcaf0 !important;
+}
+
+.grade-badge.bg-warning {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+}
+
+.grade-badge.bg-danger {
+    background-color: #dc3545 !important;
+}
 </style>
+
+<script>
+let rowCounter = {{ preview_data|length|default:0 }};
+
+// Calculate total score and grade for a row
+function calculateTotal(rowNum) {
+    const caInput = document.querySelector(`input.ca-score-input[data-row="${rowNum}"]`);
+    const examInput = document.querySelector(`input.exam-score-input[data-row="${rowNum}"]`);
+    const totalSpan = document.querySelector(`.total-score[data-row="${rowNum}"]`);
+    const gradeSpan = document.querySelector(`.grade-badge[data-row="${rowNum}"]`);
+    const statusSpan = document.querySelector(`.validation-status[data-row="${rowNum}"]`);
+
+    // Validate inputs
+    let caScore = parseFloat(caInput.value) || null;
+    let examScore = parseFloat(examInput.value) || null;
+    let isValid = true;
+
+    // Validate CA Score
+    if (caInput.value && (caScore < 0 || caScore > 30)) {
+        caInput.classList.add('is-invalid');
+        caInput.nextElementSibling.textContent = 'CA Score must be between 0 and 30';
+        isValid = false;
+    } else {
+        caInput.classList.remove('is-invalid');
+    }
+
+    // Validate Exam Score
+    if (examInput.value && (examScore < 0 || examScore > 70)) {
+        examInput.classList.add('is-invalid');
+        examInput.nextElementSibling.textContent = 'Exam Score must be between 0 and 70';
+        isValid = false;
+    } else {
+        examInput.classList.remove('is-invalid');
+    }
+
+    // Calculate total and grade if both scores are valid
+    if (isValid && caScore !== null && examScore !== null) {
+        const total = caScore + examScore;
+        totalSpan.textContent = total.toFixed(1);
+
+        // Calculate grade
+        let grade = '';
+        let gradeClass = '';
+        if (total >= 70) {
+            grade = 'A';
+            gradeClass = 'bg-success';
+        } else if (total >= 60) {
+            grade = 'B';
+            gradeClass = 'bg-primary';
+        } else if (total >= 50) {
+            grade = 'C';
+            gradeClass = 'bg-info';
+        } else if (total >= 45) {
+            grade = 'D';
+            gradeClass = 'bg-warning';
+        } else {
+            grade = 'F';
+            gradeClass = 'bg-danger';
+        }
+
+        gradeSpan.textContent = grade;
+        gradeSpan.className = `badge grade-badge ${gradeClass}`;
+
+        // Update status
+        statusSpan.innerHTML = '<span class="badge bg-success">Valid</span>';
+    } else if (caInput.value || examInput.value) {
+        totalSpan.textContent = '-';
+        gradeSpan.textContent = '-';
+        gradeSpan.className = 'badge grade-badge bg-secondary';
+        statusSpan.innerHTML = '<span class="badge bg-warning">Incomplete</span>';
+    } else {
+        totalSpan.textContent = '-';
+        gradeSpan.textContent = '-';
+        gradeSpan.className = 'badge grade-badge bg-secondary';
+        statusSpan.innerHTML = '<span class="badge bg-secondary">Empty</span>';
+    }
+
+    updateSummary();
+}
+
+// Update summary counts
+function updateSummary() {
+    const rows = document.querySelectorAll('#resultsTable tbody tr');
+    let total = rows.length;
+    let valid = 0;
+    let incomplete = 0;
+
+    rows.forEach(row => {
+        const status = row.querySelector('.validation-status .badge');
+        if (status.textContent === 'Valid') {
+            valid++;
+        } else if (status.textContent === 'Incomplete') {
+            incomplete++;
+        }
+    });
+
+    document.getElementById('totalRecords').textContent = total;
+    document.getElementById('validEntries').textContent = valid;
+    document.getElementById('incompleteEntries').textContent = total - valid;
+
+    // Enable/disable submit button
+    const submitButton = document.getElementById('submitButton');
+    if (valid > 0) {
+        submitButton.disabled = false;
+    } else {
+        submitButton.disabled = true;
+    }
+}
+
+// Remove a row
+function removeRow(rowNum) {
+    if (confirm('Are you sure you want to remove this student result?')) {
+        const row = document.querySelector(`tr[data-row="${rowNum}"]`);
+        if (row) {
+            row.remove();
+            updateSummary();
+        }
+    }
+}
+
+// Show add student modal
+function showAddStudentModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addStudentModal'));
+    modal.show();
+}
+
+// Add new student row
+function addStudentRow() {
+    const matricNumber = document.getElementById('newMatricNumber').value.trim();
+    const caScore = document.getElementById('newCAScore').value;
+    const examScore = document.getElementById('newExamScore').value;
+
+    if (!matricNumber) {
+        alert('Please enter a matric number');
+        return;
+    }
+
+    // Check if student already exists
+    const existingRow = document.querySelector(`tr[data-matric="${matricNumber}"]`);
+    if (existingRow) {
+        alert('Student with this matric number already exists in the table');
+        return;
+    }
+
+    rowCounter++;
+
+    const tbody = document.querySelector('#resultsTable tbody');
+    const newRow = document.createElement('tr');
+    newRow.setAttribute('data-row', rowCounter);
+    newRow.setAttribute('data-matric', matricNumber);
+
+    newRow.innerHTML = `
+        <td class="fw-bold text-secondary">${rowCounter}</td>
+        <td class="fw-bold text-primary">${matricNumber}</td>
+        <td>-</td>
+        <td>
+            <input type="number"
+                   class="form-control form-control-sm ca-score-input"
+                   value="${caScore}"
+                   min="0" max="30" step="0.1"
+                   placeholder="Enter CA Score"
+                   data-row="${rowCounter}"
+                   onchange="calculateTotal(${rowCounter})">
+            <div class="invalid-feedback"></div>
+        </td>
+        <td>
+            <input type="number"
+                   class="form-control form-control-sm exam-score-input"
+                   value="${examScore}"
+                   min="0" max="70" step="0.1"
+                   placeholder="Enter Exam Score"
+                   data-row="${rowCounter}"
+                   onchange="calculateTotal(${rowCounter})">
+            <div class="invalid-feedback"></div>
+        </td>
+        <td>
+            <span class="badge bg-primary total-score" data-row="${rowCounter}">-</span>
+        </td>
+        <td>
+            <span class="badge grade-badge bg-secondary" data-row="${rowCounter}">-</span>
+        </td>
+        <td>
+            <span class="badge validation-status" data-row="${rowCounter}">
+                <span class="badge bg-secondary">Empty</span>
+            </span>
+        </td>
+        <td>
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                    onclick="removeRow(${rowCounter})" title="Remove Row">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    `;
+
+    tbody.appendChild(newRow);
+
+    // Calculate totals for the new row
+    calculateTotal(rowCounter);
+
+    // Clear modal and close
+    document.getElementById('addStudentForm').reset();
+    const modal = bootstrap.Modal.getInstance(document.getElementById('addStudentModal'));
+    modal.hide();
+}
+
+// Submit results
+function submitResults() {
+    const rows = document.querySelectorAll('#resultsTable tbody tr');
+    const results = [];
+
+    rows.forEach(row => {
+        const matricNumber = row.getAttribute('data-matric');
+        const caInput = row.querySelector('.ca-score-input');
+        const examInput = row.querySelector('.exam-score-input');
+        const caScore = parseFloat(caInput.value) || null;
+        const examScore = parseFloat(examInput.value) || null;
+
+        if (caScore !== null && examScore !== null) {
+            results.push({
+                matric_number: matricNumber,
+                ca_score: caScore,
+                exam_score: examScore
+            });
+        }
+    });
+
+    if (results.length === 0) {
+        alert('No valid results to submit. Please enter at least one complete result.');
+        return;
+    }
+
+    if (confirm(`Submit ${results.length} result(s) to Exam Officer?`)) {
+        // Create form and submit
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = window.location.href;
+
+        // Add CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+
+        // Add results data
+        const resultsInput = document.createElement('input');
+        resultsInput.type = 'hidden';
+        resultsInput.name = 'results_data';
+        resultsInput.value = JSON.stringify(results);
+        form.appendChild(resultsInput);
+
+        // Add submit flag
+        const submitInput = document.createElement('input');
+        submitInput.type = 'hidden';
+        submitInput.name = 'submit_results';
+        submitInput.value = '1';
+        form.appendChild(submitInput);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Calculate totals for existing rows
+    const rows = document.querySelectorAll('#resultsTable tbody tr');
+    rows.forEach((row, index) => {
+        calculateTotal(index + 1);
+    });
+
+    updateSummary();
+});
+</script>
 
 {% endblock %}

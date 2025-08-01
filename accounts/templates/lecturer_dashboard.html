@@ -4,7 +4,6 @@
 {% block title %}Lecturer Dashboard - RMS{% endblock %}
 
 {% block content %}
-
 <div class="container-fluid">
     <!-- Delegation Status Badges -->
     {% show_delegation_badges user %}
@@ -22,7 +21,7 @@
                                 {% get_user_roles_with_delegation user as user_roles_details %}
                                 {% for role_detail in user_roles_details %}
                                     {% if role_detail.role == 'LECTURER' and role_detail.is_delegated %}
-                                    <span class="badge bg-warning ms-2">Acting as Delegated Lecturer</span>
+                                        <span class="badge bg-warning ms-2">Acting as Delegated Lecturer</span>
                                     {% endif %}
                                 {% endfor %}
                             </p>
@@ -82,7 +81,6 @@
             <div class="card h-100">
                 <div class="card-body">
                     <h2 class="card-title h5 fw-bold text-primary mb-3">Course Management</h2>
-
                     <div class="mb-3">
                         <h6 class="text-muted mb-2">Student Operations</h6>
                         <div class="row g-2">
@@ -93,7 +91,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="mb-3">
                         <h6 class="text-muted mb-2">Course Information</h6>
                         <div class="row g-2">
@@ -112,30 +109,62 @@
         <div class="col-lg-6 mb-3">
             <div class="card h-100">
                 <div class="card-body">
-                    <h2 class="card-title h5 fw-bold text-primary mb-3">Result Management</h2>
-
+                    <h2 class="card-title h5 fw-bold text-success mb-3">Result Management</h2>
                     <div class="mb-3">
-                        <h6 class="text-muted mb-2">Result Entry</h6>
+                        <h6 class="text-muted mb-2">Result Entry Options</h6>
+                        <div class="row g-2">
+                            <div class="col-12 mb-2">
+                                {% if course_assignments|length > 1 %}
+                                    <button type="button" class="btn btn-success w-100" onclick="showCourseSelector('manual')">
+                                        <i class="bi bi-pencil-square me-2"></i>Manual Entry (Form-based)
+                                    </button>
+                                {% else %}
+                                    {% if course_assignments %}
+                                        <a href="{% url 'lecturer_enter_results' %}?course_id={{ course_assignments.0.course.id }}&session_id={{ course_assignments.0.course.session.id }}" class="btn btn-success w-100">
+                                            <i class="bi bi-pencil-square me-2"></i>Manual Entry (Form-based)
+                                        </a>
+                                    {% else %}
+                                        <a href="{% url 'lecturer_enter_results' %}" class="btn btn-success w-100">
+                                            <i class="bi bi-pencil-square me-2"></i>Manual Entry (Form-based)
+                                        </a>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            <div class="col-12 mb-2">
+                                {% if course_assignments|length > 1 %}
+                                    <button type="button" class="btn btn-primary w-100" onclick="showCourseSelector('upload')">
+                                        <i class="bi bi-file-earmark-spreadsheet me-2"></i>CSV Bulk Upload
+                                    </button>
+                                {% else %}
+                                    {% if course_assignments %}
+                                        <a href="{% url 'lecturer_upload_csv_results' %}?course_id={{ course_assignments.0.course.id }}&session_id={{ course_assignments.0.course.session.id }}" class="btn btn-primary w-100">
+                                            <i class="bi bi-file-earmark-spreadsheet me-2"></i>CSV Bulk Upload
+                                        </a>
+                                    {% else %}
+                                        <button type="button" class="btn btn-primary w-100" onclick="showCourseSelector('upload')">
+                                            <i class="bi bi-file-earmark-spreadsheet me-2"></i>CSV Bulk Upload
+                                        </button>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            <div class="col-12">
+                                <a href="{% url 'lecturer_download_csv_template' %}" class="btn btn-outline-primary w-100">
+                                    <i class="bi bi-download me-2"></i>Download CSV Template
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Management & Status</h6>
                         <div class="row g-2">
                             <div class="col-6">
-                                <a href="{% url 'lecturer_enter_results' %}" class="btn btn-success btn-sm w-100">
-                                    <i class="bi bi-plus-circle me-1"></i>Enter Results
+                                <a href="{% url 'lecturer_result_status' %}" class="btn btn-outline-secondary btn-sm w-100">
+                                    <i class="bi bi-check-circle me-1"></i>Result Status
                                 </a>
                             </div>
                             <div class="col-6">
                                 <a href="{% url 'lecturer_course_thresholds' %}" class="btn btn-outline-success btn-sm w-100">
                                     <i class="bi bi-gear me-1"></i>Score Thresholds
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <h6 class="text-muted mb-2">Submission & Status</h6>
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <a href="{% url 'lecturer_result_status' %}" class="btn btn-outline-primary btn-sm w-100">
-                                    <i class="bi bi-check-circle me-1"></i>Result Status
                                 </a>
                             </div>
                         </div>
@@ -242,26 +271,40 @@
 
                     <!-- Quick Links -->
                     <div>
-                        <h6 class="text-muted mb-3">Quick Links</h6>
+                        <h6 class="text-muted mb-3">Result Entry Methods</h6>
                         <div class="d-grid gap-2">
-                            <a href="{% url 'lecturer_enter_results' %}" class="btn btn-primary btn-sm">
-                                <i class="bi bi-plus-circle me-1"></i>Enter Results (Form)
-                            </a>
-                            <div class="btn-group" role="group">
-                                <button type="button" class="btn btn-success btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                            {% if course_assignments|length > 1 %}
+                                <button type="button" class="btn btn-success btn-sm" onclick="showCourseSelector('manual')">
+                                    <i class="bi bi-pencil-square me-1"></i>Manual Entry
+                                </button>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="showCourseSelector('upload')">
                                     <i class="bi bi-file-earmark-spreadsheet me-1"></i>CSV Upload
                                 </button>
-                                <ul class="dropdown-menu">
-                                    <li><h6 class="dropdown-header">Bulk Result Entry</h6></li>
-                                    <li><a class="dropdown-item" href="#" onclick="showCourseSelector()">
-                                        <i class="bi bi-download me-1"></i>Download Template
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="showCourseSelector('upload')">
-                                        <i class="bi bi-upload me-1"></i>Upload Results
-                                    </a></li>
-                                </ul>
-                            </div>
-                            <a href="{% url 'lecturer_enroll_students' %}" class="btn btn-outline-primary btn-sm">
+                            {% else %}
+                                {% if course_assignments %}
+                                    <a href="{% url 'lecturer_enter_results' %}?course_id={{ course_assignments.0.course.id }}&session_id={{ course_assignments.0.course.session.id }}" class="btn btn-success btn-sm">
+                                        <i class="bi bi-pencil-square me-1"></i>Manual Entry
+                                    </a>
+                                    <a href="{% url 'lecturer_upload_csv_results' %}?course_id={{ course_assignments.0.course.id }}&session_id={{ course_assignments.0.course.session.id }}" class="btn btn-primary btn-sm">
+                                        <i class="bi bi-file-earmark-spreadsheet me-1"></i>CSV Upload
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'lecturer_enter_results' %}" class="btn btn-success btn-sm">
+                                        <i class="bi bi-pencil-square me-1"></i>Manual Entry
+                                    </a>
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="showCourseSelector('upload')">
+                                        <i class="bi bi-file-earmark-spreadsheet me-1"></i>CSV Upload
+                                    </button>
+                                {% endif %}
+                            {% endif %}
+                            <a href="{% url 'lecturer_download_csv_template' %}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-download me-1"></i>CSV Template
+                            </a>
+                        </div>
+
+                        <h6 class="text-muted mb-3 mt-4">Other Actions</h6>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'lecturer_enroll_students' %}" class="btn btn-outline-secondary btn-sm">
                                 <i class="bi bi-person-plus me-1"></i>Enroll Students
                             </a>
                             <a href="{% url 'lecturer_result_status' %}" class="btn btn-outline-secondary btn-sm">
@@ -273,7 +316,6 @@
             </div>
         </div>
     </div>
-
 </div>
 
 <!-- Course Selection Modal -->
@@ -317,6 +359,8 @@ function showCourseSelector(action = 'download') {
 
     if (action === 'upload') {
         title.textContent = 'Select Course for CSV Upload';
+    } else if (action === 'manual') {
+        title.textContent = 'Select Course for Manual Entry';
     } else {
         title.textContent = 'Select Course for CSV Template';
     }
@@ -337,6 +381,8 @@ function proceedWithCourse() {
     let url = '';
     if (csvAction === 'upload') {
         url = `{% url 'lecturer_upload_csv_results' %}?course_id=${courseId}&session_id=${sessionId}`;
+    } else if (csvAction === 'manual') {
+        url = `{% url 'lecturer_enter_results' %}?course_id=${courseId}&session_id=${sessionId}`;
     } else {
         url = `{% url 'lecturer_download_csv_template' %}?course_id=${courseId}&session_id=${sessionId}`;
     }

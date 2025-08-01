@@ -8020,68 +8020,50 @@ def lecturer_download_csv_template(request):
         messages.error(request, 'Access denied. Lecturer role required.')
         return redirect('dashboard')
 
-    # Get course and session from URL parameters
-    course_id = request.GET.get('course_id')
-    session_id = request.GET.get('session_id')
-
-    if not course_id or not session_id:
-        messages.error(request, 'Course and session parameters are required.')
+    # Get current active session
+    session = AcademicSession.objects.filter(is_active=True).first()
+    if not session:
+        messages.error(request, 'No active academic session found.')
         return redirect('lecturer_dashboard')
 
-    try:
-        course = Course.objects.get(id=course_id)
-        session = AcademicSession.objects.get(id=session_id)
+    # Get all courses assigned to this lecturer
+    course_assignments = CourseAssignment.objects.filter(
+        lecturer=request.user
+    ).select_related('course')
 
-        # Verify lecturer is assigned to this course
-        assignment = CourseAssignment.objects.filter(
-            course=course,
-            lecturer=request.user
-        ).first()
-
-        if not assignment:
-            messages.error(request, 'You are not assigned to this course.')
-            return redirect('lecturer_dashboard')
-
-    except (Course.DoesNotExist, AcademicSession.DoesNotExist):
-        messages.error(request, 'Invalid course or session.')
+    if not course_assignments.exists():
+        messages.error(request, 'No courses assigned to you.')
         return redirect('lecturer_dashboard')
 
-    # Get enrolled students
-    enrollments = CourseEnrollment.objects.filter(
-        course=course,
-        session=session,
-        is_active=True
-    ).select_related('student', 'student__user').order_by('student__matric_number')
-
-    # Create CSV response
+    # Create generic CSV template (no specific course data)
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="results_template_{course.code}_{session.name.replace("/", "_")}.csv"'
+    response['Content-Disposition'] = f'attachment; filename="RMS_Result_Entry_Template_{timezone.now().strftime("%Y%m%d_%H%M")}.csv"'
 
     writer = csv.writer(response)
 
-    # Write headers with validation rules
+    # Write comprehensive headers and instructions
     writer.writerow([
         '# RMS Result Entry Template',
-        f'Course: {course.code} - {course.title}',
-        f'Session: {session.name}',
-        f'Generated: {timezone.now().strftime("%Y-%m-%d %H:%M")}'
+        f'Generated: {timezone.now().strftime("%Y-%m-%d %H:%M")}',
+        f'Session: {session.name}'
     ])
     writer.writerow([])
-    writer.writerow([
-        '# VALIDATION RULES:',
-        'CA Score: 0-30 (decimal allowed)',
-        'Exam Score: 0-70 (decimal allowed)',
-        'Total Score: Auto-calculated (CA + Exam)',
-        'Grade: Auto-calculated based on total'
-    ])
+    writer.writerow(['# INSTRUCTIONS FOR LECTURERS:'])
+    writer.writerow(['# 1. Fill in your students\' matric numbers in the first column'])
+    writer.writerow(['# 2. Fill in student names in the second column (for verification)'])
+    writer.writerow(['# 3. Enter CA Score (0-30) in the third column'])
+    writer.writerow(['# 4. Enter Exam Score (0-70) in the fourth column'])
+    writer.writerow(['# 5. You can add as many students as needed'])
+    writer.writerow(['# 6. Save this file and upload it through CSV Upload option'])
+    writer.writerow(['# 7. Select your course during upload process'])
+    writer.writerow(['# 8. You will be able to review and edit before final submission'])
     writer.writerow([])
-    writer.writerow([
-        '# INSTRUCTIONS:',
-        '1. Fill in CA Score and Exam Score columns only',
-        '2. Do not modify Student Matric Number or Student Name',
-        '3. Leave Total Score and Grade columns empty (auto-calculated)',
-        '4. Save as CSV and upload back to RMS'
-    ])
+    writer.writerow(['# IMPORTANT NOTES:'])
+    writer.writerow(['# - Students will be automatically enrolled in your course during upload'])
+    writer.writerow(['# - Leave scores empty if student did not take the exam'])
+    writer.writerow(['# - You can edit scores in the review table before submission'])
+    writer.writerow(['# - Only students registered in the system can have results entered'])
+    writer.writerow(['# - Decimal scores are allowed (e.g., 25.5, 67.8)'])
     writer.writerow([])
 
     # Write column headers
@@ -8089,21 +8071,34 @@ def lecturer_download_csv_template(request):
         'Student Matric Number',
         'Student Name',
         'CA Score (Max 30)',
-        'Exam Score (Max 70)',
-        'Total Score (Auto)',
-        'Grade (Auto)'
+        'Exam Score (Max 70)'
     ])
 
-    # Write student data
-    for enrollment in enrollments:
-        writer.writerow([
-            enrollment.student.matric_number,
-            enrollment.student.user.get_full_name(),
-            '',  # CA Score - to be filled
-            '',  # Exam Score - to be filled
-            '',  # Total Score - auto-calculated
-            ''   # Grade - auto-calculated
-        ])
+    # Add sample rows with examples
+    writer.writerow([
+        'EXAMPLE/2023/001',
+        'John Doe',
+        '25.0',
+        '65.0'
+    ])
+    writer.writerow([
+        'EXAMPLE/2023/002',
+        'Jane Smith',
+        '28.5',
+        '70.0'
+    ])
+    writer.writerow([
+        'EXAMPLE/2023/003',
+        'Bob Johnson',
+        '',
+        ''
+    ])
+    writer.writerow([])
+    writer.writerow(['# Add your students below this line:'])
+
+    # Add empty rows for lecturer to fill
+    for i in range(15):
+        writer.writerow(['', '', '', ''])
 
     return response
 
@@ -8176,9 +8171,14 @@ def lecturer_upload_csv_results(request):
                     messages.error(request, 'Invalid CSV format. Could not find data headers.')
                     return redirect(request.path + f'?course_id={course_id}&session_id={session_id}')
 
-                # Process data rows
+                # Process data rows with automatic enrollment
                 preview_data = []
                 errors = []
+                enrollment_summary = {
+                    'auto_enrolled': [],
+                    'already_enrolled': [],
+                    'not_found': []
+                }
 
                 for row_num, row in enumerate(rows[data_start_row:], start=data_start_row + 1):
                     if len(row) < 4 or not row[0].strip():  # Skip empty rows
@@ -8189,17 +8189,29 @@ def lecturer_upload_csv_results(request):
                     ca_score_str = row[2].strip()
                     exam_score_str = row[3].strip()
 
-                    # Validate student exists and is enrolled
+                    # Check if student exists in the system
                     try:
-                        enrollment = CourseEnrollment.objects.get(
-                            student__matric_number=matric_number,
-                            course=course,
-                            session=session,
-                            is_active=True
-                        )
-                    except CourseEnrollment.DoesNotExist:
-                        errors.append(f'Row {row_num}: Student {matric_number} not enrolled in this course.')
+                        student = Student.objects.get(matric_number=matric_number)
+                    except Student.DoesNotExist:
+                        errors.append(f'Row {row_num}: Student {matric_number} not found in the system.')
+                        enrollment_summary['not_found'].append(matric_number)
                         continue
+
+                    # Check if student is enrolled, if not, auto-enroll
+                    enrollment, created = CourseEnrollment.objects.get_or_create(
+                        student=student,
+                        course=course,
+                        session=session,
+                        defaults={
+                            'enrolled_by': request.user,
+                            'is_active': True
+                        }
+                    )
+
+                    if created:
+                        enrollment_summary['auto_enrolled'].append(matric_number)
+                    else:
+                        enrollment_summary['already_enrolled'].append(matric_number)
 
                     # Validate scores
                     ca_score = None
@@ -8285,52 +8297,102 @@ def lecturer_upload_csv_results(request):
                 messages.error(request, f'Error processing CSV file: {str(e)}')
                 return redirect(request.path + f'?course_id={course_id}&session_id={session_id}')
 
-        elif 'confirm_upload' in request.POST:
-            # Handle confirmation and final submission
-            preview_data = request.session.get('csv_preview_data')
-            stored_course_id = request.session.get('csv_course_id')
-            stored_session_id = request.session.get('csv_session_id')
+        elif 'submit_results' in request.POST:
+            # Handle interactive table submission
+            results_data_json = request.POST.get('results_data')
 
-            if not preview_data or stored_course_id != course.id or stored_session_id != session.id:
-                messages.error(request, 'Session expired. Please upload the CSV file again.')
+            if not results_data_json:
+                messages.error(request, 'No results data received.')
+                return redirect(request.path + f'?course_id={course_id}&session_id={session_id}')
+
+            try:
+                results_data = json.loads(results_data_json)
+            except json.JSONDecodeError:
+                messages.error(request, 'Invalid results data format.')
                 return redirect(request.path + f'?course_id={course_id}&session_id={session_id}')
 
             # Process and save results
             results_created = 0
             results_updated = 0
+            errors = []
 
-            for data in preview_data:
-                if data['ca_score'] is not None and data['exam_score'] is not None:
-                    try:
-                        result, created = Result.objects.get_or_create(
-                            enrollment_id=data['enrollment'].id,
-                            defaults={
-                                'ca_score': data['ca_score'],
-                                'exam_score': data['exam_score'],
-                                'total_score': data['total_score'],
-                                'grade': data['grade'],
-                                'status': 'SUBMITTED_TO_EXAM_OFFICER',
-                                'created_by': request.user,
-                                'last_modified_by': request.user
-                            }
-                        )
+            for result_data in results_data:
+                matric_number = result_data.get('matric_number')
+                ca_score = result_data.get('ca_score')
+                exam_score = result_data.get('exam_score')
 
-                        if not created:
-                            # Update existing result
-                            result.ca_score = data['ca_score']
-                            result.exam_score = data['exam_score']
-                            result.total_score = data['total_score']
-                            result.grade = data['grade']
-                            result.status = 'SUBMITTED_TO_EXAM_OFFICER'
-                            result.last_modified_by = request.user
-                            result.save()
-                            results_updated += 1
-                        else:
-                            results_created += 1
+                if not matric_number or ca_score is None or exam_score is None:
+                    continue
 
-                    except Exception as e:
-                        messages.error(request, f'Error saving result for {data["matric_number"]}: {str(e)}')
-                        continue
+                # Validate scores
+                if ca_score < 0 or ca_score > 30:
+                    errors.append(f'Invalid CA Score for {matric_number}: must be between 0 and 30')
+                    continue
+
+                if exam_score < 0 or exam_score > 70:
+                    errors.append(f'Invalid Exam Score for {matric_number}: must be between 0 and 70')
+                    continue
+
+                # Get or create enrollment
+                try:
+                    student = Student.objects.get(matric_number=matric_number)
+                    enrollment, created = CourseEnrollment.objects.get_or_create(
+                        student=student,
+                        course=course,
+                        session=session,
+                        defaults={
+                            'enrolled_by': request.user,
+                            'is_active': True
+                        }
+                    )
+                except Student.DoesNotExist:
+                    errors.append(f'Student {matric_number} not found in the system')
+                    continue
+
+                # Calculate total and grade
+                total_score = ca_score + exam_score
+                if total_score >= 70:
+                    grade = 'A'
+                elif total_score >= 60:
+                    grade = 'B'
+                elif total_score >= 50:
+                    grade = 'C'
+                elif total_score >= 45:
+                    grade = 'D'
+                else:
+                    grade = 'F'
+
+                # Save result
+                try:
+                    result, created = Result.objects.get_or_create(
+                        enrollment=enrollment,
+                        defaults={
+                            'ca_score': ca_score,
+                            'exam_score': exam_score,
+                            'total_score': total_score,
+                            'grade': grade,
+                            'status': 'SUBMITTED_TO_EXAM_OFFICER',
+                            'created_by': request.user,
+                            'last_modified_by': request.user
+                        }
+                    )
+
+                    if not created:
+                        # Update existing result
+                        result.ca_score = ca_score
+                        result.exam_score = exam_score
+                        result.total_score = total_score
+                        result.grade = grade
+                        result.status = 'SUBMITTED_TO_EXAM_OFFICER'
+                        result.last_modified_by = request.user
+                        result.save()
+                        results_updated += 1
+                    else:
+                        results_created += 1
+
+                except Exception as e:
+                    errors.append(f'Error saving result for {matric_number}: {str(e)}')
+                    continue
 
             # Clear session data
             if 'csv_preview_data' in request.session:
@@ -8340,11 +8402,20 @@ def lecturer_upload_csv_results(request):
             if 'csv_session_id' in request.session:
                 del request.session['csv_session_id']
 
+            # Check for errors
+            if errors:
+                messages.error(request, f'Some results could not be saved: {"; ".join(errors)}')
+                return redirect(request.path + f'?course_id={course_id}&session_id={session_id}')
+
+            if results_created == 0 and results_updated == 0:
+                messages.warning(request, 'No valid results were submitted.')
+                return redirect(request.path + f'?course_id={course_id}&session_id={session_id}')
+
             # Send notifications to exam officers
             from .workflow_service import ResultWorkflowService
             ResultWorkflowService.notify_exam_officers(course, session, request.user)
 
-            messages.success(request, f'Results uploaded successfully! {results_created} new results created, {results_updated} results updated.')
+            messages.success(request, f'Results submitted successfully! {results_created} new results created, {results_updated} results updated.')
             return redirect('lecturer_result_status')
 
     # GET request - show upload form

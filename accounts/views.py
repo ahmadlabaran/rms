@@ -1,4 +1,7 @@
 import json
+import csv
+import io
+import pandas as pd
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
@@ -16,6 +19,8 @@ from django.db.models import Q
 from django.utils import timezone
 from django.db import transaction
 from django.views.decorators.http import require_http_methods
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 import json
 from .security import sanitize_input, validate_email, validate_username, validate_matric_number, validate_name
 
@@ -8007,6 +8012,351 @@ def lecturer_course_details(request):
     return render(request, 'placeholder.html', {'page_title': 'Course Details', 'message': 'Detailed course information'})
 
 @login_required
+def lecturer_download_csv_template(request):
+    """Download CSV template for result entry"""
+    # Check if user has Lecturer role
+    lecturer_roles = UserRole.objects.filter(user=request.user, role='LECTURER')
+    if not lecturer_roles.exists():
+        messages.error(request, 'Access denied. Lecturer role required.')
+        return redirect('dashboard')
+
+    # Get course and session from URL parameters
+    course_id = request.GET.get('course_id')
+    session_id = request.GET.get('session_id')
+
+    if not course_id or not session_id:
+        messages.error(request, 'Course and session parameters are required.')
+        return redirect('lecturer_dashboard')
+
+    try:
+        course = Course.objects.get(id=course_id)
+        session = AcademicSession.objects.get(id=session_id)
+
+        # Verify lecturer is assigned to this course
+        assignment = CourseAssignment.objects.filter(
+            course=course,
+            lecturer=request.user
+        ).first()
+
+        if not assignment:
+            messages.error(request, 'You are not assigned to this course.')
+            return redirect('lecturer_dashboard')
+
+    except (Course.DoesNotExist, AcademicSession.DoesNotExist):
+        messages.error(request, 'Invalid course or session.')
+        return redirect('lecturer_dashboard')
+
+    # Get enrolled students
+    enrollments = CourseEnrollment.objects.filter(
+        course=course,
+        session=session,
+        is_active=True
+    ).select_related('student', 'student__user').order_by('student__matric_number')
+
+    # Create CSV response
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="results_template_{course.code}_{session.name.replace("/", "_")}.csv"'
+
+    writer = csv.writer(response)
+
+    # Write headers with validation rules
+    writer.writerow([
+        '# RMS Result Entry Template',
+        f'Course: {course.code} - {course.title}',
+        f'Session: {session.name}',
+        f'Generated: {timezone.now().strftime("%Y-%m-%d %H:%M")}'
+    ])
+    writer.writerow([])
+    writer.writerow([
+        '# VALIDATION RULES:',
+        'CA Score: 0-30 (decimal allowed)',
+        'Exam Score: 0-70 (decimal allowed)',
+        'Total Score: Auto-calculated (CA + Exam)',
+        'Grade: Auto-calculated based on total'
+    ])
+    writer.writerow([])
+    writer.writerow([
+        '# INSTRUCTIONS:',
+        '1. Fill in CA Score and Exam Score columns only',
+        '2. Do not modify Student Matric Number or Student Name',
+        '3. Leave Total Score and Grade columns empty (auto-calculated)',
+        '4. Save as CSV and upload back to RMS'
+    ])
+    writer.writerow([])
+
+    # Write column headers
+    writer.writerow([
+        'Student Matric Number',
+        'Student Name',
+        'CA Score (Max 30)',
+        'Exam Score (Max 70)',
+        'Total Score (Auto)',
+        'Grade (Auto)'
+    ])
+
+    # Write student data
+    for enrollment in enrollments:
+        writer.writerow([
+            enrollment.student.matric_number,
+            enrollment.student.user.get_full_name(),
+            '',  # CA Score - to be filled
+            '',  # Exam Score - to be filled
+            '',  # Total Score - auto-calculated
+            ''   # Grade - auto-calculated
+        ])
+
+    return response
+
+
+@login_required
+def lecturer_upload_csv_results(request):
+    """Upload and preview CSV results"""
+    # Check if user has Lecturer role
+    lecturer_roles = UserRole.objects.filter(user=request.user, role='LECTURER')
+    if not lecturer_roles.exists():
+        messages.error(request, 'Access denied. Lecturer role required.')
+        return redirect('dashboard')
+
+    # Get course and session from URL parameters
+    course_id = request.GET.get('course_id')
+    session_id = request.GET.get('session_id')
+
+    if not course_id or not session_id:
+        messages.error(request, 'Course and session parameters are required.')
+        return redirect('lecturer_dashboard')
+
+    try:
+        course = Course.objects.get(id=course_id)
+        session = AcademicSession.objects.get(id=session_id)
+
+        # Verify lecturer is assigned to this course
+        assignment = CourseAssignment.objects.filter(
+            course=course,
+            lecturer=request.user
+        ).first()
+
+        if not assignment:
+            messages.error(request, 'You are not assigned to this course.')
+            return redirect('lecturer_dashboard')
+
+    except (Course.DoesNotExist, AcademicSession.DoesNotExist):
+        messages.error(request, 'Invalid course or session.')
+        return redirect('lecturer_dashboard')
+
+    if request.method == 'POST':
+        if 'csv_file' in request.FILES:
+            # Handle CSV file upload
+            csv_file = request.FILES['csv_file']
+
+            # Validate file type
+            if not csv_file.name.endswith('.csv'):
+                messages.error(request, 'Please upload a CSV file.')
+                return redirect(request.path + f'?course_id={course_id}&session_id={session_id}')
+
+            # Validate file size (max 5MB)
+            if csv_file.size > 5 * 1024 * 1024:
+                messages.error(request, 'File size too large. Maximum 5MB allowed.')
+                return redirect(request.path + f'?course_id={course_id}&session_id={session_id}')
+
+            try:
+                # Parse CSV file
+                csv_data = csv_file.read().decode('utf-8')
+                csv_reader = csv.reader(io.StringIO(csv_data))
+
+                # Skip header rows and find data start
+                rows = list(csv_reader)
+                data_start_row = None
+
+                for i, row in enumerate(rows):
+                    if len(row) > 0 and row[0] == 'Student Matric Number':
+                        data_start_row = i + 1
+                        break
+
+                if data_start_row is None:
+                    messages.error(request, 'Invalid CSV format. Could not find data headers.')
+                    return redirect(request.path + f'?course_id={course_id}&session_id={session_id}')
+
+                # Process data rows
+                preview_data = []
+                errors = []
+
+                for row_num, row in enumerate(rows[data_start_row:], start=data_start_row + 1):
+                    if len(row) < 4 or not row[0].strip():  # Skip empty rows
+                        continue
+
+                    matric_number = row[0].strip()
+                    student_name = row[1].strip()
+                    ca_score_str = row[2].strip()
+                    exam_score_str = row[3].strip()
+
+                    # Validate student exists and is enrolled
+                    try:
+                        enrollment = CourseEnrollment.objects.get(
+                            student__matric_number=matric_number,
+                            course=course,
+                            session=session,
+                            is_active=True
+                        )
+                    except CourseEnrollment.DoesNotExist:
+                        errors.append(f'Row {row_num}: Student {matric_number} not enrolled in this course.')
+                        continue
+
+                    # Validate scores
+                    ca_score = None
+                    exam_score = None
+
+                    if ca_score_str:
+                        try:
+                            ca_score = float(ca_score_str)
+                            if ca_score < 0 or ca_score > 30:
+                                errors.append(f'Row {row_num}: CA Score must be between 0 and 30.')
+                                continue
+                        except ValueError:
+                            errors.append(f'Row {row_num}: Invalid CA Score format.')
+                            continue
+
+                    if exam_score_str:
+                        try:
+                            exam_score = float(exam_score_str)
+                            if exam_score < 0 or exam_score > 70:
+                                errors.append(f'Row {row_num}: Exam Score must be between 0 and 70.')
+                                continue
+                        except ValueError:
+                            errors.append(f'Row {row_num}: Invalid Exam Score format.')
+                            continue
+
+                    # Calculate total and grade if both scores provided
+                    total_score = None
+                    grade = None
+
+                    if ca_score is not None and exam_score is not None:
+                        total_score = ca_score + exam_score
+
+                        # Calculate grade
+                        if total_score >= 70:
+                            grade = 'A'
+                        elif total_score >= 60:
+                            grade = 'B'
+                        elif total_score >= 50:
+                            grade = 'C'
+                        elif total_score >= 45:
+                            grade = 'D'
+                        else:
+                            grade = 'F'
+
+                    preview_data.append({
+                        'enrollment': enrollment,
+                        'matric_number': matric_number,
+                        'student_name': student_name,
+                        'ca_score': ca_score,
+                        'exam_score': exam_score,
+                        'total_score': total_score,
+                        'grade': grade,
+                        'row_number': row_num
+                    })
+
+                if errors:
+                    context = {
+                        'course': course,
+                        'session': session,
+                        'errors': errors,
+                        'show_upload_form': True
+                    }
+                    return render(request, 'lecturer_csv_upload.html', context)
+
+                if not preview_data:
+                    messages.error(request, 'No valid data found in CSV file.')
+                    return redirect(request.path + f'?course_id={course_id}&session_id={session_id}')
+
+                # Store preview data in session for confirmation
+                request.session['csv_preview_data'] = preview_data
+                request.session['csv_course_id'] = course.id
+                request.session['csv_session_id'] = session.id
+
+                context = {
+                    'course': course,
+                    'session': session,
+                    'preview_data': preview_data,
+                    'show_preview': True
+                }
+                return render(request, 'lecturer_csv_upload.html', context)
+
+            except Exception as e:
+                messages.error(request, f'Error processing CSV file: {str(e)}')
+                return redirect(request.path + f'?course_id={course_id}&session_id={session_id}')
+
+        elif 'confirm_upload' in request.POST:
+            # Handle confirmation and final submission
+            preview_data = request.session.get('csv_preview_data')
+            stored_course_id = request.session.get('csv_course_id')
+            stored_session_id = request.session.get('csv_session_id')
+
+            if not preview_data or stored_course_id != course.id or stored_session_id != session.id:
+                messages.error(request, 'Session expired. Please upload the CSV file again.')
+                return redirect(request.path + f'?course_id={course_id}&session_id={session_id}')
+
+            # Process and save results
+            results_created = 0
+            results_updated = 0
+
+            for data in preview_data:
+                if data['ca_score'] is not None and data['exam_score'] is not None:
+                    try:
+                        result, created = Result.objects.get_or_create(
+                            enrollment_id=data['enrollment'].id,
+                            defaults={
+                                'ca_score': data['ca_score'],
+                                'exam_score': data['exam_score'],
+                                'total_score': data['total_score'],
+                                'grade': data['grade'],
+                                'status': 'SUBMITTED_TO_EXAM_OFFICER',
+                                'created_by': request.user,
+                                'last_modified_by': request.user
+                            }
+                        )
+
+                        if not created:
+                            # Update existing result
+                            result.ca_score = data['ca_score']
+                            result.exam_score = data['exam_score']
+                            result.total_score = data['total_score']
+                            result.grade = data['grade']
+                            result.status = 'SUBMITTED_TO_EXAM_OFFICER'
+                            result.last_modified_by = request.user
+                            result.save()
+                            results_updated += 1
+                        else:
+                            results_created += 1
+
+                    except Exception as e:
+                        messages.error(request, f'Error saving result for {data["matric_number"]}: {str(e)}')
+                        continue
+
+            # Clear session data
+            if 'csv_preview_data' in request.session:
+                del request.session['csv_preview_data']
+            if 'csv_course_id' in request.session:
+                del request.session['csv_course_id']
+            if 'csv_session_id' in request.session:
+                del request.session['csv_session_id']
+
+            # Send notifications to exam officers
+            from .workflow_service import ResultWorkflowService
+            ResultWorkflowService.notify_exam_officers(course, session, request.user)
+
+            messages.success(request, f'Results uploaded successfully! {results_created} new results created, {results_updated} results updated.')
+            return redirect('lecturer_result_status')
+
+    # GET request - show upload form
+    context = {
+        'course': course,
+        'session': session,
+        'show_upload_form': True
+    }
+    return render(request, 'lecturer_csv_upload.html', context)
+
+
+@login_required
 def lecturer_enter_results(request):
     """Lecturer Enter Results"""
     # Check if user has Lecturer role
@@ -8046,7 +8396,14 @@ def lecturer_enter_results(request):
             enrolled_students = CourseEnrollment.objects.filter(
                 course=selected_course,
                 session=selected_session
-            ).select_related('student', 'student__user', 'result')
+            ).select_related('student', 'student__user')
+
+            # Add result information to each enrollment
+            for enrollment in enrolled_students:
+                try:
+                    enrollment.result = Result.objects.get(enrollment=enrollment)
+                except Result.DoesNotExist:
+                    enrollment.result = None
 
             print(f"GET request - Found {enrolled_students.count()} enrolled students for course {selected_course.code} in session {selected_session.name}")
             for enrollment in enrolled_students:
@@ -8069,13 +8426,18 @@ def lecturer_enter_results(request):
             messages.error(request, 'Invalid course or session selected.')
 
     if request.method == 'POST' and selected_course and selected_session:
+        print("🔥 POST REQUEST RECEIVED!")
+        print(f"🔥 Request method: {request.method}")
+        print(f"🔥 Content type: {request.content_type}")
+        print(f"🔥 POST keys: {list(request.POST.keys())}")
+
         save_as_draft = request.POST.get('save_as_draft') == 'true'
 
         # Get enrolled students for POST processing first
         enrolled_students_for_post = CourseEnrollment.objects.filter(
             course=selected_course,
             session=selected_session
-        ).select_related('student', 'student__user', 'result')
+        ).select_related('student', 'student__user')
 
         # Initialize counters
         results_processed = 0
@@ -8087,6 +8449,22 @@ def lecturer_enter_results(request):
         print(f"Session: {selected_session.name}")
         print(f"Enrolled students count: {enrolled_students_for_post.count()}")
         print(f"POST data keys: {list(request.POST.keys())}")
+
+        # Debug: Print all POST data
+        for key, value in request.POST.items():
+            if key.startswith('ca_score_') or key.startswith('exam_score_'):
+                print(f"  {key}: '{value}'")
+
+        # Additional debug: Check if we have any score fields at all
+        ca_fields = [k for k in request.POST.keys() if k.startswith('ca_score_')]
+        exam_fields = [k for k in request.POST.keys() if k.startswith('exam_score_')]
+        print(f"CA fields found: {len(ca_fields)}")
+        print(f"Exam fields found: {len(exam_fields)}")
+
+        if not ca_fields and not exam_fields:
+            print("❌ NO SCORE FIELDS FOUND IN POST DATA!")
+            messages.error(request, 'No score fields found in form submission. Please try again.')
+            return redirect(f'/api/lecturer/enter-results/?course_id={selected_course.id}&session_id={selected_session.id}')
 
         # Check if we have any enrolled students
         if not enrolled_students_for_post.exists():
@@ -8157,20 +8535,9 @@ def lecturer_enter_results(request):
                     print(f"  Calculated grade: {grade}, Status: {status}")
 
                     # Create or update result
-                    result, created = Result.objects.get_or_create(
-                        enrollment=enrollment,
-                        defaults={
-                            'ca_score': ca_score,
-                            'exam_score': exam_score,
-                            'total_score': total_score,
-                            'grade': grade,
-                            'status': status,
-                            'created_by': request.user,
-                            'last_modified_by': request.user
-                        }
-                    )
-
-                    if not created:
+                    try:
+                        result = Result.objects.get(enrollment=enrollment)
+                        # Update existing result
                         result.ca_score = ca_score
                         result.exam_score = exam_score
                         result.total_score = total_score
@@ -8178,6 +8545,22 @@ def lecturer_enter_results(request):
                         result.status = status
                         result.last_modified_by = request.user
                         result.save()
+                        created = False
+                        print(f"  Updated existing result for {enrollment.student.matric_number}")
+                    except Result.DoesNotExist:
+                        # Create new result
+                        result = Result.objects.create(
+                            enrollment=enrollment,
+                            ca_score=ca_score,
+                            exam_score=exam_score,
+                            total_score=total_score,
+                            grade=grade,
+                            status=status,
+                            created_by=request.user,
+                            last_modified_by=request.user
+                        )
+                        created = True
+                        print(f"  Created new result for {enrollment.student.matric_number}")
 
                     results_processed += 1
                     print(f"  Result {'created' if created else 'updated'} successfully")
@@ -8298,9 +8681,6 @@ def lecturer_result_status(request):
             results = Result.objects.filter(enrollment__in=enrollments)
 
             if results.exists():
-                # Group by status
-                status_counts = results.values('status').annotate(count=models.Count('id'))
-
                 # Calculate statistics
                 total_results = results.count()
                 pass_count = results.filter(total_score__gte=45).count()
@@ -8323,6 +8703,21 @@ def lecturer_result_status(request):
                     'rejection_reason': getattr(latest_result, 'rejection_reason', None)
                 }
 
+                result_submissions.append(submission_data)
+            else:
+                # No results yet - show as available for entry
+                submission_data = {
+                    'course': assignment.course,
+                    'session': assignment.course.session,
+                    'status': 'DRAFT',
+                    'student_count': enrollments.count(),
+                    'total_results': 0,
+                    'pass_count': 0,
+                    'fail_count': 0,
+                    'average_score': 0,
+                    'last_updated': None,
+                    'rejection_reason': None
+                }
                 result_submissions.append(submission_data)
 
     # Calculate summary statistics
@@ -8846,6 +9241,104 @@ def exam_officer_submit_to_hod(request):
         'message': f'Submit approved results to HOD for {level}L',
         'back_url': 'exam_officer_dashboard'
     })
+
+@login_required
+def exam_officer_export_csv(request):
+    """Export submitted results as CSV"""
+    # Check if user has Exam Officer role
+    exam_officer_roles = UserRole.objects.filter(user=request.user, role='EXAM_OFFICER')
+    if not exam_officer_roles.exists():
+        messages.error(request, 'Access denied. Exam Officer role required.')
+        return redirect('dashboard')
+
+    # Get the faculty context
+    faculty = exam_officer_roles.first().faculty
+
+    # Get level parameter
+    level_param = request.GET.get('level', 'all')
+    show_all_levels = level_param == 'all'
+
+    if show_all_levels:
+        current_level = None
+    else:
+        try:
+            current_level = Level.objects.filter(numeric_value=int(level_param)).first()
+            if not current_level:
+                current_level = None
+                show_all_levels = True
+        except (ValueError, TypeError):
+            current_level = None
+            show_all_levels = True
+
+    # Get submitted results
+    if show_all_levels:
+        results = Result.objects.filter(
+            status='SUBMITTED_TO_EXAM_OFFICER',
+            enrollment__course__departments__faculty=faculty
+        )
+    else:
+        results = Result.objects.filter(
+            status='SUBMITTED_TO_EXAM_OFFICER',
+            enrollment__course__departments__faculty=faculty,
+            enrollment__student__current_level=current_level
+        )
+
+    results = results.select_related(
+        'enrollment__student__user',
+        'enrollment__course',
+        'enrollment__session'
+    ).order_by('enrollment__course__code', 'enrollment__student__matric_number')
+
+    # Create CSV response
+    response = HttpResponse(content_type='text/csv')
+    level_str = f"{current_level.name}" if current_level else "All_Levels"
+    response['Content-Disposition'] = f'attachment; filename="submitted_results_{faculty.name}_{level_str}_{timezone.now().strftime("%Y%m%d_%H%M")}.csv"'
+
+    writer = csv.writer(response)
+
+    # Write headers
+    writer.writerow([
+        f'# Submitted Results - {faculty.name}',
+        f'Level: {level_str}',
+        f'Generated: {timezone.now().strftime("%Y-%m-%d %H:%M")}'
+    ])
+    writer.writerow([])
+
+    # Write column headers
+    writer.writerow([
+        'Matric Number',
+        'Student Name',
+        'Course Code',
+        'Course Title',
+        'Session',
+        'CA Score',
+        'Exam Score',
+        'Total Score',
+        'Grade',
+        'Status',
+        'Submitted By',
+        'Submitted Date'
+    ])
+
+    # Write result data
+    for result in results:
+        writer.writerow([
+            result.enrollment.student.matric_number,
+            result.enrollment.student.user.get_full_name(),
+            result.enrollment.course.code,
+            result.enrollment.course.title,
+            result.enrollment.session.name,
+            result.ca_score,
+            result.exam_score,
+            result.total_score,
+            result.grade,
+            result.get_workflow_stage(),
+            result.created_by.get_full_name() if result.created_by else '',
+            result.created_at.strftime('%Y-%m-%d %H:%M')
+        ])
+
+    return response
+
 
 @login_required
 def exam_officer_result_history(request):

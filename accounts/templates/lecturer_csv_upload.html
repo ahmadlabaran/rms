@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+{% load role_tags %}
+
+{% block title %}CSV Result Upload - Lecturer{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Delegation Status Badges -->
+    {% show_delegation_badges user %}
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">CSV Result Upload</h1>
+                            <p class="mb-0 opacity-75">{{ course.code }} - {{ course.title }} ({{ session.name }})</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">
+                                <div class="h5 fw-bold mb-0">
+                                    <i class="bi bi-file-earmark-spreadsheet me-2"></i>CSV Upload
+                                </div>
+                                <small class="opacity-75">Bulk Result Entry</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if show_upload_form %}
+    <!-- Upload Form -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-cloud-upload me-2"></i>Upload CSV Results
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Instructions -->
+                    <div class="alert alert-info">
+                        <h6 class="fw-bold mb-2">
+                            <i class="bi bi-info-circle me-1"></i>Instructions:
+                        </h6>
+                        <ol class="mb-0">
+                            <li>Download the CSV template using the button below</li>
+                            <li>Fill in the CA Score and Exam Score columns</li>
+                            <li>Do not modify Student Matric Number or Student Name</li>
+                            <li>Save the file and upload it here</li>
+                            <li>Review the preview before final submission</li>
+                        </ol>
+                    </div>
+
+                    <!-- Download Template Button -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <a href="{% url 'lecturer_download_csv_template' %}?course_id={{ course.id }}&session_id={{ session.id }}" 
+                               class="btn btn-outline-primary">
+                                <i class="bi bi-download me-1"></i>Download CSV Template
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Upload Form -->
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="csv_file" class="form-label fw-semibold">Select CSV File</label>
+                                    <input type="file" class="form-control" id="csv_file" name="csv_file" 
+                                           accept=".csv" required>
+                                    <div class="form-text">Maximum file size: 5MB. Only CSV files are allowed.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">&nbsp;</label>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-upload me-1"></i>Upload & Preview
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    {% if errors %}
+                    <!-- Error Display -->
+                    <div class="alert alert-danger mt-4">
+                        <h6 class="fw-bold mb-2">
+                            <i class="bi bi-exclamation-triangle me-1"></i>Validation Errors:
+                        </h6>
+                        <ul class="mb-0">
+                            {% for error in errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if show_preview %}
+    <!-- Preview Section -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-eye me-2"></i>Preview Results
+                    </h5>
+                    <small>Review the data below and confirm to submit to Exam Officer</small>
+                </div>
+                <div class="card-body">
+                    <!-- Summary -->
+                    <div class="alert alert-success">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Total Records:</strong> {{ preview_data|length }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Course:</strong> {{ course.code }} - {{ course.title }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview Table -->
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Matric Number</th>
+                                    <th>Student Name</th>
+                                    <th>CA Score</th>
+                                    <th>Exam Score</th>
+                                    <th>Total Score</th>
+                                    <th>Grade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for data in preview_data %}
+                                <tr>
+                                    <td class="fw-bold text-primary">{{ data.matric_number }}</td>
+                                    <td>{{ data.student_name }}</td>
+                                    <td>
+                                        {% if data.ca_score is not None %}
+                                            <span class="badge bg-info">{{ data.ca_score|floatformat:1 }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if data.exam_score is not None %}
+                                            <span class="badge bg-info">{{ data.exam_score|floatformat:1 }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if data.total_score is not None %}
+                                            <span class="badge bg-primary">{{ data.total_score|floatformat:1 }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if data.grade %}
+                                            <span class="badge {% if data.grade == 'A' %}bg-success{% elif data.grade == 'B' %}bg-primary{% elif data.grade == 'C' %}bg-info{% elif data.grade == 'D' %}bg-warning{% else %}bg-danger{% endif %}">
+                                                {{ data.grade }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Confirmation Form -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="d-flex gap-2 justify-content-end">
+                                <a href="{% url 'lecturer_upload_csv_results' %}?course_id={{ course.id }}&session_id={{ session.id }}" 
+                                   class="btn btn-secondary">
+                                    <i class="bi bi-arrow-left me-1"></i>Back to Upload
+                                </a>
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" name="confirm_upload" class="btn btn-success">
+                                        <i class="bi bi-check-circle me-1"></i>Confirm & Submit to Exam Officer
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Back to Dashboard -->
+    <div class="row mt-4">
+        <div class="col-12 text-center">
+            <a href="{% url 'lecturer_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.badge {
+    font-size: 0.875rem;
+}
+
+.alert {
+    border: none;
+    border-radius: 12px;
+}
+
+.card {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+}
+</style>
+
+{% endblock %}

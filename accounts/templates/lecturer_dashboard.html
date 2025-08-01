@@ -245,8 +245,22 @@
                         <h6 class="text-muted mb-3">Quick Links</h6>
                         <div class="d-grid gap-2">
                             <a href="{% url 'lecturer_enter_results' %}" class="btn btn-primary btn-sm">
-                                <i class="bi bi-plus-circle me-1"></i>Enter New Results
+                                <i class="bi bi-plus-circle me-1"></i>Enter Results (Form)
                             </a>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-success btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="bi bi-file-earmark-spreadsheet me-1"></i>CSV Upload
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><h6 class="dropdown-header">Bulk Result Entry</h6></li>
+                                    <li><a class="dropdown-item" href="#" onclick="showCourseSelector()">
+                                        <i class="bi bi-download me-1"></i>Download Template
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="showCourseSelector('upload')">
+                                        <i class="bi bi-upload me-1"></i>Upload Results
+                                    </a></li>
+                                </ul>
+                            </div>
                             <a href="{% url 'lecturer_enroll_students' %}" class="btn btn-outline-primary btn-sm">
                                 <i class="bi bi-person-plus me-1"></i>Enroll Students
                             </a>
@@ -261,5 +275,74 @@
     </div>
 
 </div>
+
+<!-- Course Selection Modal -->
+<div class="modal fade" id="courseSelectorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="courseSelectorTitle">Select Course</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="courseSelectorForm">
+                    <div class="mb-3">
+                        <label class="form-label">Course</label>
+                        <select class="form-select" id="courseSelect" required>
+                            <option value="">Select a course...</option>
+                            {% for assignment in course_assignments %}
+                            <option value="{{ assignment.course.id }}" data-session="{{ assignment.course.session.id }}">
+                                {{ assignment.course.code }} - {{ assignment.course.title }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="proceedWithCourse()">Continue</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let csvAction = '';
+
+function showCourseSelector(action = 'download') {
+    csvAction = action;
+    const modal = new bootstrap.Modal(document.getElementById('courseSelectorModal'));
+    const title = document.getElementById('courseSelectorTitle');
+
+    if (action === 'upload') {
+        title.textContent = 'Select Course for CSV Upload';
+    } else {
+        title.textContent = 'Select Course for CSV Template';
+    }
+
+    modal.show();
+}
+
+function proceedWithCourse() {
+    const courseSelect = document.getElementById('courseSelect');
+    const courseId = courseSelect.value;
+    const sessionId = courseSelect.selectedOptions[0]?.dataset.session;
+
+    if (!courseId || !sessionId) {
+        alert('Please select a course');
+        return;
+    }
+
+    let url = '';
+    if (csvAction === 'upload') {
+        url = `{% url 'lecturer_upload_csv_results' %}?course_id=${courseId}&session_id=${sessionId}`;
+    } else {
+        url = `{% url 'lecturer_download_csv_template' %}?course_id=${courseId}&session_id=${sessionId}`;
+    }
+
+    window.location.href = url;
+}
+</script>
 
 {% endblock %}

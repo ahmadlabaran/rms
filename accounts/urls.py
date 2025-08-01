@@ -187,6 +187,8 @@ urlpatterns = [
     path('lecturer/courses/', views.lecturer_courses, name='lecturer_courses'),
     path('lecturer/course-details/', views.lecturer_course_details, name='lecturer_course_details'),
     path('lecturer/enter-results/', views.lecturer_enter_results, name='lecturer_enter_results'),
+    path('lecturer/download-csv-template/', views.lecturer_download_csv_template, name='lecturer_download_csv_template'),
+    path('lecturer/upload-csv-results/', views.lecturer_upload_csv_results, name='lecturer_upload_csv_results'),
     path('lecturer/bulk-results/', views.lecturer_bulk_results, name='lecturer_bulk_results'),
     path('lecturer/draft-results/', views.lecturer_draft_results, name='lecturer_draft_results'),
     path('lecturer/edit-results/', views.lecturer_edit_results, name='lecturer_edit_results'),
@@ -203,6 +205,7 @@ urlpatterns = [
     # Exam Officer Professional Interface
     path('exam-officer/', views.exam_officer_dashboard, name='exam_officer_dashboard'),
     path('exam-officer/pending-results/', views.exam_officer_pending_results, name='exam_officer_pending_results'),
+    path('exam-officer/export-csv/', views.exam_officer_export_csv, name='exam_officer_export_csv'),
     path('exam-officer/validate-results/', views.exam_officer_validate_results, name='exam_officer_validate_results'),
     path('exam-officer/approve-results/', views.exam_officer_approve_results, name='exam_officer_approve_results'),
     path('exam-officer/reject-results/', views.exam_officer_reject_results, name='exam_officer_reject_results'),

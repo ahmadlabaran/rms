@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+
+{% block title %}Results Management - RMS{% endblock %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto; padding: 32px 20px;">
+    <!-- Header -->
+    <div style="margin-bottom: 32px;">
+        <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">
+            Results Management
+        </h1>
+        <p style="color: var(--text-secondary); font-size: 16px;">
+            Manage student results, grades, and academic performance
+        </p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-bottom: 32px;">
+        <div class="ios-card" style="background: var(--royal-blue-gradient); color: white;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 4px;">{{ results.count }}</div>
+                    <div style="font-size: 16px; opacity: 0.9;">Total Results</div>
+                </div>
+                <div style="font-size: 48px; opacity: 0.3;">
+                    <i class="bi bi-clipboard-data-fill"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="ios-card">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 4px; color: var(--accent-green);">{{ published_results }}</div>
+                    <div style="font-size: 16px; color: var(--text-secondary);">Published</div>
+                </div>
+                <div style="font-size: 48px; opacity: 0.2; color: var(--accent-green);">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="ios-card">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 4px; color: var(--accent-orange);">{{ pending_results }}</div>
+                    <div style="font-size: 16px; color: var(--text-secondary);">Pending Approval</div>
+                </div>
+                <div style="font-size: 48px; opacity: 0.2; color: var(--accent-orange);">
+                    <i class="bi bi-clock-fill"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="ios-card">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <div style="font-size: 32px; font-weight: 700; margin-bottom: 4px; color: var(--accent-red);">{{ failed_results }}</div>
+                    <div style="font-size: 16px; color: var(--text-secondary);">Failed Grades</div>
+                </div>
+                <div style="font-size: 48px; opacity: 0.2; color: var(--accent-red);">
+                    <i class="bi bi-x-circle-fill"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="ios-card" style="margin-bottom: 32px;">
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between;">
+            <div style="display: flex; gap: 16px; flex-wrap: wrap; flex: 1;">
+                <input type="text" placeholder="Search by student name or matric..." 
+                       style="padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 16px; min-width: 300px;">
+                
+                <select style="padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 16px;">
+                    <option value="">All Sessions</option>
+                    {% for session in sessions %}
+                    <option value="{{ session.id }}">{{ session.name }}</option>
+                    {% endfor %}
+                </select>
+
+                <select style="padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 16px;">
+                    <option value="">All Faculties</option>
+                    {% for faculty in faculties %}
+                    <option value="{{ faculty.id }}">{{ faculty.name }}</option>
+                    {% endfor %}
+                </select>
+
+                <select style="padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 16px;">
+                    <option value="">All Status</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="APPROVED">Approved</option>
+                    <option value="PUBLISHED">Published</option>
+                    <option value="REJECTED">Rejected</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+                <button style="background: var(--royal-blue); color: white; border: none; padding: 12px 20px; border-radius: 12px; font-weight: 600; cursor: pointer;">
+                    <i class="bi bi-search me-2"></i>Search
+                </button>
+                <button style="background: var(--accent-green); color: white; border: none; padding: 12px 20px; border-radius: 12px; font-weight: 600; cursor: pointer;">
+                    <i class="bi bi-plus-circle me-2"></i>Add Result
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="ios-card">
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border-light);">
+                        <th style="text-align: left; padding: 16px; font-weight: 600; color: var(--text-primary);">Student</th>
+                        <th style="text-align: left; padding: 16px; font-weight: 600; color: var(--text-primary);">Course</th>
+                        <th style="text-align: center; padding: 16px; font-weight: 600; color: var(--text-primary);">Score</th>
+                        <th style="text-align: center; padding: 16px; font-weight: 600; color: var(--text-primary);">Grade</th>
+                        <th style="text-align: left; padding: 16px; font-weight: 600; color: var(--text-primary);">Session</th>
+                        <th style="text-align: center; padding: 16px; font-weight: 600; color: var(--text-primary);">Status</th>
+                        <th style="text-align: left; padding: 16px; font-weight: 600; color: var(--text-primary);">Last Updated</th>
+                        <th style="text-align: center; padding: 16px; font-weight: 600; color: var(--text-primary);">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in results %}
+                    <tr style="border-bottom: 1px solid var(--border-light);">
+                        <td style="padding: 16px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--royal-blue-gradient); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px;">
+                                    {{ result.student.user.first_name|first }}{{ result.student.user.last_name|first }}
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600; color: var(--text-primary);">{{ result.student.user.first_name }} {{ result.student.user.last_name }}</div>
+                                    <div style="font-size: 14px; color: var(--text-secondary);">{{ result.student.matric_number }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="padding: 16px;">
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-primary);">{{ result.course.title }}</div>
+                                <div style="font-size: 14px; color: var(--text-secondary);">{{ result.course.code }}</div>
+                            </div>
+                        </td>
+                        <td style="padding: 16px; text-align: center;">
+                            <span style="font-size: 18px; font-weight: 700; color: var(--royal-blue);">
+                                {{ result.total_score|default:"--" }}
+                            </span>
+                        </td>
+                        <td style="padding: 16px; text-align: center;">
+                            {% if result.grade %}
+                            <span style="background: {% if result.grade == 'A' %}var(--accent-green-light); color: var(--accent-green){% elif result.grade == 'B' %}var(--accent-blue-light); color: var(--accent-blue){% elif result.grade == 'C' %}var(--accent-orange-light); color: var(--accent-orange){% else %}var(--accent-red-light); color: var(--accent-red){% endif %}; padding: 6px 12px; border-radius: 20px; font-size: 16px; font-weight: 700;">
+                                {{ result.grade }}
+                            </span>
+                            {% else %}
+                            <span style="color: var(--text-secondary);">--</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 16px; color: var(--text-secondary);">{{ result.session.name|default:"Not Set" }}</td>
+                        <td style="padding: 16px; text-align: center;">
+                            {% if result.status == 'PUBLISHED' %}
+                            <span style="background: var(--accent-green-light); color: var(--accent-green); padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 600;">
+                                Published
+                            </span>
+                            {% elif result.status == 'APPROVED' %}
+                            <span style="background: var(--accent-blue-light); color: var(--accent-blue); padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 600;">
+                                Approved
+                            </span>
+                            {% elif result.status == 'PENDING' %}
+                            <span style="background: var(--accent-orange-light); color: var(--accent-orange); padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 600;">
+                                Pending
+                            </span>
+                            {% else %}
+                            <span style="background: var(--accent-red-light); color: var(--accent-red); padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 600;">
+                                {{ result.status|default:"Draft" }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 16px; color: var(--text-secondary); font-size: 14px;">
+                            {{ result.updated_at|date:"M d, Y" }}
+                        </td>
+                        <td style="padding: 16px; text-align: center;">
+                            <div style="display: flex; gap: 8px; justify-content: center;">
+                                <button style="background: var(--royal-blue-ultra-light); color: var(--royal-blue); border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer;" title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button style="background: var(--accent-orange-light); color: var(--accent-orange); border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer;" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button style="background: var(--accent-red-light); color: var(--accent-red); border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer;" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" style="padding: 40px; text-align: center; color: var(--text-secondary);">
+                            <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;">
+                                <i class="bi bi-clipboard-data"></i>
+                            </div>
+                            <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">No Results Found</div>
+                            <div style="font-size: 14px;">Start by adding student results to the system.</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if results.has_other_pages %}
+    <div style="display: flex; justify-content: center; margin-top: 32px;">
+        <div style="display: flex; gap: 8px; align-items: center;">
+            {% if results.has_previous %}
+            <a href="?page={{ results.previous_page_number }}" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; text-decoration: none; color: var(--text-primary);">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+            {% endif %}
+            
+            <span style="padding: 8px 16px; color: var(--text-secondary);">
+                Page {{ results.number }} of {{ results.paginator.num_pages }}
+            </span>
+            
+            {% if results.has_next %}
+            <a href="?page={{ results.next_page_number }}" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; text-decoration: none; color: var(--text-primary);">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - RMS{% endblock %}
+
+{% block content %}
+<!-- Current Session Info - TOP PRIORITY -->
+{% if current_session %}
+<div class="ios-card" style="background: var(--accent-gradient); color: white; margin-bottom: 32px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 600;">{{ current_session.name }}</h2>
+            <p style="margin: 0; opacity: 0.9; font-size: 16px;">{{ current_session.start_date }} - {{ current_session.end_date }}</p>
+        </div>
+        <div>
+            {% if current_session.is_active %}
+                <span style="background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 12px; font-weight: 600;">Active Session</span>
+            {% else %}
+                <span style="background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 12px; font-weight: 600;">Inactive</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="page-header">
+    <h1 class="page-title">Welcome back, {{ user.first_name|default:user.username }}</h1>
+    <p class="page-subtitle">Result Management System Dashboard</p>
+</div>
+
+<!-- Role-based Dashboard Content -->
+{% if user_roles %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.total_students|default:0 }}</div>
+        <div class="stat-label">Total Students</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.total_courses|default:0 }}</div>
+        <div class="stat-label">Active Courses</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.pending_results|default:0 }}</div>
+        <div class="stat-label">Pending Results</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.published_results|default:0 }}</div>
+        <div class="stat-label">Published Results</div>
+    </div>
+</div>
+
+<!-- Clean Role-specific Actions -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 32px; margin-bottom: 32px;">
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 32px; font-size: 24px; font-weight: 600;">Quick Actions</h2>
+
+        {% for role in user_roles %}
+            {% if role.role == 'SUPER_ADMIN' %}
+            <div style="margin-bottom: 40px;">
+                <h3 style="color: var(--ios-blue); margin-bottom: 20px; font-size: 18px; font-weight: 600;">System Administration</h3>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                    <a href="{% url 'manage_users' %}" class="btn btn-primary">Manage Users</a>
+                    <a href="{% url 'manage_faculties' %}" class="btn btn-primary">Manage Faculties</a>
+                    <a href="{% url 'manage_departments' %}" class="btn btn-primary">Manage Departments</a>
+                    <a href="{% url 'system_settings' %}" class="btn btn-secondary">System Settings</a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if role.role == 'DAAA' %}
+            <div style="margin-bottom: 40px;">
+                <h3 style="color: var(--ios-blue); margin-bottom: 20px; font-size: 18px; font-weight: 600;">Academic Affairs</h3>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                    <a href="{% url 'manage_sessions' %}" class="btn btn-primary">Manage Sessions</a>
+                    <a href="{% url 'approve_results' %}" class="btn btn-primary">Approve Results</a>
+                    <a href="{% url 'publish_results' %}" class="btn btn-primary">Publish Results</a>
+                </div>
+            </div>
+            {% endif %}
+
+                {% if role.role == 'FACULTY_DEAN' %}
+                <div style="margin-bottom: 24px;">
+                    <h3 style="color: var(--ios-blue); margin-bottom: 12px;">Faculty Dean Actions</h3>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <a href="{% url 'faculty_dean_dashboard' %}" class="btn btn-primary">Faculty Dean Dashboard</a>
+                        <a href="{% url 'approve_results' %}" class="btn btn-primary">Approve Results</a>
+                        <a href="{% url 'manage_departments' %}" class="btn btn-secondary">Manage Departments</a>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if role.role == 'HOD' %}
+                <div style="margin-bottom: 24px;">
+                    <h3 style="color: var(--ios-blue); margin-bottom: 12px;">HOD Actions</h3>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <a href="{% url 'results' %}" class="btn btn-primary">Department Results</a>
+                        <a href="{% url 'approve_results' %}" class="btn btn-primary">Approve Results</a>
+                        <a href="{% url 'courses' %}" class="btn btn-secondary">Manage Courses</a>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if role.role == 'EXAM_OFFICER' %}
+                <div style="margin-bottom: 24px;">
+                    <h3 style="color: var(--ios-blue); margin-bottom: 12px;">Exam Officer Actions</h3>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <a href="{% url 'results' %}" class="btn btn-primary">Verify Results</a>
+                        <a href="{% url 'approve_results' %}" class="btn btn-primary">Approve Results</a>
+                    </div>
+                </div>
+                {% endif %}
+
+            {% if role.role == 'LECTURER' %}
+            <div style="margin-bottom: 40px;">
+                <h3 style="color: var(--ios-blue); margin-bottom: 20px; font-size: 18px; font-weight: 600;">Teaching & Results</h3>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                    <a href="{% url 'results' %}" class="btn btn-primary">Enter Results</a>
+                    <a href="{% url 'courses' %}" class="btn btn-secondary">My Courses</a>
+                    <a href="{% url 'students' %}" class="btn btn-secondary">My Students</a>
+                </div>
+            </div>
+            {% endif %}
+
+                {% if role.role == 'STUDENT' %}
+                <div style="margin-bottom: 24px;">
+                    <h3 style="color: var(--ios-blue); margin-bottom: 12px;">Student Actions</h3>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <a href="{% url 'results' %}" class="btn btn-primary">View Results</a>
+                        <a href="{% url 'courses' %}" class="btn btn-secondary">My Courses</a>
+                        <a href="{% url 'contact_admin' %}" class="btn btn-secondary">Profile</a>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 20px; font-weight: 600;">Your Roles</h2>
+        {% for role in user_roles %}
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 16px; background: var(--surface-secondary); border-radius: 12px; border: 1px solid var(--border-light);">
+            <div>
+                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">{{ role.get_role_display }}</div>
+                {% if role.faculty %}
+                    <div style="color: var(--text-secondary); font-size: 14px;">{{ role.faculty.name }}</div>
+                {% endif %}
+                {% if role.department %}
+                    <div style="color: var(--text-secondary); font-size: 14px;">{{ role.department.name }}</div>
+                {% endif %}
+            </div>
+            {% if role.is_primary %}
+                <span style="background: var(--ios-blue); color: white; padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;">Primary</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+        </div>
+
+        <div class="ios-card">
+            <h2 style="color: var(--text-primary); margin-bottom: 20px;">Recent Activity</h2>
+            {% if recent_activities %}
+                {% for activity in recent_activities %}
+                <div style="margin-bottom: 12px; padding: 12px; background: var(--tertiary-white); border-radius: 8px;">
+                    <strong>{{ activity.action }}</strong>
+                    <br><small style="color: var(--text-secondary);">{{ activity.description }}</small>
+                    <br><small style="color: var(--text-secondary);">{{ activity.timestamp|timesince }} ago</small>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p style="color: var(--text-secondary); text-align: center; padding: 20px;">No recent activity</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- No roles assigned -->
+<div class="ios-card" style="text-align: center; padding: 40px;">
+    <h2 style="color: var(--text-secondary); margin-bottom: 16px;">No Roles Assigned</h2>
+    <p style="color: var(--text-secondary); margin-bottom: 24px;">Contact your administrator to assign appropriate roles to your account.</p>
+    <a href="{% url 'contact_admin' %}" class="btn btn-primary">Contact Administrator</a>
+</div>
+{% endif %}
+
+
+{% endblock %}

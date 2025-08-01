@@ -1,0 +1,346 @@
+{% extends 'base.html' %}
+
+{% block title %}System Settings - RMS{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --royal-blue: #1e3a8a;
+        --royal-blue-light: #3b82f6;
+        --royal-blue-ultra-light: rgba(30, 58, 138, 0.1);
+        --royal-blue-gradient: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        --ios-green: #34C759;
+        --ios-orange: #FF9500;
+        --ios-red: #FF3B30;
+        --text-primary: #1D1D1F;
+        --text-secondary: #86868B;
+        --surface-primary: #FFFFFF;
+        --surface-secondary: #F2F2F7;
+        --border-light: #E5E5EA;
+    }
+
+    .settings-card {
+        background: var(--surface-primary);
+        border: 1px solid var(--border-light);
+        border-radius: 20px;
+        padding: 32px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+    }
+
+    .settings-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    }
+
+    .setting-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 0;
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .setting-item:last-child {
+        border-bottom: none;
+    }
+
+    .setting-info h4 {
+        margin: 0 0 8px 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .setting-info p {
+        margin: 0;
+        font-size: 14px;
+        color: var(--text-secondary);
+    }
+
+    .toggle-switch {
+        position: relative;
+        width: 60px;
+        height: 32px;
+        background: #ccc;
+        border-radius: 16px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+    }
+
+    .toggle-switch.active {
+        background: var(--ios-green);
+    }
+
+    .toggle-switch::after {
+        content: '';
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        width: 24px;
+        height: 24px;
+        background: white;
+        border-radius: 50%;
+        transition: transform 0.3s ease;
+    }
+
+    .toggle-switch.active::after {
+        transform: translateX(28px);
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 32px;
+    }
+
+    .stat-card {
+        background: var(--royal-blue-gradient);
+        color: white;
+        padding: 24px;
+        border-radius: 16px;
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(30, 58, 138, 0.3);
+    }
+
+    .stat-number {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .stat-label {
+        font-size: 14px;
+        opacity: 0.9;
+    }
+
+    .btn-primary {
+        background: var(--royal-blue-gradient);
+        border: none;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+    }
+
+    .form-control {
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--royal-blue);
+        box-shadow: 0 0 0 4px var(--royal-blue-ultra-light);
+    }
+</style>
+
+<div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+    <!-- Header -->
+    <div class="settings-card">
+        <div style="text-align: center; margin-bottom: 32px;">
+            <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin: 0 0 12px 0;">
+                System Settings
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 18px; margin: 0;">
+                Configure and monitor your RMS system
+            </p>
+        </div>
+
+        <!-- System Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">{{ total_users }}</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ total_faculties }}</div>
+                <div class="stat-label">Faculties</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ total_departments }}</div>
+                <div class="stat-label">Departments</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ total_students }}</div>
+                <div class="stat-label">Students</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ active_sessions }}</div>
+                <div class="stat-label">Active Sessions</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Settings -->
+    <div class="settings-card">
+        <h3 style="font-size: 24px; font-weight: 600; color: var(--text-primary); margin: 0 0 24px 0;">
+            Email Settings
+        </h3>
+        
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="setting_type" value="email">
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <h4>Email Notifications</h4>
+                    <p>Send email notifications for result updates and system events</p>
+                </div>
+                <div class="toggle-switch active" onclick="toggleSwitch(this)"></div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <h4>SMTP Server</h4>
+                    <p>Configure SMTP server for outgoing emails</p>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="showEmailConfig()">Configure</button>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <h4>Email Templates</h4>
+                    <p>Customize email templates for notifications</p>
+                </div>
+                <button type="button" class="btn btn-primary">Edit Templates</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Security Settings -->
+    <div class="settings-card">
+        <h3 style="font-size: 24px; font-weight: 600; color: var(--text-primary); margin: 0 0 24px 0;">
+            Security Settings
+        </h3>
+        
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="setting_type" value="security">
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <h4>Two-Factor Authentication</h4>
+                    <p>Require 2FA for admin accounts</p>
+                </div>
+                <div class="toggle-switch" onclick="toggleSwitch(this)"></div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <h4>Session Timeout</h4>
+                    <p>Automatic logout after inactivity</p>
+                </div>
+                <select class="form-control" style="width: 200px;">
+                    <option value="30">30 minutes</option>
+                    <option value="60" selected>1 hour</option>
+                    <option value="120">2 hours</option>
+                    <option value="240">4 hours</option>
+                </select>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <h4>Password Policy</h4>
+                    <p>Enforce strong password requirements</p>
+                </div>
+                <div class="toggle-switch active" onclick="toggleSwitch(this)"></div>
+            </div>
+        </form>
+    </div>
+
+    <!-- System Settings -->
+    <div class="settings-card">
+        <h3 style="font-size: 24px; font-weight: 600; color: var(--text-primary); margin: 0 0 24px 0;">
+            System Configuration
+        </h3>
+        
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="setting_type" value="system">
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <h4>Maintenance Mode</h4>
+                    <p>Put system in maintenance mode for updates</p>
+                </div>
+                <div class="toggle-switch" onclick="toggleSwitch(this)"></div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <h4>Debug Mode</h4>
+                    <p>Enable debug mode for development</p>
+                </div>
+                <div class="toggle-switch" onclick="toggleSwitch(this)"></div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <h4>Backup Schedule</h4>
+                    <p>Automatic database backup frequency</p>
+                </div>
+                <select class="form-control" style="width: 200px;">
+                    <option value="daily" selected>Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                </select>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <h4>System Logs</h4>
+                    <p>View and manage system logs</p>
+                </div>
+                <button type="button" class="btn btn-primary">View Logs</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Action Buttons -->
+    <div style="text-align: center; margin-top: 32px;">
+        <button type="button" class="btn btn-primary" style="margin: 0 8px;">
+            Save All Settings
+        </button>
+        <button type="button" class="btn btn-primary" style="margin: 0 8px; background: var(--ios-orange);">
+            Reset to Defaults
+        </button>
+        <button type="button" class="btn btn-primary" style="margin: 0 8px; background: var(--ios-red);">
+            Backup System
+        </button>
+    </div>
+</div>
+
+<script>
+    function toggleSwitch(element) {
+        element.classList.toggle('active');
+    }
+
+    function showEmailConfig() {
+        alert('Email configuration modal would open here');
+    }
+
+    // Add touch feedback
+    document.addEventListener('DOMContentLoaded', function() {
+        const buttons = document.querySelectorAll('.btn, .toggle-switch');
+        buttons.forEach(button => {
+            button.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.98)';
+            });
+            button.addEventListener('touchend', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+    });
+</script>
+{% endblock %}

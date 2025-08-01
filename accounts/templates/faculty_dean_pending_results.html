@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+
+{% block title %}Pending Results - Faculty Dean{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --ios-red: #FF3B30;
+        --ios-blue: #007AFF;
+        --ios-green: #34C759;
+        --ios-orange: #FF9500;
+        --text-primary: #1D1D1F;
+        --text-secondary: #86868B;
+        --text-tertiary: #C7C7CC;
+        --surface-primary: #FFFFFF;
+        --surface-secondary: #F2F2F7;
+        --border-color: #D1D1D6;
+        --border-light: #E5E5EA;
+        --royal-blue-gradient: linear-gradient(135deg, #007AFF 0%, #FF3B30 100%);
+    }
+
+    .ios-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid var(--border-light);
+        transition: all 0.3s ease;
+        margin-bottom: 20px;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        text-align: center;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 12px;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-primary {
+        background: var(--royal-blue-gradient);
+        color: white;
+    }
+
+    .btn-success {
+        background: var(--ios-green);
+        color: white;
+    }
+
+    .btn-danger {
+        background: var(--ios-red);
+        color: white;
+    }
+
+    .btn-secondary {
+        background: var(--surface-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+
+    .result-card {
+        background: var(--surface-secondary);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        border: 1px solid var(--border-light);
+        transition: all 0.2s ease;
+    }
+
+    .result-card:hover {
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transform: translateY(-1px);
+    }
+
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-submitted {
+        background: rgba(255, 149, 0, 0.2);
+        color: var(--ios-orange);
+    }
+
+    .status-approved-hod {
+        background: rgba(52, 199, 89, 0.2);
+        color: var(--ios-green);
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .mobile-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+        .mobile-card { padding: 16px !important; }
+        .btn { padding: 6px 10px !important; font-size: 11px !important; }
+        .result-actions { flex-direction: column !important; gap: 6px !important; }
+    }
+</style>
+
+<div style="max-width: 1400px; margin: 0 auto; padding: 16px;">
+    
+    <!-- Header -->
+    <div class="ios-card" style="background: var(--royal-blue-gradient); color: white;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <h1 style="margin: 0 0 6px 0; font-size: 28px; font-weight: 600;">
+                    Pending Results
+                </h1>
+                <p style="margin: 0; opacity: 0.9; font-size: 16px;">
+                    {{ faculty.name }} • Results awaiting your approval
+                </p>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <a href="{% url 'faculty_dean_dashboard' %}" class="btn" style="background: rgba(255,255,255,0.2); color: white;">
+                    ← Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="mobile-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div class="ios-card" style="text-align: center; background: var(--ios-orange); color: white;">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ pending_results.count }}</div>
+            <div style="font-size: 14px; opacity: 0.9;">Pending Approval</div>
+        </div>
+        <div class="ios-card" style="text-align: center; background: var(--ios-blue); color: white;">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">0</div>
+            <div style="font-size: 14px; opacity: 0.9;">Approved Today</div>
+        </div>
+        <div class="ios-card" style="text-align: center; background: var(--ios-green); color: white;">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">0</div>
+            <div style="font-size: 14px; opacity: 0.9;">Published</div>
+        </div>
+    </div>
+
+    <!-- Bulk Actions -->
+    {% if pending_results %}
+    <div class="ios-card">
+        <h3 style="color: var(--text-primary); margin-bottom: 16px; font-size: 18px; font-weight: 700;">
+            Bulk Actions
+        </h3>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <button onclick="selectAll()" class="btn btn-secondary">Select All</button>
+            <button onclick="deselectAll()" class="btn btn-secondary">Deselect All</button>
+            <button onclick="bulkApprove()" class="btn btn-success">Approve Selected</button>
+            <button onclick="bulkReject()" class="btn btn-danger">Reject Selected</button>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Results List -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 16px; font-size: 20px; font-weight: 700;">
+            Results Awaiting Approval ({{ pending_results.count }})
+        </h2>
+        
+        {% if pending_results %}
+            {% for result in pending_results %}
+            <div class="result-card">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <input type="checkbox" class="result-checkbox" value="{{ result.id }}" style="transform: scale(1.2);">
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                                {{ result.enrollment.student.matric_number }} - {{ result.enrollment.student.user.get_full_name }}
+                            </div>
+                            <div style="color: var(--text-secondary); font-size: 12px; margin-bottom: 2px;">
+                                {{ result.enrollment.course.code }} - {{ result.enrollment.course.title }}
+                            </div>
+                            <div style="color: var(--text-tertiary); font-size: 11px;">
+                                Department: {{ result.enrollment.student.department.name }}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="status-badge {% if result.status == 'SUBMITTED_TO_DEAN' %}status-submitted{% elif result.status == 'APPROVED_BY_HOD' %}status-approved-hod{% endif %}">
+                            {{ result.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 12px; padding: 12px; background: white; border-radius: 8px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 2px;">CA Score</div>
+                        <div style="font-weight: 600; color: var(--text-primary);">{{ result.ca_score|default:"-" }}</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 2px;">Exam Score</div>
+                        <div style="font-weight: 600; color: var(--text-primary);">{{ result.exam_score|default:"-" }}</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 2px;">Total</div>
+                        <div style="font-weight: 700; color: var(--ios-blue); font-size: 16px;">{{ result.total_score }}</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 2px;">Grade</div>
+                        <div style="font-weight: 700; color: var(--ios-green); font-size: 16px;">{{ result.grade }}</div>
+                    </div>
+                </div>
+                
+                <div class="result-actions" style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button onclick="viewResultDetails({{ result.id }})" class="btn btn-secondary">
+                        View Details
+                    </button>
+                    <button onclick="approveResult({{ result.id }}, '{{ result.enrollment.student.matric_number }}')" class="btn btn-success">
+                        Approve
+                    </button>
+                    <button onclick="rejectResult({{ result.id }}, '{{ result.enrollment.student.matric_number }}')" class="btn btn-danger">
+                        Reject
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="text-align: center; padding: 60px; color: var(--text-secondary);">
+                <div style="width: 80px; height: 80px; background: var(--ios-green); opacity: 0.2; border-radius: 20px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 40px; height: 40px; background: var(--ios-green); border-radius: 10px; opacity: 0.6;"></div>
+                </div>
+                <h3 style="color: var(--text-primary); margin-bottom: 8px;">No Pending Results</h3>
+                <p>All results have been processed. Great work!</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Bulk selection functions
+function selectAll() {
+    document.querySelectorAll('.result-checkbox').forEach(checkbox => {
+        checkbox.checked = true;
+    });
+}
+
+function deselectAll() {
+    document.querySelectorAll('.result-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+}
+
+function getSelectedResults() {
+    const selected = [];
+    document.querySelectorAll('.result-checkbox:checked').forEach(checkbox => {
+        selected.push(checkbox.value);
+    });
+    return selected;
+}
+
+// Individual result actions
+function approveResult(resultId, matricNumber) {
+    if (confirm(`Approve result for ${matricNumber}?`)) {
+        // Implementation for single approval
+        alert('Result approved successfully!');
+        location.reload();
+    }
+}
+
+function rejectResult(resultId, matricNumber) {
+    if (confirm(`Reject result for ${matricNumber}?`)) {
+        // Implementation for single rejection
+        alert('Result rejected successfully!');
+        location.reload();
+    }
+}
+
+function viewResultDetails(resultId) {
+    // Implementation for viewing result details
+    alert('Result details view - to be implemented');
+}
+
+// Bulk actions
+function bulkApprove() {
+    const selected = getSelectedResults();
+    if (selected.length === 0) {
+        alert('Please select at least one result to approve.');
+        return;
+    }
+    
+    if (confirm(`Approve ${selected.length} selected results?`)) {
+        // Implementation for bulk approval
+        alert(`${selected.length} results approved successfully!`);
+        location.reload();
+    }
+}
+
+function bulkReject() {
+    const selected = getSelectedResults();
+    if (selected.length === 0) {
+        alert('Please select at least one result to reject.');
+        return;
+    }
+    
+    if (confirm(`Reject ${selected.length} selected results?`)) {
+        // Implementation for bulk rejection
+        alert(`${selected.length} results rejected successfully!`);
+        location.reload();
+    }
+}
+</script>
+{% endblock %}

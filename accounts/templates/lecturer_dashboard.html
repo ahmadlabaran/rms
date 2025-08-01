@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Lecturer Dashboard - RMS{% endblock %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+
+    <!-- Clean Welcome Header -->
+    <div style="text-align: center; margin-bottom: 48px;">
+        <h1 style="font-size: 36px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; letter-spacing: -0.02em;">
+            Welcome, {{ user.first_name }}
+        </h1>
+        <p style="color: var(--text-secondary); font-size: 17px; font-weight: 400;">
+            Lecturer Dashboard • {{ current_session.name }}
+        </p>
+        <div style="background: var(--ios-blue); color: white; padding: 8px 16px; border-radius: 20px; display: inline-block; margin-top: 8px; font-weight: 600;">
+            {{ stats.assigned_courses }} Assigned Courses
+        </div>
+    </div>
+
+    <!-- Academic Summary -->
+    <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 24px; padding: 32px; margin-bottom: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
+        <h2 style="font-size: 24px; font-weight: 600; color: var(--text-primary); margin-bottom: 24px; text-align: center;">
+            Teaching Overview
+        </h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 24px;">
+            <div style="text-align: center;">
+                <div style="font-size: 32px; font-weight: 700; color: var(--ios-blue); margin-bottom: 4px;">{{ stats.total_students }}</div>
+                <div style="color: var(--text-secondary); font-size: 14px; font-weight: 500;">Total Students</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 32px; font-weight: 700; color: var(--ios-orange); margin-bottom: 4px;">{{ stats.draft_results }}</div>
+                <div style="color: var(--text-secondary); font-size: 14px; font-weight: 500;">Draft Results</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 32px; font-weight: 700; color: var(--ios-blue); margin-bottom: 4px;">{{ stats.submitted_results }}</div>
+                <div style="color: var(--text-secondary); font-size: 14px; font-weight: 500;">Submitted Results</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 32px; font-weight: 700; color: var(--ios-green); margin-bottom: 4px;">{{ stats.published_results }}</div>
+                <div style="color: var(--text-secondary); font-size: 14px; font-weight: 500;">Published Results</div>
+            </div>
+        </div>
+    </div>
+
+<!-- Main Dashboard Grid -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px;">
+    
+    <!-- Course Management -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Course Management</h2>
+        
+        <div style="margin-bottom: 32px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Student Operations</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <a href="{% url 'lecturer_enroll_students' %}" class="btn btn-primary btn-compact">Enroll Students</a>
+                <a href="{% url 'lecturer_bulk_enroll' %}" class="btn btn-primary btn-compact">Bulk Enroll</a>
+                <a href="{% url 'lecturer_manage_enrollments' %}" class="btn btn-secondary btn-compact">Manage Enrollments</a>
+                <a href="{% url 'lecturer_student_list' %}" class="btn btn-secondary btn-compact">Student Lists</a>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 32px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Course Information</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <a href="{% url 'lecturer_courses' %}" class="btn btn-primary btn-compact">My Courses</a>
+                <a href="{% url 'lecturer_course_details' %}" class="btn btn-secondary btn-compact">Course Details</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Management -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Result Management</h2>
+        
+        <div style="margin-bottom: 32px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Result Entry</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <a href="{% url 'lecturer_enter_results' %}" class="btn btn-primary btn-compact">Enter Results</a>
+                <a href="{% url 'lecturer_bulk_results' %}" class="btn btn-primary btn-compact">Bulk Upload</a>
+                <a href="{% url 'lecturer_draft_results' %}" class="btn btn-secondary btn-compact">Draft Results</a>
+                <a href="{% url 'lecturer_edit_results' %}" class="btn btn-secondary btn-compact">Edit Results</a>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 32px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Submission & Status</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <a href="{% url 'lecturer_submit_results' %}" class="btn btn-primary btn-compact">Submit to Exam Officer</a>
+                <a href="{% url 'lecturer_result_status' %}" class="btn btn-secondary btn-compact">Result Status</a>
+                <a href="{% url 'lecturer_corrections' %}" class="btn btn-secondary btn-compact">Correction Requests</a>
+                <a href="{% url 'lecturer_resubmit' %}" class="btn btn-secondary btn-compact">Resubmit Results</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assigned Courses & Recent Activity -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 32px;">
+    
+    <!-- Assigned Courses -->
+    <div class="ios-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2 style="color: var(--text-primary); font-size: 20px; font-weight: 600; margin: 0;">My Assigned Courses</h2>
+            <a href="{% url 'lecturer_courses' %}" style="color: var(--ios-blue); text-decoration: none; font-weight: 500;">View All</a>
+        </div>
+        
+        {% if assigned_courses %}
+            {% for assignment in assigned_courses|slice:":5" %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--surface-secondary); border-radius: 12px; margin-bottom: 12px; border: 1px solid var(--border-light);">
+                <div>
+                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                        {{ assignment.course.code }} - {{ assignment.course.title }}
+                    </div>
+                    <div style="color: var(--text-secondary); font-size: 14px;">
+                        {{ assignment.course.level.name }} • {{ assignment.course.credit_units }} Units
+                    </div>
+                    <div style="color: var(--text-tertiary); font-size: 12px;">
+                        Enrolled: {{ assignment.enrolled_count }} students
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <a href="{% url 'lecturer_course_students' assignment.course.id %}" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">Students</a>
+                    <a href="{% url 'lecturer_course_results' assignment.course.id %}" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;">Results</a>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                <div style="width: 60px; height: 60px; background: var(--ios-blue-ultra-light); border-radius: 15px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 30px; height: 30px; background: var(--ios-blue); border-radius: 8px; opacity: 0.6;"></div>
+                </div>
+                <p>No courses assigned yet</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Quick Actions & Notifications -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 20px; font-weight: 600;">Quick Actions</h2>
+        
+        <!-- Pending Actions -->
+        <div style="margin-bottom: 24px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 12px; font-size: 16px; font-weight: 600;">Pending Actions</h3>
+            {% if correction_requests %}
+                <div style="background: var(--ios-red-light); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--ios-red);">
+                    <div style="font-weight: 600; color: var(--ios-red); font-size: 14px;">{{ correction_requests.count }} Correction Request(s)</div>
+                    <div style="color: var(--text-secondary); font-size: 12px;">Results need to be corrected</div>
+                </div>
+            {% endif %}
+            
+            {% if draft_results_count > 0 %}
+                <div style="background: var(--ios-blue-ultra-light); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--ios-blue);">
+                    <div style="font-weight: 600; color: var(--ios-blue); font-size: 14px;">{{ draft_results_count }} Draft Result(s)</div>
+                    <div style="color: var(--text-secondary); font-size: 12px;">Ready for submission</div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Quick Links -->
+        <div>
+            <h3 style="color: var(--ios-blue); margin-bottom: 12px; font-size: 16px; font-weight: 600;">Quick Links</h3>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <a href="{% url 'lecturer_enter_results' %}" class="btn btn-primary btn-compact">Enter New Results</a>
+                <a href="{% url 'lecturer_enroll_students' %}" class="btn btn-secondary btn-compact">Enroll Students</a>
+                <a href="{% url 'lecturer_result_status' %}" class="btn btn-secondary btn-compact">Check Status</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

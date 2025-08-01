@@ -1,0 +1,291 @@
+{% extends 'base.html' %}
+
+{% block title %}Faculty Reports - Faculty Dean{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --ios-red: #FF3B30;
+        --ios-blue: #007AFF;
+        --ios-green: #34C759;
+        --ios-orange: #FF9500;
+        --text-primary: #1D1D1F;
+        --text-secondary: #86868B;
+        --text-tertiary: #C7C7CC;
+        --surface-primary: #FFFFFF;
+        --surface-secondary: #F2F2F7;
+        --border-color: #D1D1D6;
+        --border-light: #E5E5EA;
+        --royal-blue-gradient: linear-gradient(135deg, #007AFF 0%, #FF3B30 100%);
+    }
+
+    .ios-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid var(--border-light);
+        transition: all 0.3s ease;
+        margin-bottom: 20px;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid var(--border-light);
+        text-align: center;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        text-align: center;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-primary {
+        background: var(--royal-blue-gradient);
+        color: white;
+    }
+
+    .btn-secondary {
+        background: var(--surface-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+
+    .chart-container {
+        background: var(--surface-secondary);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .progress-bar {
+        background: var(--surface-secondary);
+        border-radius: 8px;
+        height: 8px;
+        overflow: hidden;
+        margin-top: 8px;
+    }
+
+    .progress-fill {
+        height: 100%;
+        border-radius: 8px;
+        transition: width 0.3s ease;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .mobile-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+        .mobile-card { padding: 16px !important; }
+        .btn { padding: 8px 16px !important; font-size: 12px !important; }
+    }
+</style>
+
+<div style="max-width: 1400px; margin: 0 auto; padding: 16px;">
+    
+    <!-- Header -->
+    <div class="ios-card" style="background: var(--royal-blue-gradient); color: white;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <h1 style="margin: 0 0 6px 0; font-size: 28px; font-weight: 600;">
+                    Faculty Reports & Analytics
+                </h1>
+                <p style="margin: 0; opacity: 0.9; font-size: 16px;">
+                    {{ faculty.name }} • {{ current_session.name|default:"No Active Session" }}
+                </p>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <button onclick="exportReport()" class="btn" style="background: rgba(255,255,255,0.2); color: white;">
+                    Export Report
+                </button>
+                <a href="{% url 'faculty_dean_dashboard' %}" class="btn" style="background: rgba(255,255,255,0.2); color: white;">
+                    ← Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overview Statistics -->
+    <div class="mobile-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div class="stat-card" style="background: var(--ios-blue); color: white;">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.overview.total_departments }}</div>
+            <div style="font-size: 14px; opacity: 0.9;">Departments</div>
+        </div>
+        <div class="stat-card" style="background: var(--ios-green); color: white;">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.overview.total_students }}</div>
+            <div style="font-size: 14px; opacity: 0.9;">Students</div>
+        </div>
+        <div class="stat-card" style="background: var(--ios-orange); color: white;">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.overview.total_lecturers }}</div>
+            <div style="font-size: 14px; opacity: 0.9;">Lecturers</div>
+        </div>
+        <div class="stat-card" style="background: var(--ios-red); color: white;">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.overview.total_courses }}</div>
+            <div style="font-size: 14px; opacity: 0.9;">Courses</div>
+        </div>
+    </div>
+
+    <!-- Detailed Analytics -->
+    <div class="mobile-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        
+        <!-- Students Analytics -->
+        <div class="ios-card">
+            <h3 style="color: var(--text-primary); margin-bottom: 16px; font-size: 18px; font-weight: 700;">
+                Student Distribution
+            </h3>
+            
+            <!-- By Level -->
+            <div style="margin-bottom: 20px;">
+                <h4 style="color: var(--text-secondary); margin-bottom: 12px; font-size: 14px; font-weight: 600;">By Level</h4>
+                {% for level, count in stats.students_by_level.items %}
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 14px; color: var(--text-primary);">{{ level }} Level</span>
+                    <span style="font-weight: 600; color: var(--ios-blue);">{{ count }}</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="background: var(--ios-blue); width: {% widthratio count stats.overview.total_students 100 %}%;"></div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- By Department -->
+            <div>
+                <h4 style="color: var(--text-secondary); margin-bottom: 12px; font-size: 14px; font-weight: 600;">By Department</h4>
+                {% for dept, count in stats.students_by_department.items %}
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 14px; color: var(--text-primary);">{{ dept }}</span>
+                    <span style="font-weight: 600; color: var(--ios-green);">{{ count }}</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="background: var(--ios-green); width: {% widthratio count stats.overview.total_students 100 %}%;"></div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Academic Performance -->
+        <div class="ios-card">
+            <h3 style="color: var(--text-primary); margin-bottom: 16px; font-size: 18px; font-weight: 700;">
+                Academic Performance
+            </h3>
+            
+            <!-- Grade Distribution -->
+            {% if stats.grade_distribution %}
+            <div style="margin-bottom: 20px;">
+                <h4 style="color: var(--text-secondary); margin-bottom: 12px; font-size: 14px; font-weight: 600;">Grade Distribution</h4>
+                {% for grade, count in stats.grade_distribution.items %}
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 14px; color: var(--text-primary);">Grade {{ grade }}</span>
+                    <span style="font-weight: 600; color: {% if grade == 'A' %}var(--ios-green){% elif grade == 'B' %}var(--ios-blue){% elif grade == 'C' %}var(--ios-orange){% else %}var(--ios-red){% endif %};">{{ count }}</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="background: {% if grade == 'A' %}var(--ios-green){% elif grade == 'B' %}var(--ios-blue){% elif grade == 'C' %}var(--ios-orange){% else %}var(--ios-red){% endif %}; width: {% widthratio count stats.overview.total_results 100 %}%;"></div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <!-- Results Status -->
+            {% if stats.results_by_status %}
+            <div>
+                <h4 style="color: var(--text-secondary); margin-bottom: 12px; font-size: 14px; font-weight: 600;">Results Status</h4>
+                {% for status, count in stats.results_by_status.items %}
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 14px; color: var(--text-primary);">{{ status }}</span>
+                    <span style="font-weight: 600; color: var(--ios-orange);">{{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Course Analytics -->
+    <div class="ios-card">
+        <h3 style="color: var(--text-primary); margin-bottom: 16px; font-size: 18px; font-weight: 700;">
+            Course Analytics
+        </h3>
+        
+        <div class="mobile-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+            {% for level, count in stats.courses_by_level.items %}
+            <div class="chart-container">
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: 700; color: var(--ios-blue); margin-bottom: 4px;">{{ count }}</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">{{ level }} Level Courses</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Staff Analytics -->
+    <div class="ios-card">
+        <h3 style="color: var(--text-primary); margin-bottom: 16px; font-size: 18px; font-weight: 700;">
+            Staff Distribution
+        </h3>
+        
+        <div class="mobile-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+            {% for dept, count in stats.lecturers_by_department.items %}
+            <div class="chart-container">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">{{ dept }}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Department</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 20px; font-weight: 700; color: var(--ios-orange);">{{ count }}</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">Lecturers</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Export Options -->
+    <div class="ios-card">
+        <h3 style="color: var(--text-primary); margin-bottom: 16px; font-size: 18px; font-weight: 700;">
+            Export Reports
+        </h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+            <button onclick="exportStudentReport()" class="btn btn-primary">Student Report</button>
+            <button onclick="exportStaffReport()" class="btn btn-primary">Staff Report</button>
+            <button onclick="exportCourseReport()" class="btn btn-primary">Course Report</button>
+            <button onclick="exportPerformanceReport()" class="btn btn-primary">Performance Report</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function exportReport() {
+    alert('Full faculty report export - to be implemented');
+}
+
+function exportStudentReport() {
+    alert('Student report export - to be implemented');
+}
+
+function exportStaffReport() {
+    alert('Staff report export - to be implemented');
+}
+
+function exportCourseReport() {
+    alert('Course report export - to be implemented');
+}
+
+function exportPerformanceReport() {
+    alert('Performance report export - to be implemented');
+}
+</script>
+{% endblock %}

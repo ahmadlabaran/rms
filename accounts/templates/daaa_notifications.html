@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+
+{% block title %}Notification Management - DAAA{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <h1 class="page-title">Notification Management</h1>
+    <p class="page-subtitle">Manage in-app notifications and email alerts</p>
+</div>
+
+<!-- Quick Actions -->
+<div class="ios-card" style="margin-bottom: 32px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="color: var(--text-primary); font-size: 20px; font-weight: 600; margin: 0;">Quick Actions</h2>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+        <a href="{% url 'daaa_send_notifications' %}" class="btn btn-primary">Send Notifications</a>
+        <a href="{% url 'daaa_bulk_email' %}" class="btn btn-secondary">Send Bulk Email</a>
+        <a href="{% url 'daaa_notification_templates' %}" class="btn btn-secondary">Manage Templates</a>
+        <a href="{% url 'daaa_email_settings' %}" class="btn btn-secondary">Email Settings</a>
+    </div>
+</div>
+
+<!-- Notification Statistics -->
+<div class="stats-grid" style="margin-bottom: 40px;">
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.total_notifications }}</div>
+        <div class="stat-label">Total Notifications</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.unread_notifications }}</div>
+        <div class="stat-label">Unread Notifications</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.emails_sent_today }}</div>
+        <div class="stat-label">Emails Sent Today</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.email_success_rate }}%</div>
+        <div class="stat-label">Email Success Rate</div>
+    </div>
+</div>
+
+<!-- Send Notification Form -->
+<div class="ios-card" style="margin-bottom: 32px;">
+    <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Send New Notification</h2>
+    
+    <form method="post" action="{% url 'daaa_send_notification' %}">
+        {% csrf_token %}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div>
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Target Audience</label>
+                <select name="target_audience" required style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;">
+                    <option value="">Select Target Audience</option>
+                    <option value="all_students">All Students</option>
+                    <option value="all_lecturers">All Lecturers</option>
+                    <option value="all_staff">All Staff</option>
+                    <option value="faculty_specific">Faculty Specific</option>
+                    <option value="level_specific">Level Specific</option>
+                    <option value="custom">Custom Selection</option>
+                </select>
+            </div>
+            
+            <div>
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Notification Type</label>
+                <select name="notification_type" required style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;">
+                    <option value="">Select Type</option>
+                    <option value="RESULT_PUBLISHED">Result Published</option>
+                    <option value="SESSION_CREATED">Session Created</option>
+                    <option value="SESSION_LOCKED">Session Locked</option>
+                    <option value="SYSTEM_UPDATE">System Update</option>
+                    <option value="GENERAL">General Announcement</option>
+                </select>
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Title</label>
+            <input type="text" name="title" required style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;" placeholder="Enter notification title">
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Message</label>
+            <textarea name="message" required rows="4" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; resize: vertical;" placeholder="Enter notification message"></textarea>
+        </div>
+        
+        <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 20px;">
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="send_email" value="1" style="margin: 0;">
+                <span style="font-weight: 500; color: var(--text-primary);">Also send as email</span>
+            </label>
+            
+            <label style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" name="urgent" value="1" style="margin: 0;">
+                <span style="font-weight: 500; color: var(--text-primary);">Mark as urgent</span>
+            </label>
+        </div>
+        
+        <div style="display: flex; gap: 12px;">
+            <button type="submit" class="btn btn-primary">Send Notification</button>
+            <button type="button" class="btn btn-secondary" onclick="document.querySelector('form').reset();">Clear Form</button>
+        </div>
+    </form>
+</div>
+
+<!-- Recent Notifications -->
+<div class="ios-card" style="margin-bottom: 32px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2 style="color: var(--text-primary); font-size: 22px; font-weight: 600; margin: 0;">Recent Notifications</h2>
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <select style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;">
+                <option value="">All Types</option>
+                <option value="RESULT_PUBLISHED">Result Published</option>
+                <option value="SESSION_CREATED">Session Created</option>
+                <option value="SYSTEM_UPDATE">System Update</option>
+            </select>
+        </div>
+    </div>
+
+    {% if recent_notifications %}
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--surface-secondary);">
+                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Type</th>
+                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Title</th>
+                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Recipients</th>
+                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Email Status</th>
+                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Created</th>
+                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for notification in recent_notifications %}
+                    <tr style="border-bottom: 1px solid var(--border-light);">
+                        <td style="padding: 12px;">
+                            <span class="badge badge-primary">{{ notification.get_notification_type_display }}</span>
+                        </td>
+                        <td style="padding: 12px;">
+                            <div style="font-weight: 600; color: var(--text-primary);">{{ notification.title }}</div>
+                            <div style="color: var(--text-secondary); font-size: 12px;">{{ notification.message|truncatechars:50 }}</div>
+                        </td>
+                        <td style="padding: 12px; color: var(--text-secondary);">{{ notification.recipient_count }} users</td>
+                        <td style="padding: 12px;">
+                            {% if notification.email_sent %}
+                                <span class="badge badge-success">Sent</span>
+                            {% else %}
+                                <span class="badge badge-secondary">Not Sent</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px; color: var(--text-secondary);">{{ notification.created_at|date:"M d, Y H:i" }}</td>
+                        <td style="padding: 12px;">
+                            <div style="display: flex; gap: 8px;">
+                                <a href="{% url 'daaa_notification_details' notification.id %}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">View</a>
+                                {% if not notification.email_sent %}
+                                    <a href="{% url 'daaa_resend_email' notification.id %}" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;">Send Email</a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 60px; color: var(--text-secondary);">
+            <div style="width: 80px; height: 80px; background: var(--ios-blue-ultra-light); border-radius: 20px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+                <div style="width: 40px; height: 40px; background: var(--ios-blue); border-radius: 10px; opacity: 0.6;"></div>
+            </div>
+            <h3 style="color: var(--text-primary); margin-bottom: 8px;">No Notifications Found</h3>
+            <p style="margin-bottom: 20px;">Send your first notification to get started</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Email Delivery Status -->
+<div class="ios-card">
+    <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Email Delivery Status</h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 24px;">
+        <div style="background: var(--surface-secondary); padding: 20px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: var(--ios-blue); margin-bottom: 8px;">{{ email_stats.sent_today }}</div>
+            <div style="color: var(--text-secondary); font-size: 14px;">Emails Sent Today</div>
+        </div>
+        
+        <div style="background: var(--surface-secondary); padding: 20px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: var(--ios-green); margin-bottom: 8px;">{{ email_stats.delivered }}</div>
+            <div style="color: var(--text-secondary); font-size: 14px;">Successfully Delivered</div>
+        </div>
+        
+        <div style="background: var(--surface-secondary); padding: 20px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: var(--ios-red); margin-bottom: 8px;">{{ email_stats.failed }}</div>
+            <div style="color: var(--text-secondary); font-size: 14px;">Failed Deliveries</div>
+        </div>
+        
+        <div style="background: var(--surface-secondary); padding: 20px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: var(--ios-blue); margin-bottom: 8px;">{{ email_stats.pending }}</div>
+            <div style="color: var(--text-secondary); font-size: 14px;">Pending</div>
+        </div>
+    </div>
+    
+    <div style="display: flex; gap: 12px;">
+        <a href="{% url 'daaa_email_logs' %}" class="btn btn-secondary">View Email Logs</a>
+        <a href="{% url 'daaa_email_settings' %}" class="btn btn-secondary">Email Settings</a>
+        <a href="{% url 'daaa_test_email' %}" class="btn btn-primary">Send Test Email</a>
+    </div>
+</div>
+
+{% endblock %}

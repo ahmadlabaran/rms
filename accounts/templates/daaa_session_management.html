@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block title %}Session Management - DAAA{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <h1 class="page-title">Academic Session Management</h1>
+    <p class="page-subtitle">Create, manage, and control academic sessions</p>
+</div>
+
+<!-- Current Session Status -->
+<div class="ios-card" style="margin-bottom: 32px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="color: var(--text-primary); font-size: 22px; font-weight: 600; margin: 0;">Current Active Session</h2>
+        {% if current_session %}
+            {% if current_session.is_locked %}
+                <span class="badge badge-danger">Locked</span>
+            {% else %}
+                <span class="badge badge-success">Active</span>
+            {% endif %}
+        {% else %}
+            <span class="badge badge-warning">No Active Session</span>
+        {% endif %}
+    </div>
+
+    {% if current_session %}
+        <div style="background: var(--surface-secondary); padding: 24px; border-radius: 12px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px;">
+                <div>
+                    <h3 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 16px; font-weight: 600;">Session Name</h3>
+                    <p style="color: var(--text-primary); font-size: 20px; font-weight: 600; margin: 0;">{{ current_session.name }}</p>
+                </div>
+                <div>
+                    <h3 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 16px; font-weight: 600;">Duration</h3>
+                    <p style="color: var(--text-primary); font-size: 16px; margin: 0;">
+                        {{ current_session.start_date|date:"M d, Y" }} - {{ current_session.end_date|date:"M d, Y" }}
+                    </p>
+                </div>
+                <div>
+                    <h3 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 16px; font-weight: 600;">Created By</h3>
+                    <p style="color: var(--text-primary); font-size: 16px; margin: 0;">{{ current_session.created_by.get_full_name }}</p>
+                    <p style="color: var(--text-secondary); font-size: 12px; margin: 0;">{{ current_session.created_at|date:"M d, Y H:i" }}</p>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; display: flex; gap: 12px;">
+                {% if not current_session.is_locked %}
+                    <a href="{% url 'daaa_lock_session' current_session.id %}" class="btn btn-danger btn-compact">Lock Session</a>
+                    <a href="{% url 'daaa_edit_session' current_session.id %}" class="btn btn-secondary btn-compact">Edit Session</a>
+                {% else %}
+                    <a href="{% url 'daaa_unlock_session' current_session.id %}" class="btn btn-primary btn-compact">Unlock Session</a>
+                {% endif %}
+                <a href="{% url 'daaa_session_details' current_session.id %}" class="btn btn-secondary btn-compact">View Details</a>
+            </div>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+            <div style="width: 60px; height: 60px; background: var(--ios-red-light); border-radius: 15px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
+                <div style="width: 30px; height: 30px; background: var(--ios-red); border-radius: 8px; opacity: 0.6;"></div>
+            </div>
+            <p style="margin-bottom: 16px;">No active academic session</p>
+            <a href="{% url 'daaa_create_session' %}" class="btn btn-primary">Create New Session</a>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Session Management Actions -->
+<div class="ios-card" style="margin-bottom: 32px;">
+    <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Session Management Actions</h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+        <a href="{% url 'daaa_create_session' %}" class="btn btn-primary">Create New Session</a>
+        <a href="{% url 'daaa_activate_session' %}" class="btn btn-secondary">Activate Session</a>
+        <a href="{% url 'daaa_archive_sessions' %}" class="btn btn-secondary">Archive Old Sessions</a>
+        <a href="{% url 'daaa_session_reports' %}" class="btn btn-secondary">Session Reports</a>
+    </div>
+</div>
+
+<!-- All Sessions -->
+<div class="ios-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2 style="color: var(--text-primary); font-size: 22px; font-weight: 600; margin: 0;">All Academic Sessions</h2>
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <select style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;">
+                <option value="">All Sessions</option>
+                <option value="active">Active</option>
+                <option value="locked">Locked</option>
+                <option value="archived">Archived</option>
+            </select>
+        </div>
+    </div>
+
+    {% if sessions %}
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--surface-secondary);">
+                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Session</th>
+                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Duration</th>
+                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Status</th>
+                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Results</th>
+                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Created By</th>
+                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for session in sessions %}
+                    <tr style="border-bottom: 1px solid var(--border-light);">
+                        <td style="padding: 12px;">
+                            <div style="font-weight: 600; color: var(--text-primary);">{{ session.name }}</div>
+                            <div style="color: var(--text-secondary); font-size: 12px;">Created: {{ session.created_at|date:"M d, Y" }}</div>
+                        </td>
+                        <td style="padding: 12px; color: var(--text-secondary);">
+                            {{ session.start_date|date:"M d, Y" }} - {{ session.end_date|date:"M d, Y" }}
+                        </td>
+                        <td style="padding: 12px;">
+                            {% if session.is_active %}
+                                {% if session.is_locked %}
+                                    <span class="badge badge-danger">Active & Locked</span>
+                                {% else %}
+                                    <span class="badge badge-success">Active</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge badge-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px;">
+                            <div style="color: var(--text-primary); font-weight: 500;">{{ session.total_results }}</div>
+                            <div style="color: var(--text-secondary); font-size: 12px;">
+                                {{ session.published_results }} published
+                            </div>
+                        </td>
+                        <td style="padding: 12px;">
+                            <div style="color: var(--text-primary);">{{ session.created_by.get_full_name }}</div>
+                            <div style="color: var(--text-secondary); font-size: 12px;">{{ session.created_by.email }}</div>
+                        </td>
+                        <td style="padding: 12px;">
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <a href="{% url 'daaa_session_details' session.id %}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">View</a>
+                                {% if not session.is_locked %}
+                                    <a href="{% url 'daaa_edit_session' session.id %}" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;">Edit</a>
+                                    {% if session.is_active %}
+                                        <a href="{% url 'daaa_lock_session' session.id %}" class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;">Lock</a>
+                                    {% else %}
+                                        <a href="{% url 'daaa_activate_session_single' session.id %}" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;">Activate</a>
+                                    {% endif %}
+                                {% else %}
+                                    <a href="{% url 'daaa_unlock_session' session.id %}" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;">Unlock</a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 60px; color: var(--text-secondary);">
+            <div style="width: 80px; height: 80px; background: var(--ios-blue-ultra-light); border-radius: 20px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+                <div style="width: 40px; height: 40px; background: var(--ios-blue); border-radius: 10px; opacity: 0.6;"></div>
+            </div>
+            <h3 style="color: var(--text-primary); margin-bottom: 8px;">No Sessions Found</h3>
+            <p style="margin-bottom: 20px;">Create your first academic session to get started</p>
+            <a href="{% url 'daaa_create_session' %}" class="btn btn-primary">Create Session</a>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Session Statistics -->
+{% if sessions %}
+<div class="ios-card" style="margin-top: 32px;">
+    <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Session Statistics</h2>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ session_stats.total_sessions }}</div>
+            <div class="stat-label">Total Sessions</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ session_stats.active_sessions }}</div>
+            <div class="stat-label">Active Sessions</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ session_stats.locked_sessions }}</div>
+            <div class="stat-label">Locked Sessions</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ session_stats.total_results }}</div>
+            <div class="stat-label">Total Results</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

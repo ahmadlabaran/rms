@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Faculties - RMS{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --ios-red: #FF3B30;
+        --ios-red-light: #FF6B6B;
+        --ios-red-ultra-light: rgba(255, 59, 48, 0.1);
+        --ios-blue: #007AFF;
+        --ios-blue-light: #5AC8FA;
+        --ios-blue-ultra-light: rgba(0, 122, 255, 0.1);
+        --ios-green: #34C759;
+        --ios-orange: #FF9500;
+        --text-primary: #1D1D1F;
+        --text-secondary: #86868B;
+        --text-tertiary: #C7C7CC;
+        --surface-primary: #FFFFFF;
+        --surface-secondary: #F2F2F7;
+        --border-color: #D1D1D6;
+        --border-light: #E5E5EA;
+        --accent-gradient: linear-gradient(135deg, #007AFF 0%, #FF3B30 100%);
+        --gradient-bg: #F2F2F7;
+    }
+</style>
+
+<div style="min-height: 100vh; background: var(--gradient-bg); padding: 20px 20px 40px 20px;">
+    <div style="max-width: 1200px; margin: 0 auto;">
+        <!-- Header Card -->
+        <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 24px; padding: 32px; margin-bottom: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                <div>
+                    <h1 style="font-size: 28px; font-weight: 700; color: var(--text-primary); margin: 0 0 8px 0; letter-spacing: -0.5px;">
+                        Manage Faculties
+                    </h1>
+                    <p style="color: var(--text-secondary); margin: 0; font-size: 16px; font-weight: 500;">
+                        Create, view, edit, and manage all university faculties
+                    </p>
+                </div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <a href="{% url 'super_admin_create_faculty' %}"
+                       style="background: var(--accent-gradient); color: #FFFFFF; padding: 16px 24px; border-radius: 16px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 20px rgba(0,0,0,0.15); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 18px;">+</span>
+                        Create New Faculty
+                    </a>
+                    <a href="{% url 'super_admin_dashboard' %}"
+                       style="background: #FFFFFF; color: var(--text-primary); padding: 16px 24px; border-radius: 16px; text-decoration: none; font-weight: 600; border: 1px solid var(--border-color); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                        ← Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filters Card -->
+        <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; margin-bottom: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
+            <div style="display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: end;">
+                <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary); font-size: 14px;">Search Faculties</label>
+                    <input type="text" id="facultySearch" placeholder="Search by faculty name or dean..."
+                           style="width: 100%; padding: 16px 20px; border: 2px solid var(--ios-red); border-radius: 16px; font-size: 16px; background: #FFFFFF; transition: all 0.2s ease;"
+                           onfocus="this.style.borderColor='var(--ios-blue)'; this.style.boxShadow='0 0 0 4px var(--ios-blue-ultra-light)'"
+                           onblur="this.style.borderColor='var(--ios-red)'; this.style.boxShadow='none'">
+                </div>
+                <button onclick="filterFaculties()"
+                        style="background: var(--accent-gradient); color: white; padding: 16px 24px; border: none; border-radius: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.08); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+                    Search
+                </button>
+            </div>
+        </div>
+
+        <!-- Faculties Grid -->
+        <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 24px; padding: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 24px;" id="facultiesContainer">
+                {% for faculty in faculties %}
+                <div class="faculty-card" style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 20px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.08); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">
+                        <div style="flex: 1;">
+                            <h3 style="font-size: 20px; font-weight: 700; color: var(--text-primary); margin: 0 0 8px 0; letter-spacing: -0.3px;">
+                                {{ faculty.name }}
+                            </h3>
+                            {% if faculty.dean %}
+                                <p style="color: var(--ios-green); margin: 0 0 4px 0; font-size: 14px; font-weight: 600;">
+                                    Dean: {{ faculty.dean.get_full_name }}
+                                </p>
+                                <p style="color: var(--text-secondary); margin: 0; font-size: 12px;">
+                                    {{ faculty.dean.email }}
+                                </p>
+                            {% else %}
+                                <p style="color: var(--ios-red); margin: 0; font-size: 14px; font-weight: 600;">
+                                    No Dean Assigned
+                                </p>
+                            {% endif %}
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-direction: column;">
+                            <a href="{% url 'super_admin_faculty_details' faculty.id %}"
+                               style="background: var(--ios-blue); color: white; padding: 10px 16px; border-radius: 12px; text-decoration: none; font-size: 12px; font-weight: 600; text-align: center; transition: all 0.2s ease;">
+                                View
+                            </a>
+                            <a href="{% url 'super_admin_edit_faculty' faculty.id %}"
+                               style="background: var(--ios-orange); color: white; padding: 10px 16px; border-radius: 12px; text-decoration: none; font-size: 12px; font-weight: 600; text-align: center; transition: all 0.2s ease;">
+                                Edit
+                            </a>
+                            <button onclick="deleteFaculty({{ faculty.id }}, '{{ faculty.name }}')"
+                                    style="background: var(--ios-red); color: white; border: none; padding: 10px 16px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Faculty Stats -->
+                    <div style="background: var(--surface-secondary); border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-light);">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: center;">
+                            <div>
+                                <div style="font-size: 28px; font-weight: 800; color: var(--ios-blue); margin-bottom: 4px;">
+                                    {{ faculty.department_set.count }}
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    Departments
+                                </div>
+                            </div>
+                            <div>
+                                <div style="font-size: 28px; font-weight: 800; color: var(--ios-green); margin-bottom: 4px;">
+                                    {{ faculty.students_count|default:0 }}
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    Students
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Departments -->
+                    {% if faculty.department_set.all %}
+                    <div>
+                        <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
+                            Departments:
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            {% for department in faculty.department_set.all|slice:":3" %}
+                            <span style="background: var(--ios-blue-ultra-light); color: var(--ios-blue); padding: 6px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; border: 1px solid rgba(0, 122, 255, 0.2);">
+                                {{ department.name }}
+                            </span>
+                            {% endfor %}
+                            {% if faculty.department_set.count > 3 %}
+                            <span style="color: var(--text-tertiary); font-size: 11px; padding: 6px 8px; font-weight: 500;">
+                                +{{ faculty.department_set.count|add:"-3" }} more
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div style="text-align: center; padding: 20px; color: var(--text-tertiary); font-style: italic; font-size: 14px; background: var(--surface-secondary); border-radius: 12px; border: 1px solid var(--border-light);">
+                        No departments yet
+                    </div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div style="grid-column: 1 / -1; text-align: center; padding: 80px 40px; color: var(--text-secondary);">
+                    <div style="font-size: 80px; margin-bottom: 24px; opacity: 0.6;">🏛️</div>
+                    <h3 style="font-size: 28px; margin-bottom: 16px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.5px;">No Faculties Found</h3>
+                    <p style="margin-bottom: 32px; font-size: 16px; color: var(--text-secondary); max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.5;">Start by creating your first faculty to organize your university structure.</p>
+                    <a href="{% url 'super_admin_create_faculty' %}"
+                       style="background: var(--accent-gradient); color: white; padding: 18px 36px; border-radius: 16px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 4px 20px rgba(0,0,0,0.15); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+                        Create First Faculty
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterFaculties() {
+    const searchTerm = document.getElementById('facultySearch').value.toLowerCase();
+    const facultyCards = document.querySelectorAll('.faculty-card');
+    
+    facultyCards.forEach(card => {
+        const facultyName = card.querySelector('h3').textContent.toLowerCase();
+        const deanInfo = card.querySelector('p').textContent.toLowerCase();
+        
+        const matchesSearch = facultyName.includes(searchTerm) || deanInfo.includes(searchTerm);
+        
+        if (matchesSearch) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+// Real-time search
+document.getElementById('facultySearch').addEventListener('input', filterFaculties);
+
+// Delete faculty function
+function deleteFaculty(facultyId, facultyName) {
+    if (confirm(`Are you sure you want to delete the faculty "${facultyName}"? This will also delete all associated departments and students. This action cannot be undone.`)) {
+        fetch(`/api/super-admin/delete-faculty/${facultyId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Faculty deleted successfully');
+                location.reload();
+            } else {
+                alert('Error deleting faculty: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error deleting faculty');
+            console.error('Error:', error);
+        });
+    }
+}
+</script>
+
+<!-- Hidden CSRF token for AJAX requests -->
+{% csrf_token %}
+{% endblock %}

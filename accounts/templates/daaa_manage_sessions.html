@@ -1,0 +1,332 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Academic Sessions - DAAA{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --ios-red: #FF3B30;
+        --ios-blue: #007AFF;
+        --ios-green: #34C759;
+        --ios-orange: #FF9500;
+        --text-primary: #1D1D1F;
+        --text-secondary: #86868B;
+        --text-tertiary: #C7C7CC;
+        --surface-primary: #FFFFFF;
+        --surface-secondary: #F2F2F7;
+        --border-color: #D1D1D6;
+        --border-light: #E5E5EA;
+        --royal-blue-gradient: linear-gradient(135deg, #007AFF 0%, #FF3B30 100%);
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .ios-card {
+        background: white;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid var(--border-light);
+        margin-bottom: 20px;
+    }
+
+    .session-card {
+        background: var(--surface-secondary);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
+        border: 1px solid var(--border-light);
+        transition: all 0.2s ease;
+    }
+
+    .session-card:hover {
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transform: translateY(-1px);
+    }
+
+    .session-card.active {
+        background: rgba(52, 199, 89, 0.1);
+        border-color: var(--ios-green);
+    }
+
+    .session-card.locked {
+        background: rgba(255, 59, 48, 0.1);
+        border-color: var(--ios-red);
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        text-align: center;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 12px;
+        text-decoration: none;
+        display: inline-block;
+        min-width: 80px;
+        margin: 2px;
+    }
+
+    .btn-primary {
+        background: var(--royal-blue-gradient);
+        color: white;
+    }
+
+    .btn-success {
+        background: var(--ios-green);
+        color: white;
+    }
+
+    .btn-danger {
+        background: var(--ios-red);
+        color: white;
+    }
+
+    .btn-warning {
+        background: var(--ios-orange);
+        color: white;
+    }
+
+    .btn-secondary {
+        background: var(--surface-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-active {
+        background: rgba(52, 199, 89, 0.2);
+        color: var(--ios-green);
+    }
+
+    .status-inactive {
+        background: rgba(142, 142, 147, 0.2);
+        color: var(--text-secondary);
+    }
+
+    .status-locked {
+        background: rgba(255, 59, 48, 0.2);
+        color: var(--ios-red);
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .container { padding: 16px; }
+        .ios-card { padding: 16px; }
+        .session-card { padding: 16px; }
+        .btn { padding: 6px 12px; font-size: 11px; min-width: 70px; }
+    }
+</style>
+
+<div class="container">
+    <!-- Header -->
+    <div class="ios-card" style="background: var(--royal-blue-gradient); color: white;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <h1 style="margin: 0 0 6px 0; font-size: 28px; font-weight: 600;">
+                    Manage Academic Sessions
+                </h1>
+                <p style="margin: 0; opacity: 0.9; font-size: 16px;">
+                    Create, activate, and manage academic sessions
+                </p>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <a href="{% url 'daaa_create_session' %}" class="btn" style="background: rgba(255,255,255,0.2); color: white;">
+                    + Create Session
+                </a>
+                <a href="{% url 'daaa_dashboard' %}" class="btn" style="background: rgba(255,255,255,0.2); color: white;">
+                    ← Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div class="ios-card" style="text-align: center; background: var(--ios-blue); color: white;">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ total_sessions }}</div>
+            <div style="font-size: 14px; opacity: 0.9;">Total Sessions</div>
+        </div>
+        <div class="ios-card" style="text-align: center; background: var(--ios-green); color: white;">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ active_sessions }}</div>
+            <div style="font-size: 14px; opacity: 0.9;">Active Sessions</div>
+        </div>
+        <div class="ios-card" style="text-align: center; background: var(--ios-red); color: white;">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ locked_sessions }}</div>
+            <div style="font-size: 14px; opacity: 0.9;">Locked Sessions</div>
+        </div>
+    </div>
+
+    <!-- Sessions List -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 20px; font-size: 20px; font-weight: 700;">
+            Academic Sessions ({{ sessions.count }})
+        </h2>
+        
+        {% if sessions %}
+            {% for session in sessions %}
+            <div class="session-card {% if session.is_active %}active{% endif %} {% if session.is_locked %}locked{% endif %}">
+                <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 16px;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                            <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: var(--text-primary);">
+                                {{ session.name }}
+                            </h3>
+                            {% if session.is_active %}
+                                <span class="status-badge status-active">Active</span>
+                            {% else %}
+                                <span class="status-badge status-inactive">Inactive</span>
+                            {% endif %}
+                            {% if session.is_locked %}
+                                <span class="status-badge status-locked">Locked</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: 4px;">
+                            <strong>Period:</strong> {{ session.start_date|date:"M d, Y" }} - {{ session.end_date|date:"M d, Y" }}
+                        </div>
+                        
+                        <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: 4px;">
+                            <strong>Created:</strong> {{ session.created_at|date:"M d, Y H:i" }} by {{ session.created_by.get_full_name|default:session.created_by.username }}
+                        </div>
+                        
+                        {% if session.is_active %}
+                            <div style="color: var(--ios-green); font-size: 12px; font-weight: 600;">
+                                🟢 Currently Active Session
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        {% if not session.is_active %}
+                            <button onclick="activateSession({{ session.id }}, '{{ session.name }}')" class="btn btn-success">
+                                Activate
+                            </button>
+                        {% endif %}
+                        
+                        {% if not session.is_locked %}
+                            <button onclick="lockSession({{ session.id }}, '{{ session.name }}')" class="btn btn-danger">
+                                Lock
+                            </button>
+                        {% else %}
+                            <button onclick="unlockSession({{ session.id }}, '{{ session.name }}')" class="btn btn-warning">
+                                Unlock
+                            </button>
+                        {% endif %}
+                        
+                        <button onclick="viewSessionDetails({{ session.id }}, '{{ session.name }}')" class="btn btn-secondary">
+                            Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="text-align: center; padding: 60px; color: var(--text-secondary);">
+                <div style="width: 80px; height: 80px; background: var(--ios-blue); opacity: 0.2; border-radius: 20px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 40px; height: 40px; background: var(--ios-blue); border-radius: 10px; opacity: 0.6;"></div>
+                </div>
+                <h3 style="color: var(--text-primary); margin-bottom: 8px;">No Academic Sessions</h3>
+                <p>Create your first academic session to get started.</p>
+                <a href="{% url 'super_admin_create_session' %}" class="btn btn-primary" style="margin-top: 16px;">
+                    Create Session
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function activateSession(sessionId, sessionName) {
+    if (confirm(`Activate academic session "${sessionName}"?\n\nThis will deactivate all other sessions.`)) {
+        fetch('{% url "daaa_activate_session" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'session_id=' + sessionId
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+
+function lockSession(sessionId, sessionName) {
+    if (confirm(`Lock academic session "${sessionName}"?\n\nThis will prevent any changes to the session.`)) {
+        fetch(`{% url "daaa_lock_session" 0 %}`.replace('0', sessionId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+
+function unlockSession(sessionId, sessionName) {
+    if (confirm(`Unlock academic session "${sessionName}"?`)) {
+        fetch(`{% url "daaa_unlock_session" 0 %}`.replace('0', sessionId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+
+function viewSessionDetails(sessionId, sessionName) {
+    alert(`View details for "${sessionName}" - Feature to be implemented`);
+}
+</script>
+
+{% csrf_token %}
+{% endblock %}

@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RMS - Result Management System{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- iOS Aesthetic Styling -->
+    <style>
+        :root {
+            /* iOS Modern Color Scheme - 55% white, 35% dark royal blue, 10% red */
+            --primary-white: #FFFFFF;
+            --secondary-white: #F8F9FA;
+            --tertiary-white: #F2F2F7;
+            --quaternary-white: #FAFBFC;
+
+            /* Dark Royal Blue - Primary Color (35%) */
+            --royal-blue: #1e3a8a;
+            --royal-blue-light: #3b82f6;
+            --royal-blue-dark: #1e40af;
+            --royal-blue-ultra-light: rgba(30, 58, 138, 0.08);
+            --royal-blue-gradient: linear-gradient(135deg, #007AFF 0%, #FF3B30 100%);
+
+            /* Strategic Red Usage (10%) - for important actions and accents */
+            --accent-red: #dc2626;
+            --accent-red-light: rgba(220, 38, 38, 0.1);
+            --accent-red-dark: #b91c1c;
+            --accent-red-gradient: linear-gradient(135deg, var(--accent-red) 0%, var(--accent-red-dark) 100%);
+
+            /* Legacy iOS variables for compatibility */
+            --ios-blue: var(--royal-blue);
+            --ios-blue-light: var(--royal-blue-light);
+            --ios-blue-dark: var(--royal-blue-dark);
+            --ios-blue-ultra-light: var(--royal-blue-ultra-light);
+            --ios-red: #FF3B30;
+            --ios-red-light: rgba(255, 59, 48, 0.1);
+            --ios-green: #34C759;
+            --ios-orange: #FF9500;
+            --accent-gradient: linear-gradient(135deg, #007AFF 0%, #FF3B30 100%);
+
+            /* Text Colors */
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --text-tertiary: #9ca3af;
+
+            /* Border and Shadow */
+            --border-color: #e5e7eb;
+            --border-light: #f3f4f6;
+            --shadow-light: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-medium: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-heavy: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+            /* Surface Colors */
+            --surface-elevated: #FFFFFF;
+            --surface-secondary: #F8F9FA;
+            --glass-bg: rgba(255, 255, 255, 0.95);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+            background: var(--secondary-white);
+            color: var(--text-primary);
+            line-height: 1.47;
+            min-height: 100vh;
+            font-size: 17px;
+            font-weight: 400;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Modern iOS Card Style */
+        .ios-card {
+            background: var(--surface-elevated);
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 32px;
+            margin: 20px 0;
+            box-shadow: 0 1px 3px var(--shadow-light), 0 8px 24px var(--shadow-medium);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .ios-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px var(--shadow-medium), 0 12px 32px var(--shadow-heavy);
+        }
+
+        .ios-card-compact {
+            background: var(--surface-elevated);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px;
+            margin: 12px 0;
+            box-shadow: 0 1px 3px var(--shadow-light);
+            transition: all 0.3s ease;
+        }
+
+        /* Modern iOS Navigation */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 8px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .navbar-brand {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--royal-blue) !important;
+            text-decoration: none;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .navbar-brand i {
+            font-size: 28px;
+            color: var(--royal-blue);
+        }
+
+        .navbar-nav .nav-link {
+            color: var(--text-secondary) !important;
+            font-weight: 500;
+            padding: 12px 20px !important;
+            border-radius: 12px;
+            margin: 0 4px;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .navbar-nav .nav-link::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--royal-blue-gradient);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            border-radius: 12px;
+            z-index: -1;
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: var(--royal-blue) !important;
+            background: var(--royal-blue-ultra-light);
+            transform: translateY(-1px);
+        }
+
+        .navbar-nav .nav-link.active {
+            color: var(--primary-white) !important;
+            background: var(--royal-blue);
+            box-shadow: 0 2px 8px rgba(30, 58, 138, 0.3);
+        }
+
+        .navbar-nav .nav-link.active::before {
+            opacity: 1;
+        }
+
+        .navbar-nav .nav-link i {
+            font-size: 18px;
+            opacity: 0.8;
+        }
+
+        .navbar-nav .nav-link:hover i,
+        .navbar-nav .nav-link.active i {
+            opacity: 1;
+        }
+
+        /* iOS-style Logout Button */
+        .navbar .btn-outline-danger {
+            background: rgba(220, 38, 38, 0.1);
+            border: 1px solid rgba(220, 38, 38, 0.2);
+            color: var(--accent-red);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .navbar .btn-outline-danger:hover {
+            background: var(--accent-red);
+            border-color: var(--accent-red);
+            color: var(--primary-white);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
+
+        .navbar .btn-outline-danger i {
+            font-size: 16px;
+        }
+
+        /* Mobile Navigation Improvements */
+        .navbar-toggler {
+            border: none !important;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: var(--royal-blue-ultra-light);
+            transition: all 0.3s ease;
+        }
+
+        .navbar-toggler:hover {
+            background: var(--royal-blue-light);
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: none !important;
+        }
+
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%2830, 58, 138, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
+        }
+
+        /* Mobile Menu Styling */
+        @media (max-width: 991.98px) {
+            .navbar-collapse {
+                background: var(--primary-white);
+                border-radius: 16px;
+                margin-top: 16px;
+                padding: 20px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                border: 1px solid var(--border-light);
+            }
+
+            .navbar-nav {
+                gap: 8px;
+            }
+
+            .navbar-nav .nav-link {
+                padding: 16px 20px !important;
+                margin: 4px 0;
+                border-radius: 12px;
+                background: var(--surface-secondary);
+                border: 1px solid var(--border-light);
+            }
+
+            .navbar-nav .nav-link:hover {
+                background: var(--royal-blue-ultra-light);
+                border-color: var(--royal-blue);
+            }
+
+            .navbar .btn-outline-danger {
+                margin-top: 16px;
+                padding: 14px 20px;
+                justify-content: center;
+                width: 100%;
+            }
+        }
+
+        /* Notification Badge */
+        .nav-notification {
+            position: relative;
+        }
+
+        .nav-notification .badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--accent-red);
+            color: var(--primary-white);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--primary-white);
+        }
+
+        /* User Profile Dropdown */
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 16px;
+            border-radius: 12px;
+            background: var(--surface-secondary);
+            border: 1px solid var(--border-light);
+            transition: all 0.3s ease;
+        }
+
+        .user-profile:hover {
+            background: var(--royal-blue-ultra-light);
+            border-color: var(--royal-blue);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--royal-blue-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-white);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .user-role {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.2;
+        }
+
+        /* Modern Buttons */
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            letter-spacing: -0.01em;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Custom Button Styles with Dark Royal Blue */
+        .btn-primary {
+            background: var(--royal-blue-gradient);
+            color: var(--primary-white);
+            box-shadow: var(--shadow-light);
+            border: none;
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background: var(--royal-blue-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-medium);
+            color: var(--primary-white);
+        }
+
+        .btn-secondary {
+            background: var(--surface-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-light);
+            font-weight: 500;
+        }
+
+        .btn-secondary:hover {
+            background: var(--surface-secondary);
+            border-color: var(--royal-blue);
+            color: var(--royal-blue);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        /* Strategic Red Usage - Only for important actions like logout */
+        .btn-danger {
+            background: var(--accent-red);
+            color: var(--primary-white);
+            box-shadow: var(--shadow-light);
+            border: none;
+            font-weight: 500;
+        }
+
+        .btn-danger:hover {
+            background: var(--accent-red-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-medium);
+            color: var(--primary-white);
+        }
+
+        .btn-compact {
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        /* Additional button styles for consistency */
+        .btn-secondary {
+            background: var(--surface-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-light);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-medium);
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        /* Red accent button for strategic use - adds more red to the app */
+        .btn-accent {
+            background: var(--accent-red-gradient);
+            color: var(--primary-white);
+            border: none;
+            box-shadow: var(--shadow-light);
+            font-weight: 600;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 12px;
+        }
+
+        .btn-accent:hover {
+            background: var(--accent-red-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-medium);
+            color: var(--primary-white);
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 16px;
+            background: var(--primary-white);
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--ios-blue);
+            box-shadow: 0 0 0 3px var(--shadow-light);
+        }
+
+        /* iOS-style Cards with Elevation */
+        .card {
+            background: var(--surface-primary);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .card-elevated {
+            background: var(--surface-primary);
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+
+        .card-elevated:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: -8px;
+        }
+
+        .col {
+            flex: 1;
+            padding: 8px;
+        }
+
+        .col-md-6 {
+            flex: 0 0 50%;
+            max-width: 50%;
+            padding: 8px;
+        }
+
+        .col-md-4 {
+            flex: 0 0 33.333333%;
+            max-width: 33.333333%;
+            padding: 8px;
+        }
+
+        .col-md-3 {
+            flex: 0 0 25%;
+            max-width: 25%;
+            padding: 8px;
+        }
+
+        /* Bootstrap Integration - Ensure all blue buttons have gradient */
+        .text-primary {
+            color: var(--royal-blue) !important;
+        }
+
+        .btn-primary, .btn-primary.btn-compact {
+            background: var(--royal-blue-gradient) !important;
+            border-color: var(--royal-blue) !important;
+            color: var(--primary-white) !important;
+            font-weight: 600 !important;
+        }
+
+        .btn-primary:hover, .btn-primary.btn-compact:hover {
+            background: var(--royal-blue-dark) !important;
+            border-color: var(--royal-blue-dark) !important;
+            color: var(--primary-white) !important;
+            transform: translateY(-1px);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .container-fluid {
+                padding-left: 12px;
+                padding-right: 12px;
+            }
+
+            .ios-card {
+                padding: 16px;
+                margin: 12px 0;
+                border-radius: 16px;
+            }
+
+            .btn-compact {
+                padding: 12px 16px;
+                font-size: 15px;
+            }
+
+            .stat-card {
+                padding: 16px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .ios-card {
+                padding: 12px;
+                border-radius: 12px;
+            }
+
+            .btn-compact {
+                padding: 10px 14px;
+                font-size: 14px;
+            }
+        }
+
+        /* Status Badges */
+        .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-success {
+            background: #34C759;
+            color: white;
+        }
+
+        .badge-warning {
+            background: #FF9500;
+            color: white;
+        }
+
+        .badge-danger {
+            background: var(--ios-red);
+            color: white;
+        }
+
+        .badge-info {
+            background: var(--ios-blue);
+            color: white;
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            border-top-color: var(--ios-blue);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Modern Page Header */
+        .page-header {
+            margin-bottom: 40px;
+            padding: 0 4px;
+        }
+
+        .page-title {
+            font-size: 34px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            letter-spacing: -0.03em;
+            line-height: 1.2;
+        }
+
+        .page-subtitle {
+            font-size: 17px;
+            color: var(--text-secondary);
+            font-weight: 400;
+            line-height: 1.4;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--surface-elevated);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 1px 3px var(--shadow-light);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow-medium);
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--ios-blue);
+            margin-bottom: 4px;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 15px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <!-- Modern iOS-Style Navigation -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid px-4">
+            <!-- Brand with iOS styling -->
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="bi bi-mortarboard-fill"></i>
+                <span>RMS</span>
+            </a>
+
+            <!-- Mobile hamburger button -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <!-- Navigation links -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">
+                            <i class="bi bi-house-fill"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'students' %}active{% endif %}" href="{% url 'students' %}">
+                            <i class="bi bi-people-fill"></i>
+                            <span>Students</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'courses' %}active{% endif %}" href="{% url 'courses' %}">
+                            <i class="bi bi-book-fill"></i>
+                            <span>Courses</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'results' %}active{% endif %}" href="{% url 'results' %}">
+                            <i class="bi bi-clipboard-data-fill"></i>
+                            <span>Results</span>
+                        </a>
+                    </li>
+                    <li class="nav-item nav-notification">
+                        <a class="nav-link" href="#" title="Notifications">
+                            <i class="bi bi-bell-fill"></i>
+                            <span>Notifications</span>
+                            <span class="badge">3</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- User Profile and Logout -->
+                <div class="d-flex align-items-center gap-3">
+                    <!-- User Profile Info -->
+                    <div class="user-profile d-none d-lg-flex">
+                        <div class="user-avatar">
+                            {% if user.first_name %}{{ user.first_name|first }}{% else %}{{ user.username|first|upper }}{% endif %}
+                        </div>
+                        <div class="user-info">
+                            <div class="user-name">
+                                {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}
+                            </div>
+                            <div class="user-role">Administrator</div>
+                        </div>
+                    </div>
+
+                    <!-- Logout Button -->
+                    <a href="{% url 'logout' %}" class="btn btn-outline-danger">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content with Bootstrap -->
+    <div class="container-fluid py-4">
+        <div class="container">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Enhanced JavaScript for iOS-like interactions -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add touch feedback for buttons and cards
+            const interactiveElements = document.querySelectorAll('.btn, .ios-card, .card, .nav-link');
+            interactiveElements.forEach(element => {
+                element.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.98)';
+                    this.style.transition = 'transform 0.1s ease';
+                });
+
+                element.addEventListener('touchend', function() {
+                    this.style.transform = 'scale(1)';
+                    this.style.transition = 'transform 0.3s ease';
+                });
+
+                // Mouse events for desktop
+                element.addEventListener('mousedown', function() {
+                    this.style.transform = 'scale(0.98)';
+                    this.style.transition = 'transform 0.1s ease';
+                });
+
+                element.addEventListener('mouseup', function() {
+                    this.style.transform = 'scale(1)';
+                    this.style.transition = 'transform 0.3s ease';
+                });
+            });
+
+            // Navbar scroll effect
+            let lastScrollTop = 0;
+            const navbar = document.querySelector('.navbar');
+
+            window.addEventListener('scroll', function() {
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+                if (scrollTop > lastScrollTop && scrollTop > 100) {
+                    // Scrolling down
+                    navbar.style.transform = 'translateY(-100%)';
+                    navbar.style.transition = 'transform 0.3s ease';
+                } else {
+                    // Scrolling up
+                    navbar.style.transform = 'translateY(0)';
+                    navbar.style.transition = 'transform 0.3s ease';
+                }
+
+                // Add blur effect when scrolled
+                if (scrollTop > 50) {
+                    navbar.style.background = 'rgba(255, 255, 255, 0.9)';
+                    navbar.style.backdropFilter = 'blur(20px)';
+                } else {
+                    navbar.style.background = 'rgba(255, 255, 255, 0.95)';
+                    navbar.style.backdropFilter = 'blur(20px)';
+                }
+
+                lastScrollTop = scrollTop;
+            });
+
+            // Auto-close mobile menu when clicking outside
+            document.addEventListener('click', function(event) {
+                const navbarCollapse = document.querySelector('.navbar-collapse');
+                const navbarToggler = document.querySelector('.navbar-toggler');
+
+                if (navbarCollapse && navbarCollapse.classList.contains('show')) {
+                    if (!navbarCollapse.contains(event.target) && !navbarToggler.contains(event.target)) {
+                        const bsCollapse = new bootstrap.Collapse(navbarCollapse, {
+                            toggle: false
+                        });
+                        bsCollapse.hide();
+                    }
+                }
+            });
+
+            // Add ripple effect to nav links
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    const ripple = document.createElement('span');
+                    const rect = this.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height);
+                    const x = e.clientX - rect.left - size / 2;
+                    const y = e.clientY - rect.top - size / 2;
+
+                    ripple.style.width = ripple.style.height = size + 'px';
+                    ripple.style.left = x + 'px';
+                    ripple.style.top = y + 'px';
+                    ripple.classList.add('ripple');
+
+                    this.appendChild(ripple);
+
+                    setTimeout(() => {
+                        ripple.remove();
+                    }, 600);
+                });
+            });
+
+            // Notification badge animation
+            const notificationBadge = document.querySelector('.nav-notification .badge');
+            if (notificationBadge) {
+                setInterval(() => {
+                    notificationBadge.style.animation = 'pulse 2s infinite';
+                }, 5000);
+            }
+        });
+
+        // Add CSS for ripple effect
+        const style = document.createElement('style');
+        style.textContent = `
+            .nav-link {
+                position: relative;
+                overflow: hidden;
+            }
+
+            .ripple {
+                position: absolute;
+                border-radius: 50%;
+                background: rgba(30, 58, 138, 0.3);
+                transform: scale(0);
+                animation: ripple-animation 0.6s linear;
+                pointer-events: none;
+            }
+
+            @keyframes ripple-animation {
+                to {
+                    transform: scale(4);
+                    opacity: 0;
+                }
+            }
+
+            @keyframes pulse {
+                0%, 100% {
+                    transform: scale(1);
+                }
+                50% {
+                    transform: scale(1.1);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

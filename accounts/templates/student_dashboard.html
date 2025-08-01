@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Portal - RMS{% endblock %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+
+    <!-- Clean Welcome Header -->
+    <div style="text-align: center; margin-bottom: 48px;">
+        <h1 style="font-size: 36px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; letter-spacing: -0.02em;">
+            Welcome Back, {{ student.user.first_name }}
+        </h1>
+        <p style="color: var(--text-secondary); font-size: 17px; font-weight: 400;">
+            {{ student.matric_number }} • {{ student.department.name }}, {{ student.faculty.name }} Faculty
+        </p>
+        <div style="background: var(--ios-blue); color: white; padding: 8px 16px; border-radius: 20px; display: inline-block; margin-top: 8px; font-weight: 600;">
+            {{ student.current_level.name }}
+        </div>
+    </div>
+
+    <!-- Messages Display -->
+    {% if messages %}
+        <div style="margin-bottom: 32px;">
+            {% for message in messages %}
+                <div style="background: {% if message.tags == 'error' %}var(--ios-red-light); color: var(--ios-red); border-left: 4px solid var(--ios-red){% elif message.tags == 'warning' %}#FFF3CD; color: #856404; border-left: 4px solid #FFC107{% else %}#D4EDDA; color: #155724; border-left: 4px solid #28A745{% endif %}; padding: 16px 20px; border-radius: 12px; margin-bottom: 16px; font-size: 16px; font-weight: 500; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Academic Summary -->
+    <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 24px; padding: 32px; margin-bottom: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
+        <h2 style="font-size: 24px; font-weight: 600; color: var(--text-primary); margin-bottom: 24px; text-align: center;">
+            Academic Overview
+        </h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 24px;">
+            <div style="text-align: center;">
+                <div style="font-size: 32px; font-weight: 700; color: var(--ios-blue); margin-bottom: 4px;">{{ stats.current_cgpa|floatformat:2 }}</div>
+                <div style="color: var(--text-secondary); font-size: 14px; font-weight: 500;">Current CGPA</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 32px; font-weight: 700; color: var(--ios-blue); margin-bottom: 4px;">{{ stats.published_results }}</div>
+                <div style="color: var(--text-secondary); font-size: 14px; font-weight: 500;">Published Results</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 32px; font-weight: 700; color: var(--ios-blue); margin-bottom: 4px;">{{ stats.total_courses }}</div>
+                <div style="color: var(--text-secondary); font-size: 14px; font-weight: 500;">Total Courses</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 32px; font-weight: 700; color: var(--ios-red); margin-bottom: 4px;">{{ stats.carryovers }}</div>
+                <div style="color: var(--text-secondary); font-size: 14px; font-weight: 500;">Carryovers</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 24px; padding: 32px; margin-bottom: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
+        <h2 style="font-size: 24px; font-weight: 600; color: var(--text-primary); margin-bottom: 32px; text-align: center;">
+            Quick Actions
+        </h2>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+            <!-- Results Actions -->
+            <a href="{% url 'student_current_results' %}" style="background: var(--royal-blue-gradient); color: #FFFFFF; padding: 20px; border-radius: 16px; text-decoration: none; text-align: center; box-shadow: 0 2px 10px rgba(30, 58, 138, 0.3); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: block;">
+                <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">Current Results</div>
+                <div style="font-size: 14px; opacity: 0.8;">View this session's results</div>
+            </a>
+
+            <a href="{% url 'student_all_results' %}" style="background: #FFFFFF; color: var(--text-primary); padding: 20px; border-radius: 16px; text-decoration: none; text-align: center; border: 1px solid var(--border-color); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: block; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">All Results</div>
+                <div style="font-size: 14px; color: var(--text-secondary);">View complete academic record</div>
+            </a>
+
+            <a href="{% url 'student_download_result' %}" style="background: var(--royal-blue-gradient); color: #FFFFFF; padding: 20px; border-radius: 16px; text-decoration: none; text-align: center; box-shadow: 0 2px 10px rgba(30, 58, 138, 0.3); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: block;">
+                <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">Download Result</div>
+                <div style="font-size: 14px; opacity: 0.8;">Get PDF copy</div>
+            </a>
+
+            <a href="{% url 'student_submit_complaint' %}" style="background: #FFFFFF; color: var(--text-primary); padding: 20px; border-radius: 16px; text-decoration: none; text-align: center; border: 1px solid var(--border-color); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: block; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">Submit Complaint</div>
+                <div style="font-size: 14px; color: var(--text-secondary);">Report an issue</div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Results -->
+    {% if recent_results %}
+    <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 24px; padding: 32px; margin-bottom: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2 style="font-size: 24px; font-weight: 600; color: var(--text-primary); margin: 0;">Recent Published Results</h2>
+            <a href="{% url 'student_all_results' %}" style="background: var(--ios-blue); color: white; padding: 8px 16px; border-radius: 12px; text-decoration: none; font-size: 14px; font-weight: 500;">View All</a>
+        </div>
+
+        <div style="display: grid; gap: 12px;">
+            {% for result in recent_results|slice:":5" %}
+            <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 16px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px; font-size: 16px;">
+                            {{ result.enrollment.course.code }} - {{ result.enrollment.course.title }}
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: 4px;">
+                            Score: {{ result.total_score }}/100 • Grade: {{ result.grade }} • GP: {{ result.grade_point }}
+                        </div>
+                        <div style="color: var(--text-tertiary); font-size: 12px;">
+                            {{ result.enrollment.course.credit_units }} Units • Published: {{ result.updated_at|date:"M d, Y" }}
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        {% if result.is_carry_over %}
+                            <span style="background: var(--ios-red); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Carryover</span>
+                        {% else %}
+                            <span style="background: var(--ios-green); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Passed</span>
+                        {% endif %}
+                        <a href="{% url 'student_result_details' result.id %}" style="background: #FFFFFF; color: var(--text-primary); padding: 8px 16px; border-radius: 12px; text-decoration: none; font-size: 14px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.05);">View</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Notifications -->
+    {% if new_results_count > 0 or pending_complaints_count > 0 %}
+    <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 24px; padding: 32px; margin-bottom: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
+        <h2 style="font-size: 24px; font-weight: 600; color: var(--text-primary); margin-bottom: 24px; text-align: center;">
+            Notifications
+        </h2>
+
+        {% if new_results_count > 0 %}
+        <div style="background: var(--ios-blue-ultra-light); padding: 16px; border-radius: 12px; margin-bottom: 16px; border-left: 4px solid var(--ios-blue);">
+            <div style="font-weight: 600; color: var(--ios-blue); font-size: 16px; margin-bottom: 4px;">{{ new_results_count }} New Result(s) Published</div>
+            <div style="color: var(--text-secondary); font-size: 14px;">Check your latest academic results</div>
+        </div>
+        {% endif %}
+
+        {% if pending_complaints_count > 0 %}
+        <div style="background: var(--ios-red-light); padding: 16px; border-radius: 12px; border-left: 4px solid var(--ios-red);">
+            <div style="font-weight: 600; color: var(--ios-red); font-size: 16px; margin-bottom: 4px;">{{ pending_complaints_count }} Complaint(s) Pending</div>
+            <div style="color: var(--text-secondary); font-size: 14px;">Awaiting response from faculty</div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Mobile-optimized styles -->
+<style>
+    @media (max-width: 768px) {
+        .container, .max-width-container {
+            max-width: 100% !important;
+            padding: 12px !important;
+        }
+
+        /* Single column on mobile */
+        div[style*="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))"] {
+            grid-template-columns: 1fr !important;
+        }
+
+        /* Stats grid mobile optimization */
+        div[style*="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr))"] {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 16px !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        h1 {
+            font-size: 28px !important;
+        }
+
+        /* Single column stats on very small screens */
+        div[style*="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr))"] {
+            grid-template-columns: 1fr !important;
+        }
+
+        /* Reduce padding on small screens */
+        div[style*="padding: 32px"] {
+            padding: 20px !important;
+        }
+    }
+</style>
+
+{% endblock %}

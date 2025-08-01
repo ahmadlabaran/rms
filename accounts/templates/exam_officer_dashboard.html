@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+
+{% block title %}Exam Officer Dashboard - RMS{% endblock %}
+
+{% block content %}
+<!-- Exam Officer Overview Header -->
+<div class="ios-card" style="background: var(--royal-blue-gradient); color: white; margin-bottom: 32px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 600;">Exam Officer Dashboard</h1>
+            <p style="margin: 0; opacity: 0.9; font-size: 16px;">{{ user.get_full_name }} - {{ faculty.name }} Faculty - {{ current_session.name }}</p>
+        </div>
+        <div style="text-align: right;">
+            <div style="background: rgba(255,255,255,0.2); padding: 12px 20px; border-radius: 12px; margin-bottom: 8px;">
+                <div style="font-size: 24px; font-weight: 700; margin-bottom: 4px;">{{ current_level.name }}</div>
+                <div style="font-size: 14px; opacity: 0.9;">Current Level</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Level Selector -->
+<div class="ios-card" style="margin-bottom: 32px;">
+    <h2 style="color: var(--text-primary); margin-bottom: 16px; font-size: 20px; font-weight: 600;">Select Academic Level</h2>
+    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px;">
+        {% for level in levels %}
+        <a href="{% url 'exam_officer_dashboard' %}?level={{ level.numeric_value }}" 
+           class="btn {% if current_level.id == level.id %}btn-primary{% else %}btn-secondary{% endif %} btn-compact"
+           style="text-align: center;">
+            {{ level.name }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Quick Stats Grid -->
+<div class="stats-grid" style="margin-bottom: 40px;">
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.total_students }}</div>
+        <div class="stat-label">{{ current_level.name }} Students</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.pending_results }}</div>
+        <div class="stat-label">Pending Results</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.approved_results }}</div>
+        <div class="stat-label">Approved Results</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.carryover_students }}</div>
+        <div class="stat-label">Carryover Students</div>
+    </div>
+</div>
+
+<!-- Main Dashboard Grid -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px;">
+    
+    <!-- Result Review & Validation -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Result Review & Validation</h2>
+        
+        <div style="margin-bottom: 32px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Review Operations</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <a href="{% url 'exam_officer_pending_results' %}?level={{ current_level.numeric_value }}" class="btn btn-primary btn-compact">Pending Results</a>
+                <a href="{% url 'exam_officer_validate_results' %}?level={{ current_level.numeric_value }}" class="btn btn-primary btn-compact">Validate Results</a>
+                <a href="{% url 'exam_officer_approve_results' %}?level={{ current_level.numeric_value }}" class="btn btn-secondary btn-compact">Approve Results</a>
+                <a href="{% url 'exam_officer_reject_results' %}?level={{ current_level.numeric_value }}" class="btn btn-secondary btn-compact">Rejection Notes</a>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 32px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Result Flow Control</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <a href="{% url 'exam_officer_submit_to_hod' %}?level={{ current_level.numeric_value }}" class="btn btn-primary btn-compact">Submit to HOD</a>
+                <a href="{% url 'exam_officer_result_history' %}?level={{ current_level.numeric_value }}" class="btn btn-secondary btn-compact">Result History</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student & Carryover Management -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Student & Carryover Management</h2>
+        
+        <div style="margin-bottom: 32px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Student Operations</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <a href="{% url 'exam_officer_add_students' %}?level={{ current_level.numeric_value }}" class="btn btn-primary btn-compact">Add Students</a>
+                <a href="{% url 'exam_officer_bulk_students' %}?level={{ current_level.numeric_value }}" class="btn btn-primary btn-compact">Bulk Upload</a>
+                <a href="{% url 'exam_officer_student_list' %}?level={{ current_level.numeric_value }}" class="btn btn-secondary btn-compact">Student List</a>
+                <a href="{% url 'exam_officer_student_records' %}?level={{ current_level.numeric_value }}" class="btn btn-secondary btn-compact">Student Records</a>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 32px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Carryover Management</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <a href="{% url 'exam_officer_carryovers' %}?level={{ current_level.numeric_value }}" class="btn btn-primary btn-compact">View Carryovers</a>
+                <a href="{% url 'exam_officer_carryover_export' %}?level={{ current_level.numeric_value }}" class="btn btn-secondary btn-compact">Export Carryovers</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export & Reporting Section -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 32px; margin-bottom: 32px;">
+    
+    <!-- Export & Reporting -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Export & Reporting</h2>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+            <div style="text-align: center;">
+                <h3 style="color: var(--ios-blue); margin-bottom: 12px; font-size: 16px; font-weight: 600;">Student Data</h3>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <a href="{% url 'exam_officer_export_students' %}?level={{ current_level.numeric_value }}" class="btn btn-primary btn-compact">Student List</a>
+                    <a href="{% url 'exam_officer_export_gpa' %}?level={{ current_level.numeric_value }}" class="btn btn-secondary btn-compact">GPA Sheet</a>
+                </div>
+            </div>
+            
+            <div style="text-align: center;">
+                <h3 style="color: var(--ios-blue); margin-bottom: 12px; font-size: 16px; font-weight: 600;">Results</h3>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <a href="{% url 'exam_officer_export_results' %}?level={{ current_level.numeric_value }}" class="btn btn-primary btn-compact">All Results</a>
+                    <a href="{% url 'exam_officer_export_approved' %}?level={{ current_level.numeric_value }}" class="btn btn-secondary btn-compact">Approved Only</a>
+                </div>
+            </div>
+            
+            <div style="text-align: center;">
+                <h3 style="color: var(--ios-blue); margin-bottom: 12px; font-size: 16px; font-weight: 600;">Carryovers</h3>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <a href="{% url 'exam_officer_export_carryovers' %}?level={{ current_level.numeric_value }}" class="btn btn-primary btn-compact">By Course</a>
+                    <a href="{% url 'exam_officer_export_carryover_students' %}?level={{ current_level.numeric_value }}" class="btn btn-secondary btn-compact">By Student</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions & Alerts -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 20px; font-weight: 600;">Quick Actions</h2>
+        
+        <!-- Urgent Actions -->
+        <div style="margin-bottom: 24px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 12px; font-size: 16px; font-weight: 600;">Urgent Actions</h3>
+            {% if stats.pending_results > 0 %}
+                <div style="background: var(--ios-red-light); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--ios-red);">
+                    <div style="font-weight: 600; color: var(--ios-red); font-size: 14px;">{{ stats.pending_results }} Pending Result(s)</div>
+                    <div style="color: var(--text-secondary); font-size: 12px;">Awaiting your review</div>
+                </div>
+            {% endif %}
+            
+            {% if stats.carryover_students > 0 %}
+                <div style="background: var(--ios-blue-ultra-light); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--ios-blue);">
+                    <div style="font-weight: 600; color: var(--ios-blue); font-size: 14px;">{{ stats.carryover_students }} Carryover(s)</div>
+                    <div style="color: var(--text-secondary); font-size: 12px;">Need attention</div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Quick Links -->
+        <div>
+            <h3 style="color: var(--ios-blue); margin-bottom: 12px; font-size: 16px; font-weight: 600;">Quick Links</h3>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <a href="{% url 'exam_officer_pending_results' %}?level={{ current_level.numeric_value }}" class="btn btn-primary btn-compact">Review Results</a>
+                <a href="{% url 'exam_officer_add_students' %}?level={{ current_level.numeric_value }}" class="btn btn-secondary btn-compact">Add Students</a>
+                <a href="{% url 'exam_officer_carryovers' %}?level={{ current_level.numeric_value }}" class="btn btn-secondary btn-compact">Manage Carryovers</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Results Awaiting Review -->
+<div class="ios-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2 style="color: var(--text-primary); font-size: 20px; font-weight: 600; margin: 0;">Recent Results - {{ current_level.name }}</h2>
+        <a href="{% url 'exam_officer_pending_results' %}?level={{ current_level.numeric_value }}" style="color: var(--ios-blue); text-decoration: none; font-weight: 500;">View All</a>
+    </div>
+    
+    {% if pending_results %}
+        {% for result in pending_results|slice:":5" %}
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--surface-secondary); border-radius: 12px; margin-bottom: 12px; border: 1px solid var(--border-light);">
+            <div>
+                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                    {{ result.enrollment.student.matric_number }} - {{ result.enrollment.course.code }}
+                </div>
+                <div style="color: var(--text-secondary); font-size: 14px;">
+                    {{ result.enrollment.course.title }} • Total: {{ result.total_score }} ({{ result.grade }})
+                </div>
+                <div style="color: var(--text-tertiary); font-size: 12px;">
+                    Submitted: {{ result.updated_at|date:"M d, Y H:i" }}
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <a href="{% url 'exam_officer_review_result' result.id %}" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">Review</a>
+                <a href="{% url 'exam_officer_approve_single' result.id %}" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;">Quick Approve</a>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+            <div style="width: 60px; height: 60px; background: var(--ios-blue-ultra-light); border-radius: 15px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
+                <div style="width: 30px; height: 30px; background: var(--ios-blue); border-radius: 8px; opacity: 0.6;"></div>
+            </div>
+            <p>No pending results for {{ current_level.name }}</p>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

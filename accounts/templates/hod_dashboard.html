@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+
+{% block title %}HOD Dashboard - RMS{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --ios-red: #FF3B30;
+        --ios-blue: #007AFF;
+        --ios-green: #34C759;
+        --ios-orange: #FF9500;
+        --text-primary: #1D1D1F;
+        --text-secondary: #86868B;
+        --text-tertiary: #C7C7CC;
+        --surface-primary: #FFFFFF;
+        --surface-secondary: #F2F2F7;
+        --border-color: #D1D1D6;
+        --border-light: #E5E5EA;
+        --royal-blue-gradient: linear-gradient(135deg, #007AFF 0%, #FF3B30 100%);
+    }
+
+    .ios-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid var(--border-light);
+        transition: all 0.3s ease;
+        margin-bottom: 20px;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border-radius: 12px;
+        font-weight: 600;
+        text-align: center;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        text-decoration: none;
+        display: inline-block;
+        min-width: 120px;
+    }
+
+    .btn-primary {
+        background: var(--royal-blue-gradient);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3);
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid var(--border-light);
+    }
+
+    .stat-number {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--ios-blue);
+        margin-bottom: 8px;
+    }
+
+    .stat-label {
+        font-size: 14px;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .btn {
+            padding: 8px 16px;
+            font-size: 12px;
+            min-width: 100px;
+        }
+
+        h1 {
+            font-size: 24px !important;
+        }
+
+        h2 {
+            font-size: 18px !important;
+        }
+
+        h3 {
+            font-size: 14px !important;
+        }
+
+        .mobile-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+        }
+
+        .mobile-text {
+            font-size: 14px !important;
+        }
+
+        .mobile-small-text {
+            font-size: 12px !important;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .ios-card {
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            font-size: 11px;
+            min-width: 80px;
+        }
+
+        h1 {
+            font-size: 20px !important;
+        }
+
+        h2 {
+            font-size: 16px !important;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .stat-card {
+            padding: 12px;
+        }
+
+        .stat-number {
+            font-size: 24px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+        }
+    }
+</style>
+<!-- HOD Overview Header -->
+<div class="ios-card" style="background: var(--royal-blue-gradient); color: white; margin-bottom: 32px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 600;">{{ department.name }} Department</h1>
+            <p style="margin: 0; opacity: 0.9; font-size: 16px;">Head of Department - {{ current_session.name }}</p>
+        </div>
+        <div style="text-align: right;">
+            <div style="background: rgba(255,255,255,0.2); padding: 12px 20px; border-radius: 12px; margin-bottom: 8px;">
+                <div style="font-size: 24px; font-weight: 700; margin-bottom: 4px;">{{ stats.total_courses }}</div>
+                <div style="font-size: 14px; opacity: 0.9;">Courses</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats Grid -->
+<div class="stats-grid" style="margin-bottom: 40px;">
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.total_students }}</div>
+        <div class="stat-label">Department Students</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.total_courses }}</div>
+        <div class="stat-label">Active Courses</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.pending_results }}</div>
+        <div class="stat-label">Pending Results</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.approved_results }}</div>
+        <div class="stat-label">Approved Results</div>
+    </div>
+</div>
+
+<!-- Main Management Sections -->
+<div class="mobile-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 32px;">
+
+    <!-- Course Management -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 16px; font-size: 20px; font-weight: 700; letter-spacing: -0.3px;">
+            Courses
+        </h2>
+        <div>
+            <h3 style="color: var(--ios-green); margin-bottom: 8px; font-size: 16px; font-weight: 600;" class="mobile-small-text">
+                Course Catalog
+            </h3>
+            <button type="button" class="btn btn-primary nav-button" data-url="{% url 'hod_manage_courses' %}" style="background: var(--ios-green); cursor: pointer;">
+                Manage Courses
+            </button>
+        </div>
+    </div>
+
+    <!-- Lecturer & Result Management -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 16px; font-size: 20px; font-weight: 700; letter-spacing: -0.3px;">
+            Results
+        </h2>
+        <div>
+            <h3 style="color: var(--ios-red); margin-bottom: 8px; font-size: 16px; font-weight: 600;" class="mobile-small-text">
+                Result Operations
+            </h3>
+            <button type="button" class="btn btn-primary nav-button" data-url="{% url 'hod_pending_results' %}" style="background: var(--ios-red); cursor: pointer;">
+                Pending Approvals
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Department Overview & Recent Activity -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 32px;">
+    
+    <!-- Results Awaiting HOD Approval -->
+    <div class="ios-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2 style="color: var(--text-primary); font-size: 20px; font-weight: 600; margin: 0;">Results Awaiting Approval</h2>
+            <a href="{% url 'hod_pending_results' %}" style="color: var(--ios-blue); text-decoration: none; font-weight: 500;">View All</a>
+        </div>
+        
+        {% if pending_results %}
+            {% for result in pending_results|slice:":5" %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--surface-secondary); border-radius: 12px; margin-bottom: 12px; border: 1px solid var(--border-light);">
+                <div>
+                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                        {{ result.enrollment.student.matric_number }} - {{ result.enrollment.course.code }}
+                    </div>
+                    <div style="color: var(--text-secondary); font-size: 14px;">
+                        {{ result.enrollment.course.title }} • Total: {{ result.total_score }} ({{ result.grade }})
+                    </div>
+                    <div style="color: var(--text-tertiary); font-size: 12px;">
+                        Lecturer: {{ result.created_by.get_full_name }} • {{ result.updated_at|date:"M d, Y" }}
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <a href="{% url 'hod_review_single_result' result.id %}" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">Review</a>
+                    <a href="{% url 'hod_approve_single_result' result.id %}" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;">Approve</a>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                <div style="width: 60px; height: 60px; background: var(--ios-blue-ultra-light); border-radius: 15px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 30px; height: 30px; background: var(--ios-blue); border-radius: 8px; opacity: 0.6;"></div>
+                </div>
+                <p>No results awaiting approval</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Department Overview -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 20px; font-weight: 600;">Department Overview</h2>
+        
+        <!-- Course Statistics -->
+        <div style="margin-bottom: 24px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 12px; font-size: 16px; font-weight: 600;">Course Statistics</h3>
+            {% for level_stat in level_statistics %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--surface-secondary); border-radius: 8px; margin-bottom: 8px;">
+                <div>
+                    <div style="font-weight: 600; color: var(--text-primary); font-size: 14px;">{{ level_stat.level_name }}</div>
+                    <div style="color: var(--text-secondary); font-size: 12px;">{{ level_stat.courses_count }} courses</div>
+                </div>
+                <div style="color: var(--text-tertiary); font-size: 12px;">
+                    {{ level_stat.students_count }} students
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Priority Alerts -->
+        <div>
+            <h3 style="color: var(--ios-blue); margin-bottom: 12px; font-size: 16px; font-weight: 600;">Priority Alerts</h3>
+            {% if stats.pending_results > 0 %}
+                <div style="background: rgba(255, 59, 48, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--ios-red);">
+                    <div style="font-weight: 600; color: var(--ios-red); font-size: 14px;">{{ stats.pending_results }} Pending Result(s)</div>
+                    <div style="color: var(--text-secondary); font-size: 12px;">Awaiting your approval</div>
+                </div>
+            {% else %}
+                <div style="background: rgba(52, 199, 89, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--ios-green);">
+                    <div style="font-weight: 600; color: var(--ios-green); font-size: 14px;">All Caught Up!</div>
+                    <div style="color: var(--text-secondary); font-size: 12px;">No pending results</div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Handle navigation buttons
+document.addEventListener('DOMContentLoaded', function() {
+    const navButtons = document.querySelectorAll('.nav-button');
+    navButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const url = this.getAttribute('data-url');
+            if (url) {
+                window.location.href = url;
+            }
+        });
+    });
+});
+</script>
+
+{% endblock %}

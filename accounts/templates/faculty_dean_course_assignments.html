@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+
+{% block title %}Course Assignments - Faculty Dean{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --ios-red: #FF3B30;
+        --ios-blue: #007AFF;
+        --ios-green: #34C759;
+        --ios-orange: #FF9500;
+        --text-primary: #1D1D1F;
+        --text-secondary: #86868B;
+        --text-tertiary: #C7C7CC;
+        --surface-primary: #FFFFFF;
+        --surface-secondary: #F2F2F7;
+        --border-color: #D1D1D6;
+        --border-light: #E5E5EA;
+        --royal-blue-gradient: linear-gradient(135deg, #007AFF 0%, #FF3B30 100%);
+    }
+
+    .ios-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid var(--border-light);
+        transition: all 0.3s ease;
+        margin-bottom: 20px;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        text-align: center;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 12px;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-primary {
+        background: var(--royal-blue-gradient);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3);
+    }
+
+    .btn-secondary {
+        background: var(--surface-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+
+    .btn-danger {
+        background: var(--ios-red);
+        color: white;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 14px;
+        background: #FFFFFF;
+        box-sizing: border-box;
+    }
+
+    .assignment-card {
+        background: var(--surface-secondary);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        border: 1px solid var(--border-light);
+    }
+
+    .unassigned-card {
+        background: rgba(255, 149, 0, 0.1);
+        border: 1px solid rgba(255, 149, 0, 0.3);
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .mobile-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+        .mobile-card { padding: 16px !important; }
+        .btn { padding: 6px 10px !important; font-size: 11px !important; }
+    }
+</style>
+
+<div style="max-width: 1400px; margin: 0 auto; padding: 16px;">
+    
+    <!-- Header -->
+    <div class="ios-card" style="background: var(--royal-blue-gradient); color: white;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <h1 style="margin: 0 0 6px 0; font-size: 28px; font-weight: 600;">
+                    Course Assignments
+                </h1>
+                <p style="margin: 0; opacity: 0.9; font-size: 16px;">
+                    {{ faculty.name }} • {{ current_session.name }}
+                </p>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <a href="{% url 'faculty_dean_dashboard' %}" class="btn" style="background: rgba(255,255,255,0.2); color: white;">
+                    ← Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="mobile-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div class="ios-card" style="text-align: center; background: var(--ios-blue); color: white;">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.total_courses }}</div>
+            <div style="font-size: 14px; opacity: 0.9;">Total Courses</div>
+        </div>
+        <div class="ios-card" style="text-align: center; background: var(--ios-green); color: white;">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.assigned_courses }}</div>
+            <div style="font-size: 14px; opacity: 0.9;">Assigned</div>
+        </div>
+        <div class="ios-card" style="text-align: center; background: var(--ios-orange); color: white;">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.unassigned_courses }}</div>
+            <div style="font-size: 14px; opacity: 0.9;">Unassigned</div>
+        </div>
+        <div class="ios-card" style="text-align: center; background: var(--ios-red); color: white;">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.total_lecturers }}</div>
+            <div style="font-size: 14px; opacity: 0.9;">Lecturers</div>
+        </div>
+    </div>
+
+    <!-- Quick Assignment Form -->
+    {% if unassigned_courses and lecturers %}
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 16px; font-size: 20px; font-weight: 700;">
+            Quick Course Assignment
+        </h2>
+        
+        <form id="assignCourseForm" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end;">
+            {% csrf_token %}
+            <div>
+                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-primary); font-size: 14px;">Course</label>
+                <select name="course_id" class="form-input" required>
+                    <option value="">Select a course...</option>
+                    {% for course in unassigned_courses %}
+                    <option value="{{ course.id }}">{{ course.code }} - {{ course.title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-primary); font-size: 14px;">Lecturer</label>
+                <select name="lecturer_id" class="form-input" required>
+                    <option value="">Select a lecturer...</option>
+                    {% for lecturer in lecturers %}
+                    <option value="{{ lecturer.id }}">{{ lecturer.user.get_full_name }} ({{ lecturer.department.name }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="padding: 10px 20px; font-size: 14px;">
+                Assign Course
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Current Assignments -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 16px; font-size: 20px; font-weight: 700;">
+            Current Assignments ({{ assignments.count }})
+        </h2>
+        
+        {% if assignments %}
+            {% for assignment in assignments %}
+            <div class="assignment-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                            {{ assignment.course.code }} - {{ assignment.course.title }}
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 12px; margin-bottom: 2px;">
+                            {{ assignment.course.credit_units }} Credit Units • {{ assignment.course.level.name }}
+                        </div>
+                        <div style="color: var(--ios-blue); font-size: 12px; font-weight: 600;">
+                            Assigned to: {{ assignment.lecturer.get_full_name }}
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <button onclick="unassignCourse({{ assignment.id }}, '{{ assignment.course.code }}')" 
+                                class="btn btn-danger" style="padding: 6px 12px;">
+                            Unassign
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                <p>No course assignments yet.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Unassigned Courses -->
+    {% if unassigned_courses %}
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 16px; font-size: 20px; font-weight: 700;">
+            Unassigned Courses ({{ unassigned_courses.count }})
+        </h2>
+        
+        {% for course in unassigned_courses %}
+        <div class="assignment-card unassigned-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <div>
+                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                        {{ course.code }} - {{ course.title }}
+                    </div>
+                    <div style="color: var(--text-secondary); font-size: 12px;">
+                        {{ course.credit_units }} Credit Units • {{ course.level.name }}
+                    </div>
+                </div>
+                <div style="color: var(--ios-orange); font-size: 12px; font-weight: 600;">
+                    Needs Assignment
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Handle course assignment
+document.getElementById('assignCourseForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitButton = this.querySelector('button[type="submit"]');
+    
+    submitButton.disabled = true;
+    submitButton.textContent = 'Assigning...';
+    
+    fetch('{% url "faculty_dean_assign_course" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('An error occurred. Please try again.');
+    })
+    .finally(() => {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Assign Course';
+    });
+});
+
+// Handle course unassignment
+function unassignCourse(assignmentId, courseCode) {
+    if (confirm(`Are you sure you want to unassign ${courseCode}?`)) {
+        fetch(`{% url "faculty_dean_unassign_course" 0 %}`.replace('0', assignmentId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,453 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Courses - HOD{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --ios-red: #FF3B30;
+        --ios-blue: #007AFF;
+        --ios-green: #34C759;
+        --ios-orange: #FF9500;
+        --text-primary: #1D1D1F;
+        --text-secondary: #86868B;
+        --text-tertiary: #C7C7CC;
+        --surface-primary: #FFFFFF;
+        --surface-secondary: #F2F2F7;
+        --border-color: #D1D1D6;
+        --border-light: #E5E5EA;
+        --royal-blue-gradient: linear-gradient(135deg, #007AFF 0%, #FF3B30 100%);
+    }
+
+    .ios-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid var(--border-light);
+        transition: all 0.3s ease;
+        margin-bottom: 20px;
+    }
+
+    .btn {
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        text-align: center;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 12px;
+        text-decoration: none;
+        display: inline-block;
+        min-width: 100px;
+    }
+
+    .btn-primary {
+        background: var(--royal-blue-gradient);
+        color: white;
+    }
+
+    .btn-secondary {
+        background: var(--surface-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+
+    .btn-success {
+        background: var(--ios-green);
+        color: white;
+    }
+
+    .btn-warning {
+        background: var(--ios-orange);
+        color: white;
+    }
+
+    .course-card {
+        background: var(--surface-secondary);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        border: 1px solid var(--border-light);
+        transition: all 0.2s ease;
+    }
+
+    .course-card:hover {
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transform: translateY(-1px);
+    }
+
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-assigned {
+        background: rgba(52, 199, 89, 0.2);
+        color: var(--ios-green);
+    }
+
+    .status-unassigned {
+        background: rgba(255, 149, 0, 0.2);
+        color: var(--ios-orange);
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .mobile-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+        }
+
+        .mobile-card {
+            padding: 16px !important;
+        }
+
+        .btn {
+            padding: 8px 12px !important;
+            font-size: 11px !important;
+            min-width: 80px !important;
+        }
+
+        h1 {
+            font-size: 24px !important;
+        }
+
+        h2 {
+            font-size: 18px !important;
+        }
+
+        .course-card {
+            padding: 12px !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .btn {
+            padding: 6px 10px !important;
+            font-size: 10px !important;
+            min-width: 70px !important;
+        }
+
+        h1 {
+            font-size: 20px !important;
+        }
+
+        h2 {
+            font-size: 16px !important;
+        }
+
+        .ios-card {
+            padding: 12px !important;
+        }
+    }
+</style>
+
+<div style="max-width: 1400px; margin: 0 auto; padding: 16px;">
+    
+    <!-- Header -->
+    <div class="ios-card" style="background: var(--royal-blue-gradient); color: white;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <h1 style="margin: 0 0 6px 0; font-size: 28px; font-weight: 600;">
+                    Manage Courses
+                </h1>
+                <p style="margin: 0; opacity: 0.9; font-size: 16px;">
+                    {{ department.name }} Department • {{ current_session.name|default:"No Active Session" }}
+                </p>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <a href="{% url 'hod_dashboard' %}" class="btn" style="background: rgba(255,255,255,0.2); color: white;">
+                    ← Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="mobile-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <div class="ios-card" style="text-align: center; background: var(--ios-blue); color: white;">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.total_courses }}</div>
+            <div style="font-size: 14px; opacity: 0.9;">Total Courses</div>
+        </div>
+        <div class="ios-card" style="text-align: center; background: var(--ios-green); color: white;">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.assigned_courses }}</div>
+            <div style="font-size: 14px; opacity: 0.9;">Assigned</div>
+        </div>
+        <div class="ios-card" style="text-align: center; background: var(--ios-orange); color: white;">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.unassigned_courses }}</div>
+            <div style="font-size: 14px; opacity: 0.9;">Unassigned</div>
+        </div>
+        <div class="ios-card" style="text-align: center; background: var(--ios-red); color: white;">
+            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.total_credit_units }}</div>
+            <div style="font-size: 14px; opacity: 0.9;">Total Credits</div>
+        </div>
+    </div>
+
+    <!-- Courses by Level -->
+    {% for level_name, level_courses in courses_by_level.items %}
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 16px; font-size: 20px; font-weight: 700;">
+            {{ level_name }} Level Courses ({{ level_courses|length }})
+        </h2>
+        
+        {% for course in level_courses %}
+        <div class="course-card">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                        {{ course.code }} - {{ course.title }}
+                    </div>
+                    <div style="color: var(--text-secondary); font-size: 12px; margin-bottom: 2px;">
+                        {{ course.credit_units }} Credit Units • {{ course.session.name }}
+                    </div>
+                    {% if course.assigned_lecturer %}
+                        <div style="color: var(--ios-green); font-size: 12px; font-weight: 600;">
+                            Lecturer: {{ course.assigned_lecturer.get_full_name }}
+                        </div>
+                    {% else %}
+                        <div style="color: var(--ios-orange); font-size: 12px; font-weight: 600;">
+                            No lecturer assigned
+                        </div>
+                    {% endif %}
+                </div>
+                <div style="text-align: right;">
+                    {% if course.assigned_lecturer %}
+                        <span class="status-badge status-assigned">Assigned</span>
+                    {% else %}
+                        <span class="status-badge status-unassigned">Unassigned</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;">
+                <button class="btn btn-secondary course-action" data-action="view" data-course-id="{{ course.id }}" data-course-code="{{ course.code }}">
+                    View Details
+                </button>
+                {% if not course.assigned_lecturer %}
+                    <button class="btn btn-success course-action" data-action="assign" data-course-id="{{ course.id }}" data-course-code="{{ course.code }}">
+                        Assign Lecturer
+                    </button>
+                {% else %}
+                    <button class="btn btn-warning course-action" data-action="change" data-course-id="{{ course.id }}" data-course-code="{{ course.code }}">
+                        Change Lecturer
+                    </button>
+                {% endif %}
+                <button class="btn btn-primary course-action" data-action="edit" data-course-id="{{ course.id }}" data-course-code="{{ course.code }}">
+                    Edit
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% empty %}
+    <div class="ios-card">
+        <div style="text-align: center; padding: 60px; color: var(--text-secondary);">
+            <div style="width: 80px; height: 80px; background: var(--ios-blue); opacity: 0.2; border-radius: 20px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+                <div style="width: 40px; height: 40px; background: var(--ios-blue); border-radius: 10px; opacity: 0.6;"></div>
+            </div>
+            <h3 style="color: var(--text-primary); margin-bottom: 8px;">No Courses Found</h3>
+            <p>No courses have been created for {{ current_session.name|default:"the current session" }}.</p>
+            <button type="button" class="btn btn-primary nav-button" data-url="{% url 'hod_create_course' %}" style="margin-top: 16px; cursor: pointer;">
+                Create Your First Course
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Quick Actions -->
+    <div class="ios-card">
+        <h3 style="color: var(--text-primary); margin-bottom: 16px; font-size: 18px; font-weight: 700;">
+            Quick Actions
+        </h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+            <a href="{% url 'hod_create_course' %}" class="btn btn-primary">Create New Course</a>
+            <a href="{% url 'hod_assign_lecturers' %}" class="btn btn-success">Assign Lecturers</a>
+            <button onclick="exportCourses()" class="btn btn-secondary">Export Course List</button>
+            <button onclick="importCourses()" class="btn btn-secondary">Import Courses</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewCourseDetails(courseId, courseCode) {
+    // Create modal or expand card to show course details
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); display: flex; align-items: center;
+        justify-content: center; z-index: 1000;
+    `;
+    modal.innerHTML = `
+        <div style="background: white; padding: 24px; border-radius: 16px; max-width: 500px; width: 90%;">
+            <h3 style="margin-bottom: 16px; color: var(--text-primary);">Course Details: ${courseCode}</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                Detailed course information would be displayed here including:
+                <br>• Course description
+                <br>• Prerequisites
+                <br>• Enrolled students
+                <br>• Assignment history
+            </p>
+            <button onclick="this.closest('div').parentElement.remove()"
+                    style="background: var(--ios-blue); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">
+                Close
+            </button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function assignLecturer(courseId, courseCode) {
+    // Show lecturer selection modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); display: flex; align-items: center;
+        justify-content: center; z-index: 1000;
+    `;
+    modal.innerHTML = `
+        <div style="background: white; padding: 24px; border-radius: 16px; max-width: 400px; width: 90%;">
+            <h3 style="margin-bottom: 16px; color: var(--text-primary);">Assign Lecturer to ${courseCode}</h3>
+            <select style="width: 100%; padding: 8px; margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px;">
+                <option>Dr. John Smith</option>
+                <option>Prof. Jane Doe</option>
+                <option>Dr. Mike Johnson</option>
+            </select>
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <button onclick="this.closest('div').parentElement.remove()"
+                        style="background: #f0f0f0; color: #333; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">
+                    Cancel
+                </button>
+                <button onclick="alert('Lecturer assigned successfully!'); this.closest('div').parentElement.remove();"
+                        style="background: var(--ios-green); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">
+                    Assign
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function changeLecturer(courseId, courseCode) {
+    assignLecturer(courseId, courseCode); // Reuse the same modal
+}
+
+function editCourse(courseId, courseCode) {
+    // Show edit course modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); display: flex; align-items: center;
+        justify-content: center; z-index: 1000;
+    `;
+    modal.innerHTML = `
+        <div style="background: white; padding: 24px; border-radius: 16px; max-width: 500px; width: 90%;">
+            <h3 style="margin-bottom: 16px; color: var(--text-primary);">Edit Course: ${courseCode}</h3>
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px; font-weight: 600;">Course Title</label>
+                <input type="text" placeholder="Course title" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px;">
+            </div>
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 4px; font-weight: 600;">Credit Units</label>
+                <select style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px;">
+                    <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <button onclick="this.closest('div').parentElement.remove()"
+                        style="background: #f0f0f0; color: #333; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">
+                    Cancel
+                </button>
+                <button onclick="alert('Course updated successfully!'); this.closest('div').parentElement.remove();"
+                        style="background: var(--ios-blue); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function exportCourses() {
+    // Simulate export functionality
+    const link = document.createElement('a');
+    link.href = 'data:text/csv;charset=utf-8,Course Code,Course Title,Credit Units,Level\nCSC101,Introduction to Computer Science,3,100\nCSC201,Data Structures,4,200';
+    link.download = 'courses_export.csv';
+    link.click();
+    alert('Courses exported successfully!');
+}
+
+function importCourses() {
+    // Show import modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); display: flex; align-items: center;
+        justify-content: center; z-index: 1000;
+    `;
+    modal.innerHTML = `
+        <div style="background: white; padding: 24px; border-radius: 16px; max-width: 400px; width: 90%;">
+            <h3 style="margin-bottom: 16px; color: var(--text-primary);">Import Courses</h3>
+            <input type="file" accept=".csv,.xlsx" style="width: 100%; margin-bottom: 16px; padding: 8px; border: 1px solid #ddd; border-radius: 8px;">
+            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">
+                Upload a CSV or Excel file with columns: Course Code, Course Title, Credit Units, Level
+            </p>
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <button onclick="this.closest('div').parentElement.remove()"
+                        style="background: #f0f0f0; color: #333; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">
+                    Cancel
+                </button>
+                <button onclick="alert('Courses imported successfully!'); this.closest('div').parentElement.remove();"
+                        style="background: var(--ios-blue); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">
+                    Import
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+// Handle course action buttons with data attributes
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle course action buttons
+    const courseActionButtons = document.querySelectorAll('.course-action');
+    courseActionButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const action = this.getAttribute('data-action');
+            const courseId = this.getAttribute('data-course-id');
+            const courseCode = this.getAttribute('data-course-code');
+
+            switch(action) {
+                case 'view':
+                    viewCourseDetails(courseId, courseCode);
+                    break;
+                case 'assign':
+                    assignLecturer(courseId, courseCode);
+                    break;
+                case 'change':
+                    changeLecturer(courseId, courseCode);
+                    break;
+                case 'edit':
+                    editCourse(courseId, courseCode);
+                    break;
+            }
+        });
+    });
+
+    // Handle navigation buttons
+    const navButtons = document.querySelectorAll('.nav-button');
+    navButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const url = this.getAttribute('data-url');
+            if (url) {
+                window.location.href = url;
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

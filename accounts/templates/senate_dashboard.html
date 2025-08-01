@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+
+{% block title %}Senate Dashboard - RMS{% endblock %}
+
+{% block content %}
+<!-- Senate Overview Header -->
+<div class="ios-card" style="background: var(--royal-blue-gradient); color: white; margin-bottom: 32px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 600;">Senate Dashboard</h1>
+            <p style="margin: 0; opacity: 0.9; font-size: 16px;">Final Academic Result Approval Authority - {{ current_session.name }}</p>
+        </div>
+        <div style="text-align: right;">
+            <div style="background: rgba(255,255,255,0.2); padding: 12px 20px; border-radius: 12px; margin-bottom: 8px;">
+                <div style="font-size: 24px; font-weight: 700; margin-bottom: 4px;">{{ stats.total_faculties }}</div>
+                <div style="font-size: 14px; opacity: 0.9;">Faculties</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats Grid -->
+<div class="stats-grid" style="margin-bottom: 40px;">
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.pending_results }}</div>
+        <div class="stat-label">Awaiting Senate Approval</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.approved_results }}</div>
+        <div class="stat-label">Senate Approved</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.total_students }}</div>
+        <div class="stat-label">Total Students</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.sealed_sessions }}</div>
+        <div class="stat-label">Sealed Sessions</div>
+    </div>
+</div>
+
+<!-- Main Dashboard Grid -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px;">
+    
+    <!-- Result Review & Final Approval -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Final Result Approval</h2>
+        
+        <div style="margin-bottom: 32px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Review Operations</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <a href="{% url 'senate_pending_results' %}" class="btn btn-primary btn-compact">Pending Results</a>
+                <a href="{% url 'senate_review_results' %}" class="btn btn-primary btn-compact">Review Results</a>
+                <a href="{% url 'senate_approve_results' %}" class="btn btn-secondary btn-compact">Approve Results</a>
+                <a href="{% url 'senate_send_back' %}" class="btn btn-secondary btn-compact">Send Back to DAAA</a>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 32px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Final Actions</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <a href="{% url 'senate_seal_results' %}" class="btn btn-primary btn-compact">Seal Results</a>
+                <a href="{% url 'senate_final_archive' %}" class="btn btn-secondary btn-compact">Final Archive</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session & Faculty Overview -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Session & Faculty Overview</h2>
+        
+        <div style="margin-bottom: 32px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Session Management</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <a href="{% url 'senate_session_overview' %}" class="btn btn-primary btn-compact">Session Overview</a>
+                <a href="{% url 'senate_session_reports' %}" class="btn btn-secondary btn-compact">Session Reports</a>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 32px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Faculty Reports</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <a href="{% url 'senate_faculty_summary' %}" class="btn btn-primary btn-compact">Faculty Summary</a>
+                <a href="{% url 'senate_university_report' %}" class="btn btn-secondary btn-compact">University Report</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Results Awaiting Senate Approval -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 32px;">
+    
+    <!-- Pending Results -->
+    <div class="ios-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2 style="color: var(--text-primary); font-size: 20px; font-weight: 600; margin: 0;">Results Awaiting Senate Approval</h2>
+            <a href="{% url 'senate_pending_results' %}" style="color: var(--ios-blue); text-decoration: none; font-weight: 500;">View All</a>
+        </div>
+        
+        {% if pending_results %}
+            {% for result in pending_results|slice:":5" %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--surface-secondary); border-radius: 12px; margin-bottom: 12px; border: 1px solid var(--border-light);">
+                <div>
+                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                        {{ result.enrollment.student.matric_number }} - {{ result.enrollment.course.code }}
+                    </div>
+                    <div style="color: var(--text-secondary); font-size: 14px;">
+                        {{ result.enrollment.course.title }} • {{ result.enrollment.student.faculty.name }}
+                    </div>
+                    <div style="color: var(--text-tertiary); font-size: 12px;">
+                        Total: {{ result.total_score }} ({{ result.grade }}) • Submitted: {{ result.updated_at|date:"M d, Y" }}
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <a href="{% url 'senate_review_single_result' result.id %}" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">Review</a>
+                    <a href="{% url 'senate_approve_single_result' result.id %}" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;">Approve</a>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                <div style="width: 60px; height: 60px; background: var(--ios-blue-ultra-light); border-radius: 15px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 30px; height: 30px; background: var(--ios-blue); border-radius: 8px; opacity: 0.6;"></div>
+                </div>
+                <p>No results awaiting Senate approval</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Faculty Status Overview -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 20px; font-weight: 600;">Faculty Status</h2>
+        
+        {% for faculty in faculties %}
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--surface-secondary); border-radius: 8px; margin-bottom: 12px;">
+            <div>
+                <div style="font-weight: 600; color: var(--text-primary); font-size: 14px;">{{ faculty.name }}</div>
+                <div style="color: var(--text-secondary); font-size: 12px;">{{ faculty.departments_count }} departments</div>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <span class="badge {% if faculty.pending_results > 0 %}badge-warning{% else %}badge-success{% endif %}">
+                    {{ faculty.pending_results }} pending
+                </span>
+                <a href="{% url 'senate_faculty_details' faculty.id %}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">View</a>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Quick Actions -->
+        <div style="margin-top: 24px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 12px; font-size: 16px; font-weight: 600;">Quick Actions</h3>
+            {% if stats.pending_results > 0 %}
+                <div style="background: var(--ios-red-light); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--ios-red);">
+                    <div style="font-weight: 600; color: var(--ios-red); font-size: 14px;">{{ stats.pending_results }} Result(s) Awaiting Senate</div>
+                    <div style="color: var(--text-secondary); font-size: 12px;">Requires immediate attention</div>
+                </div>
+            {% endif %}
+            
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <a href="{% url 'senate_pending_results' %}" class="btn btn-primary btn-compact">Review Pending</a>
+                <a href="{% url 'senate_session_overview' %}" class="btn btn-secondary btn-compact">Session Overview</a>
+                <a href="{% url 'senate_university_report' %}" class="btn btn-secondary btn-compact">University Report</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Senate Approval History -->
+<div class="ios-card" style="margin-top: 32px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2 style="color: var(--text-primary); font-size: 20px; font-weight: 600; margin: 0;">Recent Senate Actions</h2>
+        <a href="{% url 'senate_approval_history' %}" style="color: var(--ios-blue); text-decoration: none; font-weight: 500;">View All</a>
+    </div>
+    
+    {% if recent_approvals %}
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--surface-secondary);">
+                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Action</th>
+                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Faculty</th>
+                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Results Count</th>
+                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Date</th>
+                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Approved By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for approval in recent_approvals %}
+                    <tr style="border-bottom: 1px solid var(--border-light);">
+                        <td style="padding: 12px;">
+                            <span class="badge {% if approval.action == 'APPROVED' %}badge-success{% else %}badge-warning{% endif %}">
+                                {{ approval.get_action_display }}
+                            </span>
+                        </td>
+                        <td style="padding: 12px; color: var(--text-primary);">{{ approval.faculty_name }}</td>
+                        <td style="padding: 12px; color: var(--text-secondary);">{{ approval.results_count }}</td>
+                        <td style="padding: 12px; color: var(--text-secondary);">{{ approval.created_at|date:"M d, Y H:i" }}</td>
+                        <td style="padding: 12px; color: var(--text-secondary);">{{ approval.approved_by.get_full_name }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+            <p>No recent Senate actions</p>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

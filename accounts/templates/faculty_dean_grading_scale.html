@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+
+{% block title %}Grading Scale Management - Faculty Dean{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <h1 class="page-title">Grading Scale Management</h1>
+    <p class="page-subtitle">Configure grading system for {{ faculty.name }}</p>
+</div>
+
+<!-- Current Grading Scale -->
+<div class="ios-card" style="margin-bottom: 32px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2 style="color: var(--text-primary); font-size: 22px; font-weight: 600; margin: 0;">Current Grading Scale</h2>
+        {% if grading_scales %}
+            <a href="{% url 'faculty_dean_add_grade' %}" class="btn btn-primary">Add Grade</a>
+        {% endif %}
+    </div>
+    
+    {% if grading_scales %}
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--surface-secondary);">
+                        <th style="padding: 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Grade</th>
+                        <th style="padding: 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Min Score</th>
+                        <th style="padding: 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Max Score</th>
+                        <th style="padding: 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Grade Point</th>
+                        <th style="padding: 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Description</th>
+                        <th style="padding: 16px; text-align: left; font-weight: 600; color: var(--text-primary);">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for grade in grading_scales %}
+                    <tr style="border-bottom: 1px solid var(--border-light);">
+                        <td style="padding: 16px;">
+                            <span style="font-weight: 700; font-size: 18px; color: var(--ios-blue);">{{ grade.grade }}</span>
+                        </td>
+                        <td style="padding: 16px; color: var(--text-primary); font-weight: 600;">{{ grade.min_score }}</td>
+                        <td style="padding: 16px; color: var(--text-primary); font-weight: 600;">{{ grade.max_score }}</td>
+                        <td style="padding: 16px; color: var(--text-primary); font-weight: 600;">{{ grade.grade_point }}</td>
+                        <td style="padding: 16px; color: var(--text-secondary);">{{ grade.description }}</td>
+                        <td style="padding: 16px;">
+                            <div style="display: flex; gap: 8px;">
+                                <a href="{% url 'faculty_dean_edit_grade' grade.id %}" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;">Edit</a>
+                                <a href="{% url 'faculty_dean_delete_grade' grade.id %}" class="btn btn-danger" style="padding: 8px 16px; font-size: 14px;" onclick="return confirm('Are you sure you want to delete this grade?')">Delete</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 60px; color: var(--text-secondary);">
+            <div style="width: 80px; height: 80px; background: var(--ios-blue-ultra-light); border-radius: 20px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+                <div style="width: 40px; height: 40px; background: var(--ios-blue); border-radius: 10px; opacity: 0.6;"></div>
+            </div>
+            <h3 style="color: var(--text-primary); margin-bottom: 8px;">No Grading Scale Configured</h3>
+            <p style="margin-bottom: 20px;">Set up your faculty's grading system to get started</p>
+            <a href="{% url 'faculty_dean_setup_grading' %}" class="btn btn-primary">Setup Grading Scale</a>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Quick Setup Templates -->
+{% if not grading_scales %}
+<div class="ios-card" style="margin-bottom: 32px;">
+    <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Quick Setup Templates</h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+        <!-- Standard 5-Point Scale -->
+        <div style="background: var(--surface-secondary); padding: 24px; border-radius: 16px; border: 2px solid transparent; transition: all 0.3s ease;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Standard 5-Point Scale</h3>
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="font-weight: 600;">A (4.0)</span>
+                    <span style="color: var(--text-secondary);">70-100</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="font-weight: 600;">B (3.0)</span>
+                    <span style="color: var(--text-secondary);">60-69</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="font-weight: 600;">C (2.0)</span>
+                    <span style="color: var(--text-secondary);">50-59</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="font-weight: 600;">D (1.0)</span>
+                    <span style="color: var(--text-secondary);">45-49</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="font-weight: 600;">F (0.0)</span>
+                    <span style="color: var(--text-secondary);">0-44</span>
+                </div>
+            </div>
+            <a href="{% url 'faculty_dean_setup_grading' %}?template=standard" class="btn btn-primary" style="width: 100%; text-align: center;">Use This Template</a>
+        </div>
+
+        <!-- Detailed 7-Point Scale -->
+        <div style="background: var(--surface-secondary); padding: 24px; border-radius: 16px; border: 2px solid transparent; transition: all 0.3s ease;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Detailed 7-Point Scale</h3>
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-weight: 600;">A (5.0)</span>
+                    <span style="color: var(--text-secondary);">70-100</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-weight: 600;">B (4.0)</span>
+                    <span style="color: var(--text-secondary);">60-69</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-weight: 600;">C (3.0)</span>
+                    <span style="color: var(--text-secondary);">50-59</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-weight: 600;">D (2.0)</span>
+                    <span style="color: var(--text-secondary);">45-49</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-weight: 600;">E (1.0)</span>
+                    <span style="color: var(--text-secondary);">40-44</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="font-weight: 600;">F (0.0)</span>
+                    <span style="color: var(--text-secondary);">0-39</span>
+                </div>
+            </div>
+            <a href="{% url 'faculty_dean_setup_grading' %}?template=detailed" class="btn btn-primary" style="width: 100%; text-align: center;">Use This Template</a>
+        </div>
+
+        <!-- Custom Setup -->
+        <div style="background: var(--surface-secondary); padding: 24px; border-radius: 16px; border: 2px solid transparent; transition: all 0.3s ease;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Custom Grading Scale</h3>
+            <div style="margin-bottom: 20px; text-align: center;">
+                <div style="width: 60px; height: 60px; background: var(--ios-blue-ultra-light); border-radius: 15px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 30px; height: 30px; background: var(--ios-blue); border-radius: 8px; opacity: 0.6;"></div>
+                </div>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">Create your own custom grading scale with specific grade points and score ranges.</p>
+            </div>
+            <a href="{% url 'faculty_dean_setup_grading' %}?template=custom" class="btn btn-secondary" style="width: 100%; text-align: center;">Create Custom Scale</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Carryover Criteria -->
+<div class="ios-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2 style="color: var(--text-primary); font-size: 22px; font-weight: 600; margin: 0;">Carryover Criteria</h2>
+        {% if carryover_criteria %}
+            <a href="{% url 'faculty_dean_edit_carryover' %}" class="btn btn-secondary">Edit Criteria</a>
+        {% endif %}
+    </div>
+    
+    {% if carryover_criteria %}
+        <div style="background: var(--surface-secondary); padding: 20px; border-radius: 12px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Minimum Passing Score</div>
+                    <div style="font-weight: 600; color: var(--text-primary); font-size: 18px;">{{ carryover_criteria.minimum_score }}</div>
+                </div>
+                <div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Carryover Grade</div>
+                    <div style="font-weight: 600; color: var(--ios-red); font-size: 18px;">{{ carryover_criteria.carryover_grade }}</div>
+                </div>
+            </div>
+            
+            {% if carryover_criteria.description %}
+            <div style="margin-top: 16px;">
+                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Description</div>
+                <div style="color: var(--text-primary);">{{ carryover_criteria.description }}</div>
+            </div>
+            {% endif %}
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+            <div style="width: 60px; height: 60px; background: var(--ios-red-light); border-radius: 15px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
+                <div style="width: 30px; height: 30px; background: var(--ios-red); border-radius: 8px; opacity: 0.6;"></div>
+            </div>
+            <h3 style="color: var(--text-primary); margin-bottom: 8px;">No Carryover Criteria Set</h3>
+            <p style="margin-bottom: 20px;">Define criteria for student carryovers</p>
+            <a href="{% url 'faculty_dean_setup_carryover' %}" class="btn btn-primary">Setup Carryover Criteria</a>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

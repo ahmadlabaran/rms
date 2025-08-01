@@ -1,0 +1,622 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Users - RMS{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --ios-red: #FF3B30;
+        --ios-red-light: #FF6B6B;
+        --ios-red-ultra-light: rgba(255, 59, 48, 0.1);
+        --ios-blue: #007AFF;
+        --ios-blue-light: #5AC8FA;
+        --ios-blue-ultra-light: rgba(0, 122, 255, 0.1);
+        --ios-green: #34C759;
+        --ios-orange: #FF9500;
+        --text-primary: #1D1D1F;
+        --text-secondary: #86868B;
+        --text-tertiary: #C7C7CC;
+        --surface-primary: #FFFFFF;
+        --surface-secondary: #F2F2F7;
+        --border-color: #D1D1D6;
+        --border-light: #E5E5EA;
+        --royal-blue-gradient: linear-gradient(135deg, #007AFF 0%, #FF3B30 100%);
+    }
+</style>
+
+<div>
+    <div style="max-width: 1200px; margin: 0 auto;">
+        <!-- Header Card -->
+        <div style="background: rgba(255,255,255,0.95); border: 1px solid var(--border-light); border-radius: 24px; padding: 32px; margin-bottom: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                <div>
+                    <h1 style="font-size: 28px; font-weight: 700; color: var(--text-primary); margin: 0 0 8px 0; letter-spacing: -0.5px;">
+                        Manage Users
+                    </h1>
+                    <p style="color: var(--text-secondary); margin: 0; font-size: 16px; font-weight: 500;">
+                        Create, view, edit, and manage all system users
+                    </p>
+                </div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <a href="{% url 'super_admin_create_user' %}"
+                       style="background: var(--royal-blue-gradient); color: #FFFFFF; padding: 16px 24px; border-radius: 16px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 20px rgba(30, 58, 138, 0.3); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 18px;">+</span>
+                        Create New User
+                    </a>
+                    <a href="{% url 'super_admin_dashboard' %}"
+                       style="background: #FFFFFF; color: var(--text-primary); padding: 16px 24px; border-radius: 16px; text-decoration: none; font-weight: 600; border: 1px solid var(--border-color); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                        ← Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 32px;">
+            <div style="background: var(--accent-gradient); color: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.12);">
+                <div style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">{{ total_users }}</div>
+                <div style="font-size: 16px; opacity: 0.9;">Total Users</div>
+            </div>
+            <div style="background: var(--ios-green); color: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.12);">
+                <div style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">{{ active_users }}</div>
+                <div style="font-size: 16px; opacity: 0.9;">Active Users</div>
+            </div>
+            <div style="background: var(--ios-blue); color: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.12);">
+                <div style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">{{ users_with_roles_count }}</div>
+                <div style="font-size: 16px; opacity: 0.9;">With Roles</div>
+            </div>
+            <div style="background: var(--ios-orange); color: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.12);">
+                <div style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">{{ users_without_roles_count }}</div>
+                <div style="font-size: 16px; opacity: 0.9;">Without Roles</div>
+            </div>
+        </div>
+
+        <!-- Search and Filters Card -->
+        <div style="background: rgba(255,255,255,0.95); border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; margin-bottom: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
+            <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 20px; align-items: end;">
+                <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary); font-size: 14px;">Search Users</label>
+                    <input type="text" id="userSearch" placeholder="Search by name, email, username..."
+                           style="width: 100%; padding: 16px 20px; border: 2px solid var(--ios-red); border-radius: 16px; font-size: 16px; background: #FFFFFF; transition: all 0.2s ease;"
+                           onfocus="this.style.borderColor='var(--ios-blue)'; this.style.boxShadow='0 0 0 4px var(--ios-blue-ultra-light)'"
+                           onblur="this.style.borderColor='var(--ios-red)'; this.style.boxShadow='none'">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary); font-size: 14px;">Filter by Role</label>
+                    <select id="roleFilter"
+                            style="padding: 16px 20px; border: 1px solid var(--border-color); border-radius: 16px; font-size: 16px; min-width: 180px; background: #FFFFFF; transition: all 0.2s ease;"
+                            onfocus="this.style.borderColor='var(--ios-blue)'; this.style.boxShadow='0 0 0 4px var(--ios-blue-ultra-light)'"
+                            onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none'">
+                        <option value="">All Roles</option>
+                        <option value="SUPER_ADMIN">Super Admin</option>
+                        <option value="FACULTY_DEAN">Faculty Dean</option>
+                        <option value="HOD">Head of Department</option>
+                        <option value="LECTURER">Lecturer</option>
+                        <option value="EXAM_OFFICER">Exam Officer</option>
+                        <option value="ADMISSION_OFFICER">Admission Officer</option>
+                        <option value="DAAA">DAAA</option>
+                        <option value="SENATE">Senate</option>
+                    </select>
+                </div>
+                <button onclick="filterUsers()"
+                        style="background: var(--royal-blue-gradient); color: white; padding: 16px 24px; border: none; border-radius: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 10px rgba(30, 58, 138, 0.3); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+                    Filter
+                </button>
+            </div>
+        </div>
+
+        <!-- Users Without Roles Section -->
+        {% if users_without_roles %}
+        <div style="background: rgba(255,255,255,0.95); border-radius: 20px; padding: 24px; margin-bottom: 32px; backdrop-filter: blur(20px); box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+            <h2 style="font-size: 24px; font-weight: 700; color: var(--ios-orange); margin: 0 0 20px 0; display: flex; align-items: center; gap: 12px;">
+                Users Without Roles ({{ users_without_roles_count }})
+            </h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;">
+                {% for user in users_without_roles %}
+                <div class="user-card" style="background: #FFFFFF; border: 2px solid var(--ios-orange); border-radius: 16px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); transition: all 0.3s ease;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                        <div style="flex: 1;">
+                            <h3 style="font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 0 0 4px 0;">
+                                {{ user.get_full_name }}
+                            </h3>
+                            <p style="color: var(--text-secondary); margin: 0 0 8px 0; font-size: 14px;">
+                                {{ user.email }}
+                            </p>
+                            <p style="color: var(--text-tertiary); margin: 0; font-size: 12px;">
+                                Username: {{ user.username }}
+                            </p>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
+                            <a href="{% url 'super_admin_user_details' user.id %}"
+                               style="background: var(--ios-blue); color: white; padding: 4px 8px; border-radius: 6px; text-decoration: none; font-size: 11px; font-weight: 600; white-space: nowrap;">
+                                View
+                            </a>
+                            <a href="{% url 'super_admin_edit_user' user.id %}"
+                               style="background: var(--ios-orange); color: white; padding: 4px 8px; border-radius: 6px; text-decoration: none; font-size: 11px; font-weight: 600; white-space: nowrap;">
+                                Assign Role
+                            </a>
+                            <button class="delete-user-btn" data-user-id="{{ user.id }}" data-user-name="{{ user.get_full_name }}"
+                                    style="background: var(--ios-red); color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Warning Message -->
+                    <div style="background: var(--ios-orange); color: white; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center;">
+                        No roles assigned - User cannot access system features
+                    </div>
+
+                    <!-- User Status -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+                        <span style="font-size: 12px; color: var(--text-tertiary);">
+                            Joined: {{ user.date_joined|date:"M d, Y" }}
+                        </span>
+                        <span class="status-badge status-{% if user.is_active %}active{% else %}inactive{% endif %}">
+                            {% if user.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Users by Faculty Section -->
+        {% if faculty_groups %}
+        {% for faculty_name, faculty_data in faculty_groups.items %}
+        <div style="background: rgba(255,255,255,0.95); border-radius: 20px; padding: 24px; margin-bottom: 32px; backdrop-filter: blur(20px); box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+            <h2 style="font-size: 24px; font-weight: 700; color: var(--ios-blue); margin: 0 0 20px 0; display: flex; align-items: center; gap: 12px;">
+                {{ faculty_name }} ({{ faculty_data.users|length }} users)
+            </h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;">
+                {% for user in faculty_data.users %}
+                <div class="user-card" style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 16px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); transition: all 0.3s ease;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                        <div style="flex: 1;">
+                            <h3 style="font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 0 0 4px 0;">
+                                {{ user.get_full_name }}
+                            </h3>
+                            <p style="color: var(--text-secondary); margin: 0 0 8px 0; font-size: 14px;">
+                                {{ user.email }}
+                            </p>
+                            <p style="color: var(--text-tertiary); margin: 0; font-size: 12px;">
+                                Username: {{ user.username }}
+                            </p>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
+                            <a href="{% url 'super_admin_user_details' user.id %}"
+                               style="background: var(--ios-blue); color: white; padding: 4px 8px; border-radius: 6px; text-decoration: none; font-size: 11px; font-weight: 600; white-space: nowrap;">
+                                View
+                            </a>
+                            <a href="{% url 'super_admin_edit_user' user.id %}"
+                               style="background: var(--ios-orange); color: white; padding: 4px 8px; border-radius: 6px; text-decoration: none; font-size: 11px; font-weight: 600; white-space: nowrap;">
+                                Edit
+                            </a>
+                            <button class="permission-modal-btn" data-user-id="{{ user.id }}" data-user-name="{{ user.get_full_name }}"
+                               style="background: var(--ios-green); color: white; padding: 4px 8px; border-radius: 6px; border: none; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                                Delegate
+                            </button>
+                            <button class="delete-user-btn" data-user-id="{{ user.id }}" data-user-name="{{ user.get_full_name }}"
+                                    style="background: var(--ios-red); color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- User Roles -->
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Roles:</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                            {% for role in user.rms_roles.all %}
+                            <span style="background: var(--ios-blue); color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600;">
+                                {{ role.get_role_display }}
+                                {% if role.department %} - {{ role.department.name }}{% endif %}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- User Status -->
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 12px; color: var(--text-tertiary);">
+                            Joined: {{ user.date_joined|date:"M d, Y" }}
+                        </span>
+                        <span class="status-badge status-{% if user.is_active %}active{% else %}inactive{% endif %}">
+                            {% if user.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <!-- Empty State -->
+        {% if not users_without_roles and not faculty_groups %}
+        <div style="background: rgba(255,255,255,0.95); border-radius: 20px; padding: 40px; text-align: center; backdrop-filter: blur(20px); box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+
+            <h3 style="font-size: 20px; margin-bottom: 8px;">No Users Found</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">Start by creating your first user.</p>
+            <a href="{% url 'super_admin_create_user' %}"
+               style="background: var(--royal-blue-gradient); color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-weight: 600; display: inline-block;">
+                Create First User
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create Faculty Modal -->
+<div id="createFacultyModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; backdrop-filter: blur(5px);">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 20px; padding: 32px; width: 90%; max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+        <h2 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin: 0 0 24px 0;">Create New Faculty</h2>
+
+        <form id="createFacultyForm" method="post" action="{% url 'super_admin_create_faculty' %}">
+            {% csrf_token %}
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Faculty Name</label>
+                <input type="text" name="faculty_name" required style="width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 16px;">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Faculty Code</label>
+                <input type="text" name="faculty_code" required style="width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 16px;">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Description</label>
+                <textarea name="description" rows="3" style="width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 16px; resize: vertical;"></textarea>
+            </div>
+
+            <h3 style="font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 24px 0 16px 0;">Faculty Dean Details</h3>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">First Name</label>
+                    <input type="text" name="dean_first_name" required style="width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 16px;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Last Name</label>
+                    <input type="text" name="dean_last_name" required style="width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 16px;">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Email</label>
+                <input type="email" name="dean_email" required style="width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 16px;">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Username</label>
+                <input type="text" name="dean_username" required style="width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 16px;">
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 32px;">
+                <button type="button" onclick="hideFacultyModal()" style="background: var(--surface-secondary); color: var(--text-primary); padding: 12px 24px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer;">
+                    Cancel
+                </button>
+                <button type="submit" style="background: var(--royal-blue-gradient); color: white; padding: 12px 24px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer;">
+                    Create Faculty & Dean
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Permission Delegation Modal -->
+<div id="permissionModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; backdrop-filter: blur(5px);">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 20px; padding: 32px; width: 90%; max-width: 600px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;">
+        <h2 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin: 0 0 24px 0;">Grant Role Permissions</h2>
+
+        <form id="delegatePermissionForm" method="post" action="{% url 'super_admin_delegate_permission' %}">
+            {% csrf_token %}
+            <input type="hidden" id="delegate_user_id" name="delegate_user_id">
+
+            <!-- User Info -->
+            <div style="background: var(--surface-secondary); padding: 16px; border-radius: 12px; margin-bottom: 24px;">
+                <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 8px 0;">Granting role permissions to:</h3>
+                <div id="delegate_user_info" style="font-size: 18px; font-weight: 600; color: var(--royal-blue);"></div>
+            </div>
+
+            <!-- Select Original Role Holder -->
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Select Role Holder to Delegate From</label>
+                <select id="delegated_user_role_id" name="delegated_user_role_id" required style="width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 16px;" onchange="updateRoleInfo()">
+                    <option value="">Loading role holders...</option>
+                </select>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                    Choose whose role permissions you want to temporarily delegate
+                </div>
+            </div>
+
+            <!-- Selected Role Info -->
+            <div id="role_info" style="margin-bottom: 20px; display: none;">
+                <div style="background: var(--surface-secondary); padding: 16px; border-radius: 12px;">
+                    <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Role to be delegated:</div>
+                    <div id="role_details" style="font-size: 16px; color: var(--ios-blue); font-weight: 600;"></div>
+                </div>
+            </div>
+
+            <!-- Reason -->
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Reason for Delegation</label>
+                <textarea id="reason" name="reason" required rows="2" style="width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 16px; resize: vertical;" placeholder="Brief reason for delegating this role..."></textarea>
+            </div>
+
+            <!-- Warning -->
+            <div style="background: var(--ios-blue-ultra-light); border: 1px solid var(--ios-blue); color: var(--ios-blue); padding: 16px; border-radius: 12px; margin-bottom: 24px;">
+                <div style="font-weight: 600; margin-bottom: 8px;">Important Notes:</div>
+                <ul style="margin: 0; padding-left: 20px; font-size: 14px;">
+                    <li>This grants temporary role permissions to the user</li>
+                    <li>The user will have full permissions of the selected role</li>
+                    <li>All actions will be logged and audited</li>
+                    <li>You can revoke this delegation anytime from the delegations page</li>
+                </ul>
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button type="button" onclick="hidePermissionModal()" style="background: var(--surface-secondary); color: var(--text-primary); padding: 12px 24px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer;">
+                    Cancel
+                </button>
+                <button type="submit" style="background: var(--royal-blue-gradient); color: white; padding: 12px 24px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer;">
+                    Delegate Role
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function filterUsers() {
+    const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+    const roleFilter = document.getElementById('roleFilter').value;
+    const userCards = document.querySelectorAll('.user-card');
+
+    userCards.forEach(card => {
+        const userName = card.querySelector('h3').textContent.toLowerCase();
+        const userEmail = card.querySelector('p').textContent.toLowerCase();
+        const userRoles = Array.from(card.querySelectorAll('span')).map(span => span.textContent);
+
+        const matchesSearch = userName.includes(searchTerm) || userEmail.includes(searchTerm);
+        const matchesRole = !roleFilter || userRoles.some(role => role.includes(roleFilter));
+
+        if (matchesSearch && matchesRole) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+// Faculty modal functions
+function showCreateFacultyModal() {
+    document.getElementById('createFacultyModal').style.display = 'block';
+}
+
+function hideFacultyModal() {
+    document.getElementById('createFacultyModal').style.display = 'none';
+}
+
+// Permission delegation modal
+function showPermissionModal(userId, userName) {
+    document.getElementById('delegate_user_id').value = userId;
+    document.getElementById('delegate_user_info').textContent = userName;
+
+    // Load all role holders when modal opens
+    loadAllRoleHolders();
+
+    document.getElementById('permissionModal').style.display = 'block';
+}
+
+function hidePermissionModal() {
+    document.getElementById('permissionModal').style.display = 'none';
+    document.getElementById('delegatePermissionForm').reset();
+}
+
+// Load all role holders
+function loadAllRoleHolders() {
+    const roleHolderSelect = document.getElementById('delegated_user_role_id');
+
+    // Show loading
+    roleHolderSelect.innerHTML = '<option value="">Loading role holders...</option>';
+
+    // Fetch all users with roles
+    fetch('/api/super-admin/get-all-role-holders/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        roleHolderSelect.innerHTML = '<option value="">Select a role holder to delegate from</option>';
+
+        if (data.status === 'success' && data.role_holders) {
+            data.role_holders.forEach(holder => {
+                const option = document.createElement('option');
+                option.value = holder.user_role_id;
+                option.textContent = `${holder.user_name} - ${holder.role_display}`;
+                if (holder.faculty_name) {
+                    option.textContent += ` (${holder.faculty_name}`;
+                    if (holder.department_name) {
+                        option.textContent += ` - ${holder.department_name}`;
+                    }
+                    option.textContent += ')';
+                }
+
+                // Store role info in data attributes
+                option.dataset.role = holder.role;
+                option.dataset.roleName = holder.role_display;
+                option.dataset.facultyName = holder.faculty_name || '';
+                option.dataset.departmentName = holder.department_name || '';
+
+                roleHolderSelect.appendChild(option);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error loading role holders:', error);
+        roleHolderSelect.innerHTML = '<option value="">Error loading role holders</option>';
+    });
+}
+
+// Show role info when role holder is selected
+function updateRoleInfo() {
+    const select = document.getElementById('delegated_user_role_id');
+    const roleInfo = document.getElementById('role_info');
+    const roleDetails = document.getElementById('role_details');
+
+    if (select.value) {
+        const selectedOption = select.options[select.selectedIndex];
+        const roleName = selectedOption.dataset.roleName;
+        const facultyName = selectedOption.dataset.facultyName;
+        const departmentName = selectedOption.dataset.departmentName;
+
+        let roleText = roleName;
+        if (facultyName) {
+            roleText += ` of ${facultyName}`;
+            if (departmentName) {
+                roleText += ` - ${departmentName}`;
+            }
+        }
+
+        roleDetails.textContent = roleText;
+        roleInfo.style.display = 'block';
+    } else {
+        roleInfo.style.display = 'none';
+    }
+}
+
+
+
+// Load departments for selected faculty
+function loadDepartmentsForFaculty() {
+    const facultyId = document.getElementById('faculty').value;
+    const departmentSelect = document.getElementById('department');
+
+    if (!facultyId) {
+        departmentSelect.innerHTML = '<option value="">Select department</option>';
+        return;
+    }
+
+    // Fetch departments for this faculty
+    fetch('/super-admin/get-departments/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({faculty_id: facultyId})
+    })
+    .then(response => response.json())
+    .then(data => {
+        departmentSelect.innerHTML = '<option value="">Select department</option>';
+        data.departments.forEach(dept => {
+            const option = document.createElement('option');
+            option.value = dept.id;
+            option.textContent = dept.name;
+            departmentSelect.appendChild(option);
+        });
+
+        // Auto-select department if delegator has one
+        const delegatorSelect = document.getElementById('delegator');
+        const selectedOption = delegatorSelect.options[delegatorSelect.selectedIndex];
+        if (selectedOption && selectedOption.dataset.department) {
+            departmentSelect.value = selectedOption.dataset.department;
+        }
+    })
+    .catch(error => {
+        console.error('Error loading departments:', error);
+        departmentSelect.innerHTML = '<option value="">Error loading departments</option>';
+    });
+}
+
+// Real-time search
+document.getElementById('userSearch').addEventListener('input', filterUsers);
+document.getElementById('roleFilter').addEventListener('change', filterUsers);
+
+// Close modals when clicking outside
+document.getElementById('createFacultyModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideFacultyModal();
+    }
+});
+
+document.getElementById('permissionModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hidePermissionModal();
+    }
+});
+
+// Event listeners for buttons
+document.addEventListener('DOMContentLoaded', function() {
+    // Delete user buttons
+    document.querySelectorAll('.delete-user-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            const userName = this.dataset.userName;
+            deleteUser(userId, userName);
+        });
+    });
+
+    // Permission modal buttons
+    document.querySelectorAll('.permission-modal-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            const userName = this.dataset.userName;
+            showPermissionModal(userId, userName);
+        });
+    });
+});
+
+// Delete user function
+function deleteUser(userId, userName) {
+    if (confirm(`Are you sure you want to delete the user "${userName}"? This will also remove all their roles and permissions. This action cannot be undone.`)) {
+        fetch(`/api/super-admin/delete-user/${userId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('User deleted successfully');
+                location.reload();
+            } else {
+                alert('Error deleting user: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error deleting user');
+            console.error('Error:', error);
+        });
+    }
+}
+</script>
+
+<style>
+    /* Status badge styles */
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 600;
+        color: white;
+    }
+
+    .status-active {
+        background: var(--ios-green);
+    }
+
+    .status-inactive {
+        background: var(--ios-red);
+    }
+</style>
+
+{% endblock %}

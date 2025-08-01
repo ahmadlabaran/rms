@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+
+{% block title %}DAAA Dashboard - RMS{% endblock %}
+
+{% block content %}
+<!-- DAAA Overview Header -->
+<div class="ios-card" style="background: var(--royal-blue-gradient); color: white; margin-bottom: 32px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 600;">DAAA Dashboard</h1>
+            <p style="margin: 0; opacity: 0.9; font-size: 16px;">Directorate of Academic Affairs & Assessment - {{ current_session.name }}</p>
+        </div>
+        <div style="text-align: right;">
+            <div style="background: rgba(255,255,255,0.2); padding: 12px 20px; border-radius: 12px; margin-bottom: 8px;">
+                <div style="font-size: 24px; font-weight: 700; margin-bottom: 4px;">{{ stats.total_faculties }}</div>
+                <div style="font-size: 14px; opacity: 0.9;">Faculties</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Session Management -->
+<div class="ios-card" style="margin-bottom: 32px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <h2 style="color: var(--text-primary); font-size: 22px; font-weight: 600; margin: 0;">Session Management</h2>
+            {% if current_session %}
+                <p style="color: var(--text-secondary); font-size: 14px; margin: 4px 0 0 0;">Current Session: {{ current_session.name }}</p>
+            {% else %}
+                <p style="color: var(--text-secondary); font-size: 14px; margin: 4px 0 0 0;">No active session</p>
+            {% endif %}
+        </div>
+        {% if current_session %}
+            {% if current_session.is_locked %}
+                <span class="badge badge-danger">Session Locked</span>
+            {% else %}
+                <span class="badge badge-success">Session Active</span>
+            {% endif %}
+        {% else %}
+            <span class="badge badge-warning">No Active Session</span>
+        {% endif %}
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px;">
+        <a href="{% url 'daaa_create_session' %}" class="btn btn-primary btn-compact">Create Session</a>
+        <a href="{% url 'daaa_manage_sessions' %}" class="btn btn-secondary btn-compact">Manage Sessions</a>
+        <a href="{% url 'daaa_activate_session' %}" class="btn btn-secondary btn-compact">Activate Session</a>
+        {% if current_session %}
+            {% if not current_session.is_locked %}
+                <a href="{% url 'daaa_lock_session' current_session.id %}" class="btn btn-danger btn-compact">Lock Session</a>
+            {% else %}
+                <a href="{% url 'daaa_unlock_session' current_session.id %}" class="btn btn-primary btn-compact">Unlock Session</a>
+            {% endif %}
+        {% else %}
+            <span class="btn btn-secondary btn-compact" style="opacity: 0.5; cursor: not-allowed;">No Active Session</span>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Quick Stats Grid -->
+<div class="stats-grid" style="margin-bottom: 40px;">
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.total_students }}</div>
+        <div class="stat-label">Total Students</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.pending_results }}</div>
+        <div class="stat-label">Pending Results</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.approved_results }}</div>
+        <div class="stat-label">Approved Results</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.published_results }}</div>
+        <div class="stat-label">Published Results</div>
+    </div>
+</div>
+
+<!-- Main Dashboard Grid -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px;">
+    
+    <!-- Result Management -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Result Management</h2>
+        
+        <div style="margin-bottom: 32px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Final Review & Approval</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <a href="{% url 'daaa_pending_results' %}" class="btn btn-primary btn-compact">Pending Results</a>
+                <a href="{% url 'daaa_review_results' %}" class="btn btn-primary btn-compact">Review Results</a>
+                <a href="{% url 'daaa_approve_results' %}" class="btn btn-secondary btn-compact">Approve Results</a>
+                <a href="{% url 'daaa_reject_results' %}" class="btn btn-secondary btn-compact">Send Back</a>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 32px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Senate Submission</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <a href="{% url 'daaa_submit_to_senate' %}" class="btn btn-primary btn-compact">Submit to Senate</a>
+                <a href="{% url 'daaa_senate_reports' %}" class="btn btn-secondary btn-compact">Senate Reports</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Publication Management -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Publication Management</h2>
+        
+        <div style="margin-bottom: 32px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Result Publication</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <a href="{% url 'daaa_publish_results' %}" class="btn btn-primary btn-compact">Publish Results</a>
+                <a href="{% url 'daaa_publication_settings' %}" class="btn btn-primary btn-compact">Publication Settings</a>
+                <a href="{% url 'daaa_published_sessions' %}" class="btn btn-secondary btn-compact">Published Sessions</a>
+                <a href="{% url 'daaa_notification_log' %}" class="btn btn-secondary btn-compact">Notification Log</a>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 32px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Student Notifications</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <a href="{% url 'daaa_send_notifications' %}" class="btn btn-primary btn-compact">Send Notifications</a>
+                <a href="{% url 'daaa_email_status' %}" class="btn btn-secondary btn-compact">Email Status</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- University Overview & Reports -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 32px; margin-bottom: 32px;">
+    
+    <!-- University Overview -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">University Overview</h2>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+            <div style="text-align: center;">
+                <h3 style="color: var(--ios-blue); margin-bottom: 12px; font-size: 16px; font-weight: 600;">Faculty Reports</h3>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <a href="{% url 'daaa_faculty_summary' %}" class="btn btn-primary btn-compact">Faculty Summary</a>
+                    <a href="{% url 'daaa_faculty_comparison' %}" class="btn btn-secondary btn-compact">Compare Faculties</a>
+                </div>
+            </div>
+            
+            <div style="text-align: center;">
+                <h3 style="color: var(--ios-blue); margin-bottom: 12px; font-size: 16px; font-weight: 600;">Export Data</h3>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <a href="{% url 'daaa_export_university' %}" class="btn btn-primary btn-compact">University Report</a>
+                    <a href="{% url 'daaa_export_senate' %}" class="btn btn-secondary btn-compact">Senate Report</a>
+                </div>
+            </div>
+            
+            <div style="text-align: center;">
+                <h3 style="color: var(--ios-blue); margin-bottom: 12px; font-size: 16px; font-weight: 600;">Audit & Logs</h3>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <a href="{% url 'daaa_audit_log' %}" class="btn btn-primary btn-compact">Audit Log</a>
+                    <a href="{% url 'daaa_system_health' %}" class="btn btn-secondary btn-compact">System Health</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Faculty Status Overview -->
+        <div>
+            <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Faculty Status</h3>
+            {% for faculty in faculties %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--surface-secondary); border-radius: 8px; margin-bottom: 8px;">
+                <div>
+                    <div style="font-weight: 600; color: var(--text-primary); font-size: 14px;">{{ faculty.name }}</div>
+                    <div style="color: var(--text-secondary); font-size: 12px;">{{ faculty.departments_count }} departments • {{ faculty.students_count }} students</div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <span class="badge {% if faculty.pending_results > 0 %}badge-warning{% else %}badge-success{% endif %}">
+                        {{ faculty.pending_results }} pending
+                    </span>
+                    <a href="{% url 'daaa_faculty_details' faculty.id %}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">View</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Quick Actions & Alerts -->
+    <div class="ios-card">
+        <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 20px; font-weight: 600;">Quick Actions</h2>
+        
+        <!-- Critical Actions -->
+        <div style="margin-bottom: 24px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 12px; font-size: 16px; font-weight: 600;">Critical Actions</h3>
+            {% if stats.pending_results > 0 %}
+                <div style="background: var(--ios-red-light); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--ios-red);">
+                    <div style="font-weight: 600; color: var(--ios-red); font-size: 14px;">{{ stats.pending_results }} Result(s) Awaiting DAAA Approval</div>
+                    <div style="color: var(--text-secondary); font-size: 12px;">Requires immediate attention</div>
+                </div>
+            {% endif %}
+            
+            {% if not current_session.is_locked and stats.approved_results > 0 %}
+                <div style="background: var(--ios-blue-ultra-light); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--ios-blue);">
+                    <div style="font-weight: 600; color: var(--ios-blue); font-size: 14px;">Session Ready for Locking</div>
+                    <div style="color: var(--text-secondary); font-size: 12px;">{{ stats.approved_results }} results approved</div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Quick Links -->
+        <div>
+            <h3 style="color: var(--ios-blue); margin-bottom: 12px; font-size: 16px; font-weight: 600;">Quick Links</h3>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <a href="{% url 'daaa_pending_results' %}" class="btn btn-primary btn-compact">Review Pending</a>
+                <a href="{% url 'daaa_publish_results' %}" class="btn btn-secondary btn-compact">Publish Results</a>
+                <a href="{% url 'daaa_create_session' %}" class="btn btn-secondary btn-compact">New Session</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Results Awaiting DAAA Approval -->
+<div class="ios-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2 style="color: var(--text-primary); font-size: 20px; font-weight: 600; margin: 0;">Results Awaiting DAAA Approval</h2>
+        <a href="{% url 'daaa_pending_results' %}" style="color: var(--ios-blue); text-decoration: none; font-weight: 500;">View All</a>
+    </div>
+    
+    {% if pending_results %}
+        {% for result in pending_results|slice:":5" %}
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--surface-secondary); border-radius: 12px; margin-bottom: 12px; border: 1px solid var(--border-light);">
+            <div>
+                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                    {{ result.enrollment.student.matric_number }} - {{ result.enrollment.course.code }}
+                </div>
+                <div style="color: var(--text-secondary); font-size: 14px;">
+                    {{ result.enrollment.course.title }} • {{ result.enrollment.student.faculty.name }}
+                </div>
+                <div style="color: var(--text-tertiary); font-size: 12px;">
+                    Total: {{ result.total_score }} ({{ result.grade }}) • Submitted: {{ result.updated_at|date:"M d, Y" }}
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <a href="{% url 'daaa_review_single_result' result.id %}" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">Review</a>
+                <a href="{% url 'daaa_approve_single_result' result.id %}" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;">Quick Approve</a>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+            <div style="width: 60px; height: 60px; background: var(--ios-blue-ultra-light); border-radius: 15px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
+                <div style="width: 30px; height: 30px; background: var(--ios-blue); border-radius: 8px; opacity: 0.6;"></div>
+            </div>
+            <p>No results awaiting DAAA approval</p>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

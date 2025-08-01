@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ faculty.name }} Details - RMS{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --ios-red: #FF3B30;
+        --ios-blue: #007AFF;
+        --ios-green: #34C759;
+        --ios-orange: #FF9500;
+        --text-primary: #1D1D1F;
+        --text-secondary: #86868B;
+        --text-tertiary: #C7C7CC;
+        --surface-primary: #FFFFFF;
+        --surface-secondary: #F2F2F7;
+        --border-color: #D1D1D6;
+        --border-light: #E5E5EA;
+        --royal-blue-gradient: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    }
+</style>
+
+<div>
+    <div style="max-width: 1200px; margin: 0 auto;">
+        <!-- Header Card -->
+        <div style="background: rgba(255,255,255,0.95); border: 1px solid var(--border-light); border-radius: 24px; padding: 32px; margin-bottom: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                <div>
+                    <h1 style="font-size: 28px; font-weight: 700; color: var(--text-primary); margin: 0 0 8px 0; letter-spacing: -0.5px;">
+                        {{ faculty.name }}
+                    </h1>
+                    <p style="color: var(--text-secondary); margin: 0; font-size: 16px; font-weight: 500;">
+                        Faculty Code: {{ faculty.code }} | {{ faculty.department_set.count }} Department{{ faculty.department_set.count|pluralize }}
+                    </p>
+                </div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <a href="{% url 'super_admin_edit_faculty' faculty.id %}"
+                       style="background: var(--ios-orange); color: #FFFFFF; padding: 16px 24px; border-radius: 16px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 20px rgba(255, 149, 0, 0.3); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+                        Edit Faculty
+                    </a>
+                    <a href="{% url 'super_admin_manage_faculties' %}"
+                       style="background: #FFFFFF; color: var(--text-primary); padding: 16px 24px; border-radius: 16px; text-decoration: none; font-weight: 600; border: 1px solid var(--border-color); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                        ← Back to Faculties
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Faculty Information Card -->
+        <div style="background: rgba(255,255,255,0.95); border: 1px solid var(--border-light); border-radius: 24px; padding: 32px; margin-bottom: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
+            <h2 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin: 0 0 24px 0;">Faculty Information</h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+                <div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600; color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">Faculty Name</label>
+                        <div style="font-size: 18px; font-weight: 600; color: var(--text-primary);">{{ faculty.name }}</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600; color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">Faculty Code</label>
+                        <div style="font-size: 16px; color: var(--text-primary);">{{ faculty.code }}</div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600; color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">Faculty Dean</label>
+                        {% if faculty.dean %}
+                            <div style="font-size: 16px; color: var(--text-primary);">{{ faculty.dean.get_full_name }}</div>
+                            <div style="font-size: 14px; color: var(--text-secondary);">{{ faculty.dean.email }}</div>
+                        {% else %}
+                            <div style="font-size: 16px; color: var(--ios-orange);">No dean assigned</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600; color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">Total Departments</label>
+                        <div style="font-size: 16px; color: var(--text-primary);">{{ faculty.department_set.count }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if faculty.description %}
+            <div style="margin-top: 24px;">
+                <label style="display: block; font-weight: 600; color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">Description</label>
+                <div style="font-size: 16px; color: var(--text-primary); line-height: 1.6;">{{ faculty.description }}</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Departments Card -->
+        <div style="background: rgba(255,255,255,0.95); border: 1px solid var(--border-light); border-radius: 24px; padding: 32px; margin-bottom: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin: 0;">Departments ({{ departments.count }})</h2>
+                <a href="{% url 'super_admin_create_department' %}"
+                   style="background: var(--royal-blue-gradient); color: #FFFFFF; padding: 12px 20px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 14px; box-shadow: 0 4px 20px rgba(30, 58, 138, 0.3);">
+                    + Add Department
+                </a>
+            </div>
+            
+            {% if departments %}
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;">
+                    {% for department in departments %}
+                    <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 16px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); transition: all 0.3s ease;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                            <div style="flex: 1;">
+                                <h3 style="font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 0 0 8px 0;">
+                                    {{ department.name }}
+                                </h3>
+                                <p style="color: var(--text-secondary); margin: 0; font-size: 14px;">
+                                    Code: {{ department.code }}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Head of Department:</div>
+                            {% if department.hod %}
+                                <div style="font-size: 14px; color: var(--text-primary);">{{ department.hod.get_full_name }}</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">{{ department.hod.email }}</div>
+                            {% else %}
+                                <div style="font-size: 14px; color: var(--ios-orange);">No HOD assigned</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div style="display: flex; gap: 8px; margin-top: 16px;">
+                            <a href="{% url 'super_admin_department_details' department.id %}"
+                               style="background: var(--ios-blue); color: white; padding: 6px 12px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 600; flex: 1; text-align: center;">
+                                View Details
+                            </a>
+                            <a href="{% url 'super_admin_edit_department' department.id %}"
+                               style="background: var(--ios-orange); color: white; padding: 6px 12px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: 600; flex: 1; text-align: center;">
+                                Edit
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <div style="font-size: 18px; margin-bottom: 8px;">No departments found</div>
+                    <div style="font-size: 14px;">This faculty doesn't have any departments yet.</div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

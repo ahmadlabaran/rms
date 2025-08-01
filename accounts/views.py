@@ -1742,6 +1742,7 @@ def lecturer_dashboard(request):
     context = {
         'current_session': current_session,
         'assigned_courses': assigned_courses,
+        'course_assignments': assigned_courses,  # Add this for course selection modal
         'stats': stats,
         'correction_requests': correction_requests,
         'draft_results_count': draft_results_count,
@@ -8053,30 +8054,30 @@ def lecturer_download_csv_template(request):
         'Grade (Auto)'
     ])
 
-    # Add sample rows with examples
+    # Add sample rows with examples showing auto-calculation
     writer.writerow([
         'EXAMPLE/2023/001',
         'John Doe',
         '25.0',
         '65.0',
-        '90.0',
-        'A'
+        '90.0',  # 25.0 + 65.0 = 90.0
+        'A'      # Grade A for 90.0
     ])
     writer.writerow([
         'EXAMPLE/2023/002',
         'Jane Smith',
         '28.5',
         '70.0',
-        '98.5',
-        'A'
+        '98.5',  # 28.5 + 70.0 = 98.5
+        'A'      # Grade A for 98.5
     ])
     writer.writerow([
         'EXAMPLE/2023/003',
         'Bob Johnson',
         '20.0',
         '45.0',
-        '65.0',
-        'B'
+        '65.0',  # 20.0 + 45.0 = 65.0
+        'B'      # Grade B for 65.0
     ])
     # Add empty rows for lecturer to fill (no examples, just clean template)
     for i in range(20):

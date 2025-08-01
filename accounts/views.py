@@ -8054,30 +8054,47 @@ def lecturer_download_csv_template(request):
         'Grade (Auto)'
     ])
 
-    # Add sample rows with examples showing auto-calculation
+    # Add sample rows with examples showing correct auto-calculation
+    # Example 1: CA=25.0, Exam=65.0, Total=90.0, Grade=A
+    ca1, exam1 = 25.0, 65.0
+    total1 = ca1 + exam1
+    grade1 = 'A' if total1 >= 70 else 'B' if total1 >= 60 else 'C' if total1 >= 50 else 'D' if total1 >= 45 else 'F'
+
     writer.writerow([
         'EXAMPLE/2023/001',
         'John Doe',
-        '25.0',
-        '65.0',
-        '90.0',  # 25.0 + 65.0 = 90.0
-        'A'      # Grade A for 90.0
+        str(ca1),
+        str(exam1),
+        str(total1),  # Actual sum: 90.0
+        grade1        # Grade A for 90.0
     ])
+
+    # Example 2: CA=28.5, Exam=41.5, Total=70.0, Grade=A
+    ca2, exam2 = 28.5, 41.5
+    total2 = ca2 + exam2
+    grade2 = 'A' if total2 >= 70 else 'B' if total2 >= 60 else 'C' if total2 >= 50 else 'D' if total2 >= 45 else 'F'
+
     writer.writerow([
         'EXAMPLE/2023/002',
         'Jane Smith',
-        '28.5',
-        '70.0',
-        '98.5',  # 28.5 + 70.0 = 98.5
-        'A'      # Grade A for 98.5
+        str(ca2),
+        str(exam2),
+        str(total2),  # Actual sum: 70.0
+        grade2        # Grade A for 70.0
     ])
+
+    # Example 3: CA=20.0, Exam=35.0, Total=55.0, Grade=C
+    ca3, exam3 = 20.0, 35.0
+    total3 = ca3 + exam3
+    grade3 = 'A' if total3 >= 70 else 'B' if total3 >= 60 else 'C' if total3 >= 50 else 'D' if total3 >= 45 else 'F'
+
     writer.writerow([
         'EXAMPLE/2023/003',
         'Bob Johnson',
-        '20.0',
-        '45.0',
-        '65.0',  # 20.0 + 45.0 = 65.0
-        'B'      # Grade B for 65.0
+        str(ca3),
+        str(exam3),
+        str(total3),  # Actual sum: 55.0
+        grade3        # Grade C for 55.0
     ])
     # Add empty rows for lecturer to fill (no examples, just clean template)
     for i in range(20):

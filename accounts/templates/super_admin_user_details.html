@@ -29,7 +29,7 @@
             <h2 style="color: var(--text-primary); font-size: 22px; font-weight: 600; margin: 0;">User Information</h2>
             <div style="display: flex; gap: 12px;">
                 <a href="{% url 'super_admin_edit_user' user.id %}" class="btn btn-primary">Edit User</a>
-                <button onclick="deleteUser({{ user.id }})" class="btn btn-danger">Delete User</button>
+                <button class="btn btn-danger delete-user-btn" data-user-id="{{ user.id }}">Delete User</button>
             </div>
         </div>
         
@@ -128,8 +128,7 @@
                             {% endif %}
                         </div>
                         
-                        <button onclick="deleteRole({{ role.id }})" 
-                                style="background: var(--ios-red); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
+                        <button class="btn btn-danger btn-sm delete-role-btn" data-role-id="{{ role.id }}">
                             Remove Role
                         </button>
                     </div>
@@ -197,6 +196,26 @@
             });
         }
     }
+
+    // Add event listeners for buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        // Delete user button
+        const deleteUserBtn = document.querySelector('.delete-user-btn');
+        if (deleteUserBtn) {
+            deleteUserBtn.addEventListener('click', function() {
+                const userId = this.getAttribute('data-user-id');
+                deleteUser(userId);
+            });
+        }
+
+        // Delete role buttons
+        document.querySelectorAll('.delete-role-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const roleId = this.getAttribute('data-role-id');
+                deleteRole(roleId);
+            });
+        });
+    });
 </script>
 
 <!-- Hidden CSRF token for AJAX requests -->

@@ -101,8 +101,7 @@
                                style="background: var(--ios-orange); color: white; padding: 10px 16px; border-radius: 12px; text-decoration: none; font-size: 12px; font-weight: 600; text-align: center; transition: all 0.2s ease;">
                                 Edit
                             </a>
-                            <button onclick="deleteFaculty({{ faculty.id }}, '{{ faculty.name }}')"
-                                    style="background: var(--ios-red); color: white; border: none; padding: 10px 16px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
+                            <button class="btn btn-danger btn-sm delete-faculty-btn" data-faculty-id="{{ faculty.id }}" data-faculty-name="{{ faculty.name }}">
                                 Delete
                             </button>
                         </div>
@@ -218,6 +217,17 @@ function deleteFaculty(facultyId, facultyName) {
         });
     }
 }
+
+// Add event listeners for delete faculty buttons
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-faculty-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const facultyId = this.getAttribute('data-faculty-id');
+            const facultyName = this.getAttribute('data-faculty-name');
+            deleteFaculty(facultyId, facultyName);
+        });
+    });
+});
 </script>
 
 <!-- Hidden CSRF token for AJAX requests -->

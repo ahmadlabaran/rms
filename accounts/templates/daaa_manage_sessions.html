@@ -212,22 +212,22 @@
                     
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                         {% if not session.is_active %}
-                            <button onclick="activateSession({{ session.id }}, '{{ session.name }}')" class="btn btn-success">
+                            <button class="btn btn-success activate-session-btn" data-session-id="{{ session.id }}" data-session-name="{{ session.name }}">
                                 Activate
                             </button>
                         {% endif %}
-                        
+
                         {% if not session.is_locked %}
-                            <button onclick="lockSession({{ session.id }}, '{{ session.name }}')" class="btn btn-danger">
+                            <button class="btn btn-danger lock-session-btn" data-session-id="{{ session.id }}" data-session-name="{{ session.name }}">
                                 Lock
                             </button>
                         {% else %}
-                            <button onclick="unlockSession({{ session.id }}, '{{ session.name }}')" class="btn btn-warning">
+                            <button class="btn btn-warning unlock-session-btn" data-session-id="{{ session.id }}" data-session-name="{{ session.name }}">
                                 Unlock
                             </button>
                         {% endif %}
-                        
-                        <button onclick="viewSessionDetails({{ session.id }}, '{{ session.name }}')" class="btn btn-secondary">
+
+                        <button class="btn btn-secondary view-session-btn" data-session-id="{{ session.id }}" data-session-name="{{ session.name }}">
                             Details
                         </button>
                     </div>
@@ -326,6 +326,41 @@ function unlockSession(sessionId, sessionName) {
 function viewSessionDetails(sessionId, sessionName) {
     alert(`View details for "${sessionName}" - Feature to be implemented`);
 }
+
+// Add event listeners for session management buttons
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.activate-session-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const sessionId = this.getAttribute('data-session-id');
+            const sessionName = this.getAttribute('data-session-name');
+            activateSession(sessionId, sessionName);
+        });
+    });
+
+    document.querySelectorAll('.lock-session-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const sessionId = this.getAttribute('data-session-id');
+            const sessionName = this.getAttribute('data-session-name');
+            lockSession(sessionId, sessionName);
+        });
+    });
+
+    document.querySelectorAll('.unlock-session-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const sessionId = this.getAttribute('data-session-id');
+            const sessionName = this.getAttribute('data-session-name');
+            unlockSession(sessionId, sessionName);
+        });
+    });
+
+    document.querySelectorAll('.view-session-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const sessionId = this.getAttribute('data-session-id');
+            const sessionName = this.getAttribute('data-session-name');
+            viewSessionDetails(sessionId, sessionName);
+        });
+    });
+});
 </script>
 
 {% csrf_token %}

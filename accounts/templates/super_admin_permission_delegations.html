@@ -218,13 +218,14 @@
                 <!-- Actions -->
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                     {% if delegation.status == 'ACTIVE' %}
-                    <button onclick="showRevokeModal({{ delegation.id }}, '{{ delegation.delegate.get_full_name|escapejs }}', '{{ delegation.get_delegated_role_display|escapejs }}')"
-                            class="btn-revoke">
+                    <button class="btn btn-danger btn-sm revoke-delegation-btn"
+                            data-delegation-id="{{ delegation.id }}"
+                            data-delegate-name="{{ delegation.delegate.get_full_name }}"
+                            data-role-display="{{ delegation.get_delegated_role_display }}">
                         Revoke
                     </button>
                     {% endif %}
-                    <button onclick="viewDelegationDetails({{ delegation.id }})"
-                            style="background: var(--royal-blue); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
+                    <button class="btn btn-primary btn-sm view-delegation-btn" data-delegation-id="{{ delegation.id }}">
                         Details
                     </button>
                 </div>
@@ -322,6 +323,23 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         button.addEventListener('touchend', function() {
             this.style.transform = 'scale(1)';
+        });
+    });
+
+    // Add event listeners for delegation buttons
+    document.querySelectorAll('.revoke-delegation-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const delegationId = this.getAttribute('data-delegation-id');
+            const delegateName = this.getAttribute('data-delegate-name');
+            const roleDisplay = this.getAttribute('data-role-display');
+            showRevokeModal(delegationId, delegateName, roleDisplay);
+        });
+    });
+
+    document.querySelectorAll('.view-delegation-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const delegationId = this.getAttribute('data-delegation-id');
+            viewDelegationDetails(delegationId);
         });
     });
 });

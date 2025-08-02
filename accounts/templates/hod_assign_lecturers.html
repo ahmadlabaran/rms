@@ -314,12 +314,10 @@
                         </div>
                     </div>
                     <div style="display: flex; gap: 6px;">
-                        <button onclick="changeAssignment({{ assignment.id }}, '{{ assignment.course.code }}')" 
-                                class="btn btn-warning">
+                        <button class="btn btn-warning change-assignment-btn" data-assignment-id="{{ assignment.id }}" data-course-code="{{ assignment.course.code }}">
                             Change
                         </button>
-                        <button onclick="removeAssignment({{ assignment.id }}, '{{ assignment.course.code }}')" 
-                                class="btn btn-secondary">
+                        <button class="btn btn-secondary remove-assignment-btn" data-assignment-id="{{ assignment.id }}" data-course-code="{{ assignment.course.code }}">
                             Remove
                         </button>
                     </div>
@@ -437,5 +435,24 @@ function removeAssignment(assignmentId, courseCode) {
         location.reload();
     }
 }
+
+// Add event listeners for assignment action buttons
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.change-assignment-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const assignmentId = this.getAttribute('data-assignment-id');
+            const courseCode = this.getAttribute('data-course-code');
+            changeAssignment(assignmentId, courseCode);
+        });
+    });
+
+    document.querySelectorAll('.remove-assignment-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const assignmentId = this.getAttribute('data-assignment-id');
+            const courseCode = this.getAttribute('data-course-code');
+            removeAssignment(assignmentId, courseCode);
+        });
+    });
+});
 </script>
 {% endblock %}

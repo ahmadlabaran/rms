@@ -207,13 +207,13 @@
                 </div>
                 
                 <div class="result-actions" style="display: flex; gap: 8px; justify-content: flex-end;">
-                    <button onclick="viewResultDetails({{ result.id }})" class="btn btn-secondary">
+                    <button class="btn btn-secondary view-result-btn" data-result-id="{{ result.id }}">
                         View Details
                     </button>
-                    <button onclick="approveResult({{ result.id }}, '{{ result.enrollment.student.matric_number }}')" class="btn btn-success">
+                    <button class="btn btn-success approve-result-btn" data-result-id="{{ result.id }}" data-matric-number="{{ result.enrollment.student.matric_number }}">
                         Approve
                     </button>
-                    <button onclick="rejectResult({{ result.id }}, '{{ result.enrollment.student.matric_number }}')" class="btn btn-danger">
+                    <button class="btn btn-danger reject-result-btn" data-result-id="{{ result.id }}" data-matric-number="{{ result.enrollment.student.matric_number }}">
                         Reject
                     </button>
                 </div>
@@ -303,5 +303,31 @@ function bulkReject() {
         location.reload();
     }
 }
+
+// Add event listeners for result action buttons
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.view-result-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const resultId = this.getAttribute('data-result-id');
+            viewResultDetails(resultId);
+        });
+    });
+
+    document.querySelectorAll('.approve-result-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const resultId = this.getAttribute('data-result-id');
+            const matricNumber = this.getAttribute('data-matric-number');
+            approveResult(resultId, matricNumber);
+        });
+    });
+
+    document.querySelectorAll('.reject-result-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const resultId = this.getAttribute('data-result-id');
+            const matricNumber = this.getAttribute('data-matric-number');
+            rejectResult(resultId, matricNumber);
+        });
+    });
+});
 </script>
 {% endblock %}

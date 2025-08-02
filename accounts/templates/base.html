@@ -9,10 +9,28 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 
-    <!-- iOS Aesthetic Styling -->
+    <!-- Bootstrap Custom CSS Variables + School Brand Colors -->
     <style>
         :root {
-            /* iOS Modern Color Scheme - 55% white, 35% dark royal blue, 10% red */
+            /* Bootstrap Custom Variables - School Brand Colors */
+            --bs-primary: #007AFF;
+            --bs-primary-rgb: 0, 122, 255;
+            --bs-secondary: #6b7280;
+            --bs-secondary-rgb: 107, 114, 128;
+            --bs-success: #3b82f6;
+            --bs-success-rgb: 59, 130, 246;
+            --bs-info: #007AFF;
+            --bs-info-rgb: 0, 122, 255;
+            --bs-warning: #f59e0b;
+            --bs-warning-rgb: 245, 158, 11;
+            --bs-danger: #dc2626;
+            --bs-danger-rgb: 220, 38, 38;
+            --bs-light: #f8f9fa;
+            --bs-light-rgb: 248, 249, 250;
+            --bs-dark: #1f2937;
+            --bs-dark-rgb: 31, 41, 55;
+
+            /* School Brand Color Scheme */
             --primary-white: #FFFFFF;
             --secondary-white: #F8F9FA;
             --tertiary-white: #F2F2F7;
@@ -31,15 +49,15 @@
             --accent-red-dark: #b91c1c;
             --accent-red-gradient: linear-gradient(135deg, var(--accent-red) 0%, var(--accent-red-dark) 100%);
 
-            /* Legacy iOS variables for compatibility */
+            /* Legacy iOS variables for compatibility - Updated to school brand colors */
             --ios-blue: var(--royal-blue);
             --ios-blue-light: var(--royal-blue-light);
             --ios-blue-dark: var(--royal-blue-dark);
             --ios-blue-ultra-light: var(--royal-blue-ultra-light);
-            --ios-red: #FF3B30;
-            --ios-red-light: rgba(255, 59, 48, 0.1);
-            --ios-green: #34C759;
-            --ios-orange: #FF9500;
+            --ios-red: var(--accent-red);
+            --ios-red-light: var(--accent-red-light);
+            --ios-green: #3b82f6;  /* Changed to blue variant for consistency */
+            --ios-orange: #1e40af; /* Changed to dark blue for consistency */
             --accent-gradient: linear-gradient(135deg, #007AFF 0%, #1e40af 100%);
 
             /* Text Colors */
@@ -517,40 +535,15 @@
             box-shadow: 0 8px 30px rgba(0,0,0,0.12);
         }
 
-        /* Container */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
+        /* Remove all custom grid and media queries - use Bootstrap instead */
+
+        /* Prevent Horizontal Scroll */
+        * {
+            box-sizing: border-box;
         }
 
-        .row {
-            display: flex;
-            flex-wrap: wrap;
-            margin: -8px;
-        }
-
-        .col {
-            flex: 1;
-            padding: 8px;
-        }
-
-        .col-md-6 {
-            flex: 0 0 50%;
-            max-width: 50%;
-            padding: 8px;
-        }
-
-        .col-md-4 {
-            flex: 0 0 33.333333%;
-            max-width: 33.333333%;
-            padding: 8px;
-        }
-
-        .col-md-3 {
-            flex: 0 0 25%;
-            max-width: 25%;
-            padding: 8px;
+        body {
+            overflow-x: hidden;
         }
 
         /* Bootstrap Integration - Ensure all blue buttons have gradient */
@@ -569,46 +562,6 @@
             background: var(--royal-blue-dark) !important;
             border-color: var(--royal-blue-dark) !important;
             color: var(--primary-white) !important;
-            transform: translateY(-1px);
-        }
-
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-            }
-
-            .container-fluid {
-                padding-left: 12px;
-                padding-right: 12px;
-            }
-
-            .ios-card {
-                padding: 16px;
-                margin: 12px 0;
-                border-radius: 16px;
-            }
-
-            .btn-compact {
-                padding: 12px 16px;
-                font-size: 15px;
-            }
-
-            .stat-card {
-                padding: 16px;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .ios-card {
-                padding: 12px;
-                border-radius: 12px;
-            }
-
-            .btn-compact {
-                padding: 10px 14px;
-                font-size: 14px;
-            }
         }
 
         /* Status Badges */
@@ -621,17 +574,17 @@
         }
 
         .badge-success {
-            background: #34C759;
+            background: var(--royal-blue-light);
             color: white;
         }
 
         .badge-warning {
-            background: #FF9500;
+            background: #f59e0b;
             color: white;
         }
 
         .badge-danger {
-            background: var(--ios-red);
+            background: var(--accent-red);
             color: white;
         }
 
@@ -640,7 +593,7 @@
             color: white;
         }
 
-        /* Loading Animation */
+        /* Loading Indicator - No Animation */
         .loading {
             display: inline-block;
             width: 20px;
@@ -648,11 +601,6 @@
             border: 2px solid var(--border-color);
             border-radius: 50%;
             border-top-color: var(--ios-blue);
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
         }
 
         /* Modern Page Header */
@@ -716,6 +664,9 @@
     </style>
 </head>
 <body>
+    <!-- Django Messages -->
+    {% include 'messages.html' %}
+
     <!-- Modern iOS-Style Navigation -->
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid px-4">
@@ -874,72 +825,11 @@
                 }
             });
 
-            // Add ripple effect to nav links
-            const navLinks = document.querySelectorAll('.nav-link');
-            navLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
-                    const ripple = document.createElement('span');
-                    const rect = this.getBoundingClientRect();
-                    const size = Math.max(rect.width, rect.height);
-                    const x = e.clientX - rect.left - size / 2;
-                    const y = e.clientY - rect.top - size / 2;
-
-                    ripple.style.width = ripple.style.height = size + 'px';
-                    ripple.style.left = x + 'px';
-                    ripple.style.top = y + 'px';
-                    ripple.classList.add('ripple');
-
-                    this.appendChild(ripple);
-
-                    setTimeout(() => {
-                        ripple.remove();
-                    }, 600);
-                });
-            });
-
-            // Notification badge animation
-            const notificationBadge = document.querySelector('.nav-notification .badge');
-            if (notificationBadge) {
-                setInterval(() => {
-                    notificationBadge.style.animation = 'pulse 2s infinite';
-                }, 5000);
-            }
+            // Clean navigation - no animations
         });
-
-        // Add CSS for ripple effect
-        const style = document.createElement('style');
-        style.textContent = `
-            .nav-link {
-                position: relative;
-                overflow: hidden;
-            }
-
-            .ripple {
-                position: absolute;
-                border-radius: 50%;
-                background: rgba(30, 58, 138, 0.3);
-                transform: scale(0);
-                animation: ripple-animation 0.6s linear;
-                pointer-events: none;
-            }
-
-            @keyframes ripple-animation {
-                to {
-                    transform: scale(4);
-                    opacity: 0;
-                }
-            }
-
-            @keyframes pulse {
-                0%, 100% {
-                    transform: scale(1);
-                }
-                50% {
-                    transform: scale(1.1);
-                }
-            }
-        `;
-        document.head.appendChild(style);
     </script>
+
+    <!-- Bootstrap 5 JavaScript Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
 </body>
 </html>

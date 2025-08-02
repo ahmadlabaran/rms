@@ -2640,7 +2640,7 @@ def super_admin_create_user(request):
                     )
 
                     messages.success(request, f'User {new_user.get_full_name()} created successfully with role {role}!')
-                    return redirect('super_admin_dashboard')
+                    return redirect('super_admin_manage_users')
 
             except Exception as e:
                 messages.error(request, f'Error creating user: {str(e)}')
@@ -3476,6 +3476,7 @@ def super_admin_edit_user(request, user_id):
     user_roles = UserRole.objects.filter(user=user).select_related('faculty', 'department')
     faculties = Faculty.objects.all()
     departments = Department.objects.all()
+    departments_by_faculty_json = json.dumps(get_departments_by_faculty(departments))
 
     context = {
         'user': user,
@@ -3483,6 +3484,7 @@ def super_admin_edit_user(request, user_id):
         'faculties': faculties,
         'departments': departments,
         'role_choices': UserRole.ROLE_CHOICES,
+        'departments_by_faculty_json': departments_by_faculty_json,
     }
 
     return render(request, 'super_admin_edit_user.html', context)

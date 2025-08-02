@@ -46,10 +46,10 @@ def create_test_data():
             first_name='Super',
             last_name='Admin'
         )
-        print("✅ Superuser created: admin/admin123")
+        print("Superuser created: admin/admin123")
     else:
         superuser = User.objects.filter(is_superuser=True).first()
-        print(f"✅ Using existing superuser: {superuser.username}")
+        print(f"Using existing superuser: {superuser.username}")
 
     # Give superuser the SUPER_ADMIN role if not exists
     if not UserRole.objects.filter(user=superuser, role='SUPER_ADMIN').exists():
@@ -58,7 +58,7 @@ def create_test_data():
             role='SUPER_ADMIN',
             created_by=superuser
         )
-        print("✅ Assigned SUPER_ADMIN role")
+        print("Assigned SUPER_ADMIN role")
     
     # Create Computer Science Faculty if it doesn't exist
     cs_faculty, created = Faculty.objects.get_or_create(
@@ -176,8 +176,8 @@ def create_test_data():
         if created:
             user.set_password('test123')
             user.save()
-            print(f"✅ Created user: {user.username}")
-            
+            print(f"Created user: {user.username}")
+
             # Create role if specified
             if user_data['role']:
                 UserRole.objects.create(
@@ -187,7 +187,7 @@ def create_test_data():
                     department=user_data['department'],
                     created_by=superuser
                 )
-                print(f"   ✅ Assigned role: {user_data['role']}")
+                print(f"   Assigned role: {user_data['role']}")
 
 if __name__ == '__main__':
     check_database()

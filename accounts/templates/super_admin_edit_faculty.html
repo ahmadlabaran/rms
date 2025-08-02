@@ -3,181 +3,87 @@
 {% block title %}Edit Faculty - RMS{% endblock %}
 
 {% block content %}
-<style>
-    :root {
-        --ios-red: #FF3B30;
-        --ios-blue: #007AFF;
-        --ios-green: #34C759;
-        --ios-orange: #FF9500;
-        --text-primary: #1D1D1F;
-        --text-secondary: #86868B;
-        --text-tertiary: #C7C7CC;
-        --surface-primary: #FFFFFF;
-        --surface-secondary: #F2F2F7;
-        --border-color: #D1D1D6;
-        --border-light: #E5E5EA;
-        --royal-blue-gradient: linear-gradient(135deg, #007AFF 0%, #FF3B30 100%);
-    }
-
-    .form-container {
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-
-    .form-card {
-        background: white;
-        border-radius: 16px;
-        padding: 32px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        border: 1px solid var(--border-light);
-    }
-
-    .form-group {
-        margin-bottom: 24px;
-    }
-
-    .form-label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: 600;
-        color: var(--text-primary);
-        font-size: 14px;
-    }
-
-    .form-input {
-        width: 100%;
-        padding: 12px 16px;
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        font-size: 16px;
-        background: #FFFFFF;
-        box-sizing: border-box;
-        transition: border-color 0.2s ease;
-    }
-
-    .form-input:focus {
-        outline: none;
-        border-color: var(--ios-blue);
-        box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
-    }
-
-    .btn {
-        padding: 12px 24px;
-        border-radius: 12px;
-        font-weight: 600;
-        text-align: center;
-        transition: all 0.3s ease;
-        border: none;
-        cursor: pointer;
-        font-size: 14px;
-        text-decoration: none;
-        display: inline-block;
-    }
-
-    .btn-primary {
-        background: var(--royal-blue-gradient);
-        color: white;
-    }
-
-    .btn-primary:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3);
-    }
-
-    .btn-secondary {
-        background: var(--surface-secondary);
-        color: var(--text-primary);
-        border: 1px solid var(--border-color);
-    }
-
-    .btn-secondary:hover {
-        background: #E8E8ED;
-    }
-
-    .btn-danger {
-        background: var(--ios-red);
-        color: white;
-    }
-
-    .btn-danger:hover {
-        background: #E5342B;
-        transform: translateY(-1px);
-    }
-</style>
-
-<div class="form-container">
-    <!-- Header -->
-    <div style="text-align: center; margin-bottom: 32px;">
-        <h1 style="font-size: 28px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">
-            Edit Faculty
-        </h1>
-        <p style="color: var(--text-secondary); font-size: 16px;">
-            Update faculty information and dean assignment
-        </p>
-    </div>
-
-    <!-- Edit Form -->
-    <div class="form-card">
-        <form method="post">
-            {% csrf_token %}
-            
-            <div class="form-group">
-                <label class="form-label" for="name">Faculty Name *</label>
-                <input type="text" id="name" name="name" class="form-input" value="{{ faculty.name }}" required>
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            <!-- Page Header -->
+            <div class="text-center mb-4">
+                <h1 class="h2 fw-bold text-dark mb-2">Edit Faculty</h1>
+                <p class="text-muted">Update faculty information and dean assignment</p>
             </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="code">Faculty Code *</label>
-                <input type="text" id="code" name="code" class="form-input" value="{{ faculty.code }}" required style="text-transform: uppercase;">
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="description">Description</label>
-                <textarea id="description" name="description" class="form-input" rows="4" placeholder="Brief description of the faculty">{{ faculty.description }}</textarea>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="dean_id">Faculty Dean</label>
-                <select id="dean_id" name="dean_id" class="form-input">
-                    <option value="">No Dean Assigned</option>
-                    {% for user in potential_deans %}
-                    <option value="{{ user.id }}" {% if faculty.dean and faculty.dean.id == user.id %}selected{% endif %}>
-                        {{ user.get_full_name }} ({{ user.email }})
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            
-            <div style="display: flex; gap: 12px; justify-content: space-between; margin-top: 32px;">
-                <a href="{% url 'super_admin_manage_faculties' %}" class="btn btn-secondary">Cancel</a>
-                <div style="display: flex; gap: 12px;">
-                    <button type="submit" name="action" value="update" class="btn btn-primary">Update Faculty</button>
-                    <button type="submit" name="action" value="delete" class="btn btn-danger" 
-                            onclick="return confirm('Are you sure you want to delete this faculty? This action cannot be undone.')">
-                        Delete Faculty
-                    </button>
+
+            <!-- Form Card -->
+            <div class="card shadow-sm" style="border-radius: 16px;">
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="name" class="form-label fw-semibold">Faculty Name *</label>
+                            <input type="text" id="name" name="name" class="form-control" value="{{ faculty.name }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="code" class="form-label fw-semibold">Faculty Code *</label>
+                            <input type="text" id="code" name="code" class="form-control text-uppercase" value="{{ faculty.code }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label fw-semibold">Description</label>
+                            <textarea id="description" name="description" class="form-control" rows="4" placeholder="Brief description of the faculty">{{ faculty.description }}</textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="dean_id" class="form-label fw-semibold">Faculty Dean</label>
+                            <select id="dean_id" name="dean_id" class="form-select">
+                                <option value="">No Dean Assigned</option>
+                                {% for user in potential_deans %}
+                                <option value="{{ user.id }}" {% if faculty.dean and faculty.dean.id == user.id %}selected{% endif %}>
+                                    {{ user.get_full_name }} ({{ user.email }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="d-flex justify-content-between flex-wrap gap-2">
+                            <a href="{% url 'super_admin_manage_faculties' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>Cancel
+                            </a>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="submit" name="action" value="update" class="btn btn-primary">
+                                    <i class="bi bi-check-lg me-2"></i>Update Faculty
+                                </button>
+                                <button type="submit" name="action" value="delete" class="btn btn-danger"
+                                        onclick="return confirm('Are you sure you want to delete this faculty? This action cannot be undone.')">
+                                    <i class="bi bi-trash me-2"></i>Delete Faculty
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
-        </form>
-    </div>
 
-    <!-- Faculty Information -->
-    <div class="form-card" style="margin-top: 24px;">
-        <h3 style="color: var(--text-primary); margin-bottom: 16px;">Faculty Information</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-            <div>
-                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Created</div>
-                <div style="font-weight: 600;">{{ faculty.created_at|date:"M d, Y" }}</div>
-            </div>
-            <div>
-                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Current Dean</div>
-                <div style="font-weight: 600;">
-                    {% if faculty.dean %}
-                        {{ faculty.dean.get_full_name }}
-                    {% else %}
-                        <span style="color: var(--ios-red);">No Dean Assigned</span>
-                    {% endif %}
+            <!-- Faculty Information -->
+            <div class="card shadow-sm mt-4" style="border-radius: 16px;">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold text-dark mb-3">Faculty Information</h5>
+                    <div class="row g-3">
+
+                        <div class="col-6">
+                            <div class="small text-muted mb-1">Created</div>
+                            <div class="fw-semibold">{{ faculty.created_at|date:"M d, Y" }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="small text-muted mb-1">Current Dean</div>
+                            <div class="fw-semibold">
+                                {% if faculty.dean %}
+                                    {{ faculty.dean.get_full_name }}
+                                {% else %}
+                                    <span class="text-danger">No Dean Assigned</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

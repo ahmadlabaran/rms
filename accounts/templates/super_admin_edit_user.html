@@ -163,7 +163,7 @@
                         </div>
                         <div>
                             <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Account Status</div>
-                            <div style="font-size: 14px; color: {% if user.is_active %}var(--ios-green){% else %}var(--ios-red){% endif %}; font-weight: 600;">
+                            <div class="fw-semibold {% if user.is_active %}text-success{% else %}text-danger{% endif %}" style="font-size: 14px;">
                                 {% if user.is_active %}Active{% else %}Inactive{% endif %}
                             </div>
                         </div>
@@ -264,15 +264,7 @@
 
 <script>
     // Department data for JavaScript
-    const departmentsByFaculty = {
-        {% for faculty in faculties %}
-        {{ faculty.id }}: [
-            {% for department in faculty.departments.all %}
-            {id: {{ department.id }}, name: "{{ department.name }}"}{% if not forloop.last %},{% endif %}
-            {% endfor %}
-        ]{% if not forloop.last %},{% endif %}
-        {% endfor %}
-    };
+    const departmentsByFaculty = JSON.parse('{{ departments_by_faculty_json|escapejs }}');
 
     function showAddRoleModal() {
         document.getElementById('addRoleModal').style.display = 'flex';

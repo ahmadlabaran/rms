@@ -237,9 +237,9 @@
                         </td>
                         <td style="padding: 12px;">
                             <div style="display: flex; gap: 8px;">
-                                <button onclick="viewDepartmentDetails({{ department.id }}, '{{ department.name }}')" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">View Details</button>
+                                <button class="btn btn-secondary view-dept-btn" style="padding: 6px 12px; font-size: 12px;" data-dept-id="{{ department.id }}" data-dept-name="{{ department.name }}">View Details</button>
                                 {% if not department.hod %}
-                                    <button onclick="openAssignHODModal({{ department.id }}, '{{ department.name }}')" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;">Assign HOD</button>
+                                    <button class="btn btn-primary assign-hod-btn" style="padding: 6px 12px; font-size: 12px;" data-dept-id="{{ department.id }}" data-dept-name="{{ department.name }}">Assign HOD</button>
                                 {% endif %}
                             </div>
                         </td>
@@ -289,9 +289,9 @@
             </div>
             
             <div style="display: flex; gap: 8px;">
-                <button onclick="viewDepartmentDetails({{ department.id }}, '{{ department.name }}')" class="btn btn-secondary btn-compact" style="flex: 1; text-align: center;">View Details</button>
+                <button class="btn btn-secondary btn-compact view-dept-btn" style="flex: 1; text-align: center;" data-dept-id="{{ department.id }}" data-dept-name="{{ department.name }}">View Details</button>
                 {% if not department.hod %}
-                    <button onclick="openAssignHODModal({{ department.id }}, '{{ department.name }}')" class="btn btn-primary btn-compact" style="flex: 1; text-align: center;">Assign HOD</button>
+                    <button class="btn btn-primary btn-compact assign-hod-btn" style="flex: 1; text-align: center;" data-dept-id="{{ department.id }}" data-dept-name="{{ department.name }}">Assign HOD</button>
                 {% endif %}
             </div>
         </div>
@@ -326,6 +326,27 @@
             }
         });
     }
+
+    // Add event listeners for department buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        // View department details buttons
+        document.querySelectorAll('.view-dept-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const deptId = this.getAttribute('data-dept-id');
+                const deptName = this.getAttribute('data-dept-name');
+                viewDepartmentDetails(deptId, deptName);
+            });
+        });
+
+        // Assign HOD buttons
+        document.querySelectorAll('.assign-hod-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const deptId = this.getAttribute('data-dept-id');
+                const deptName = this.getAttribute('data-dept-name');
+                openAssignHODModal(deptId, deptName);
+            });
+        });
+    });
 </script>
 
 <!-- Create Department Modal -->

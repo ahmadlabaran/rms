@@ -176,11 +176,11 @@ if __name__ == "__main__":
         # Check final state
         check_final_state()
         
-        print(f"\n🎉 SETUP COMPLETE!")
-        print(f"✅ DAAA user created/verified")
-        print(f"✅ Academic session created/verified: {session.name}")
-        print(f"✅ Super Admin users have DAAA permissions")
-        print(f"\n🔗 Access URLs:")
+        print(f"\nSETUP COMPLETE!")
+        print(f"DAAA user created/verified")
+        print(f"Academic session created/verified: {session.name}")
+        print(f"Super Admin users have DAAA permissions")
+        print(f"\nAccess URLs:")
         print(f"   DAAA Dashboard: http://127.0.0.1:8000/api/daaa/")
         print(f"   Session Management: http://127.0.0.1:8000/api/daaa/manage-sessions/")
         print(f"   Create Session: http://127.0.0.1:8000/api/daaa/create-session/")

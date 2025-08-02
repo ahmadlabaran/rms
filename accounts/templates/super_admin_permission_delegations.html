@@ -9,9 +9,9 @@
         --royal-blue-light: #3b82f6;
         --royal-blue-ultra-light: rgba(30, 58, 138, 0.1);
         --royal-blue-gradient: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-        --ios-green: #34C759;
-        --ios-orange: #FF9500;
-        --ios-red: #FF3B30;
+        --ios-green: #3b82f6;  /* Changed to blue variant */
+        --ios-orange: #1e40af; /* Changed to dark blue */
+        --ios-red: #dc2626;    /* School brand red */
         --text-primary: #1D1D1F;
         --text-secondary: #86868B;
         --surface-primary: #FFFFFF;
@@ -218,12 +218,12 @@
                 <!-- Actions -->
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                     {% if delegation.status == 'ACTIVE' %}
-                    <button onclick="showRevokeModal({{ delegation.id }}, '{{ delegation.delegate.get_full_name }}', '{{ delegation.get_delegated_role_display }}')" 
+                    <button onclick="showRevokeModal({{ delegation.id }}, '{{ delegation.delegate.get_full_name|escapejs }}', '{{ delegation.get_delegated_role_display|escapejs }}')"
                             class="btn-revoke">
                         Revoke
                     </button>
                     {% endif %}
-                    <button onclick="viewDelegationDetails({{ delegation.id }})" 
+                    <button onclick="viewDelegationDetails({{ delegation.id }})"
                             style="background: var(--royal-blue); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
                         Details
                     </button>

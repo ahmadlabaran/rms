@@ -8,23 +8,23 @@
     <!-- iOS Aesthetic Styling -->
     <style>
         :root {
-            /* iOS-inspired color scheme: 55% white, 10% red, 35% royal blue */
+            /* School Brand Color Scheme: White, Royal Blue, Red (hover only) */
             --ios-blue: #007AFF;
-            --ios-blue-light: #5AC8FA;
-            --ios-blue-ultra-light: #E3F2FD;
-            --ios-red: #FF3B30;
-            --ios-red-light: #FFEBEE;
-            --ios-green: #34C759;
-            --ios-green-light: #E8F5E8;
-            --ios-orange: #FF9500;
-            --ios-yellow: #FFCC00;
-            --ios-gray: #8E8E93;
-            --ios-gray-light: #F2F2F7;
+            --ios-blue-light: #3b82f6;
+            --ios-blue-ultra-light: rgba(0, 122, 255, 0.1);
+            --ios-red: #dc2626;
+            --ios-red-light: rgba(220, 38, 38, 0.1);
+            --ios-green: #3b82f6;  /* Changed to blue variant */
+            --ios-green-light: rgba(59, 130, 246, 0.1);
+            --ios-orange: #1e40af; /* Changed to dark blue */
+            --ios-yellow: #f59e0b; /* Subtle warning color */
+            --ios-gray: #6b7280;
+            --ios-gray-light: #f3f4f6;
 
             /* Main color scheme */
             --primary-white: #FFFFFF;
             --accent-blue: #007AFF;
-            --accent-red: #FF3B30;
+            --accent-red: #dc2626;
 
             /* Surface colors */
             --surface-primary: #FFFFFF;
@@ -126,6 +126,16 @@
             outline: none;
             border-color: var(--ios-blue);
             box-shadow: 0 0 0 4px var(--ios-blue-ultra-light);
+        }
+
+        /* Bootstrap form overrides for school brand */
+        .btn-primary {
+            background: var(--accent-gradient) !important;
+            border: none !important;
+            border-radius: 16px !important;
+            padding: 16px 32px !important;
+            font-weight: 600 !important;
+            font-size: 16px !important;
         }
 
         .btn {

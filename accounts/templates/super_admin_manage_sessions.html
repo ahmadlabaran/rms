@@ -212,22 +212,22 @@
                     
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                         {% if not session.is_active %}
-                            <button onclick="activateSession({{ session.id }}, '{{ session.name }}')" class="btn btn-success">
+                            <button onclick="activateSession({{ session.id }}, '{{ session.name|escapejs }}')" class="btn btn-success">
                                 Activate
                             </button>
                         {% endif %}
-                        
+
                         {% if not session.is_locked %}
-                            <button onclick="lockSession({{ session.id }}, '{{ session.name }}')" class="btn btn-danger">
+                            <button onclick="lockSession({{ session.id }}, '{{ session.name|escapejs }}')" class="btn btn-danger">
                                 Lock
                             </button>
                         {% else %}
-                            <button onclick="unlockSession({{ session.id }}, '{{ session.name }}')" class="btn btn-warning">
+                            <button onclick="unlockSession({{ session.id }}, '{{ session.name|escapejs }}')" class="btn btn-warning">
                                 Unlock
                             </button>
                         {% endif %}
-                        
-                        <button onclick="viewSessionDetails({{ session.id }}, '{{ session.name }}')" class="btn btn-secondary">
+
+                        <button onclick="viewSessionDetails({{ session.id }}, '{{ session.name|escapejs }}')" class="btn btn-secondary">
                             Details
                         </button>
                     </div>

@@ -100,7 +100,7 @@ class Command(BaseCommand):
             # Display results
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'\n✅ Database cleaned successfully!\n'
+                    f'\nDatabase cleaned successfully!\n'
                     f'\nPreserved Super Admin users ({super_admin_count}):'
                 )
             )

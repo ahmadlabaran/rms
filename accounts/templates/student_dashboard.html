@@ -22,7 +22,7 @@
     {% if messages %}
         <div style="margin-bottom: 32px;">
             {% for message in messages %}
-                <div style="background: {% if message.tags == 'error' %}var(--ios-red-light); color: var(--ios-red); border-left: 4px solid var(--ios-red){% elif message.tags == 'warning' %}#FFF3CD; color: #856404; border-left: 4px solid #FFC107{% else %}#D4EDDA; color: #155724; border-left: 4px solid #28A745{% endif %}; padding: 16px 20px; border-radius: 12px; margin-bottom: 16px; font-size: 16px; font-weight: 500; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'warning' %}alert-warning{% else %}alert-success{% endif %} border-start border-4 fw-medium shadow-sm" style="border-radius: 12px; font-size: 16px;">
                     {{ message }}
                 </div>
             {% endfor %}

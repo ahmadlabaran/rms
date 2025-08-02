@@ -200,8 +200,7 @@
                             <p style="margin: 0; color: var(--text-secondary); font-size: 14px;">Department: {{ role.department.name }}</p>
                         {% endif %}
                     </div>
-                    <button onclick="deleteRole({{ role.id }})" 
-                            style="background: var(--ios-red); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
+                    <button class="btn btn-danger btn-sm delete-role-btn" data-role-id="{{ role.id }}">
                         Remove
                     </button>
                 </div>
@@ -389,6 +388,16 @@
             btn.textContent = '👁️';
         });
     }
+
+    // Add event listeners for delete role buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.delete-role-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const roleId = this.getAttribute('data-role-id');
+                deleteRole(roleId);
+            });
+        });
+    });
 </script>
 
 {% endblock %}

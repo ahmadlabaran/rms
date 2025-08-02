@@ -193,8 +193,8 @@
                         </div>
                     </div>
                     <div style="display: flex; gap: 6px;">
-                        <button onclick="unassignCourse({{ assignment.id }}, '{{ assignment.course.code }}')" 
-                                class="btn btn-danger" style="padding: 6px 12px;">
+                        <button class="btn btn-danger unassign-course-btn" style="padding: 6px 12px;"
+                                data-assignment-id="{{ assignment.id }}" data-course-code="{{ assignment.course.code }}">
                             Unassign
                         </button>
                     </div>
@@ -295,5 +295,16 @@ function unassignCourse(assignmentId, courseCode) {
         });
     }
 }
+
+// Add event listeners for unassign course buttons
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.unassign-course-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const assignmentId = this.getAttribute('data-assignment-id');
+            const courseCode = this.getAttribute('data-course-code');
+            unassignCourse(assignmentId, courseCode);
+        });
+    });
+});
 </script>
 {% endblock %}

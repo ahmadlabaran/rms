@@ -197,10 +197,10 @@
                 <a href="{% url 'hod_review_single_result' result.id %}" class="btn btn-secondary">
                     View Details
                 </a>
-                <button onclick="approveResult({{ result.id }}, '{{ result.enrollment.student.matric_number }}')" class="btn btn-success">
+                <button class="btn btn-success approve-result-btn" data-result-id="{{ result.id }}" data-matric-number="{{ result.enrollment.student.matric_number }}">
                     Quick Approve
                 </button>
-                <button onclick="rejectResult({{ result.id }}, '{{ result.enrollment.student.matric_number }}')" class="btn btn-danger">
+                <button class="btn btn-danger reject-result-btn" data-result-id="{{ result.id }}" data-matric-number="{{ result.enrollment.student.matric_number }}">
                     Quick Reject
                 </button>
             </div>
@@ -252,5 +252,24 @@ function rejectResult(resultId, matricNumber) {
         window.location.href = `{% url "hod_review_single_result" 0 %}`.replace('0', resultId) + '?action=reject&reason=' + encodeURIComponent(reason);
     }
 }
+
+// Add event listeners for result action buttons
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.approve-result-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const resultId = this.getAttribute('data-result-id');
+            const matricNumber = this.getAttribute('data-matric-number');
+            approveResult(resultId, matricNumber);
+        });
+    });
+
+    document.querySelectorAll('.reject-result-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const resultId = this.getAttribute('data-result-id');
+            const matricNumber = this.getAttribute('data-matric-number');
+            rejectResult(resultId, matricNumber);
+        });
+    });
+});
 </script>
 {% endblock %}

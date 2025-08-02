@@ -10,7 +10,7 @@ class AcademicSession(models.Model):
     end_date = models.DateField()
     is_active = models.BooleanField(default=False)  # Only one can be active
     is_locked = models.BooleanField(default=False)  # DAAA can lock/unlock
-    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='created_sessions')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_sessions')
     created_at = models.DateTimeField(auto_now_add=True)
 
 # University Structure
@@ -49,7 +49,7 @@ class Semester(models.Model):
     start_date = models.DateField()
     end_date = models.DateField()
     is_active = models.BooleanField(default=False)
-    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='created_semesters')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_semesters')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -65,13 +65,13 @@ class Course(models.Model):
     level = models.ForeignKey(Level, on_delete=models.CASCADE)
     departments = models.ManyToManyField(Department)  # Can belong to multiple depts
     session = models.ForeignKey(AcademicSession, on_delete=models.CASCADE)
-    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='created_courses')  # HOD who created it
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_courses')  # HOD who created it
     created_at = models.DateTimeField(auto_now_add=True)
 
 class CourseAssignment(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     lecturer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lecturer_assignments')
-    assigned_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='assigned_courses')  # Faculty Dean
+    assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='assigned_courses')  # Faculty Dean
     assigned_at = models.DateTimeField(auto_now_add=True)
 
 class Student(models.Model):
@@ -81,13 +81,13 @@ class Student(models.Model):
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
     current_level = models.ForeignKey(Level, on_delete=models.CASCADE)
     admission_session = models.ForeignKey(AcademicSession, on_delete=models.CASCADE)
-    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='created_students')  # Admission Officer
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_students')  # Admission Officer
     created_at = models.DateTimeField(auto_now_add=True)
 
 # Faculty-specific grading system (set by Faculty Dean)
 class GradingScale(models.Model):
     faculty = models.OneToOneField(Faculty, on_delete=models.CASCADE)
-    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='created_grading_scales')  # Faculty Dean
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_grading_scales')  # Faculty Dean
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -106,7 +106,7 @@ class CarryOverCriteria(models.Model):
     faculty = models.OneToOneField(Faculty, on_delete=models.CASCADE)
     minimum_grade = models.CharField(max_length=2)  # e.g., "C" - below this is carry-over
     minimum_score = models.DecimalField(max_digits=5, decimal_places=2)  # e.g., 40.00
-    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='created_carryover_criteria')  # Faculty Dean
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_carryover_criteria')  # Faculty Dean
     updated_at = models.DateTimeField(auto_now=True)
 
 # Student enrollment in courses (by Lecturer)
@@ -114,7 +114,7 @@ class CourseEnrollment(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     session = models.ForeignKey(AcademicSession, on_delete=models.CASCADE)
-    enrolled_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='enrolled_students')  # Lecturer
+    enrolled_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='enrolled_students')  # Lecturer
     enrolled_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)  # Auto-unenroll at session end
     
@@ -148,8 +148,8 @@ class Result(models.Model):
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='DRAFT')
 
     # Tracking who handled the result
-    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='results_created')
-    last_modified_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='results_modified')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='results_created')
+    last_modified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='results_modified')
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -239,12 +239,12 @@ class ResultApproval(models.Model):
     result = models.ForeignKey(Result, on_delete=models.CASCADE, related_name='approvals')
     action = models.CharField(max_length=20, choices=ACTION_CHOICES)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
-    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='result_approvals')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='result_approvals')
     comments = models.TextField(blank=True)  # Rejection notes (private between rejector and recipient)
     timestamp = models.DateTimeField(auto_now_add=True)
-    
+
     # For tracking who it was sent to (when rejected)
-    sent_to = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, related_name='received_approvals')
+    sent_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='received_approvals')
 
 # Carry-over tracking (for Exam Officer)
 class CarryOverList(models.Model):
@@ -278,7 +278,7 @@ class UserRole(models.Model):
     is_primary = models.BooleanField(default=True)  # Primary role vs additional role
     is_temporary = models.BooleanField(default=False)  # Temporary delegated role
     delegation = models.ForeignKey('PermissionDelegation', on_delete=models.CASCADE, null=True, blank=True)  # Link to delegation
-    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='roles_assigned')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='roles_assigned')
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -292,7 +292,7 @@ class AlternativeLogin(models.Model):
     role = models.CharField(max_length=20, choices=UserRole.ROLE_CHOICES)
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, null=True, blank=True)
     department = models.ForeignKey(Department, on_delete=models.CASCADE, null=True, blank=True)
-    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='created_alternative_logins')  # Super Admin
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_alternative_logins')  # Super Admin
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -365,7 +365,7 @@ class ResultPublication(models.Model):
     ]
     
     session = models.ForeignKey(AcademicSession, on_delete=models.CASCADE)
-    published_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='published_results')  # DAAA
+    published_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='published_results')  # DAAA
     notification_method = models.CharField(max_length=20, choices=NOTIFICATION_METHODS)
     
     # For filtered notifications
@@ -384,7 +384,7 @@ class SystemConfiguration(models.Model):
     key = models.CharField(max_length=100, unique=True)
     value = models.TextField()
     description = models.TextField(blank=True)
-    updated_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='updated_configurations')
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='updated_configurations')
     updated_at = models.DateTimeField(auto_now=True)
     
     # Examples of keys:
@@ -417,7 +417,7 @@ class AuditLog(models.Model):
         ('CRITICAL', 'Critical'),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='audit_logs')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='audit_logs')
     action = models.CharField(max_length=30, choices=ACTION_TYPES)
     model_name = models.CharField(max_length=50, blank=True)  # 'Result', 'Student', etc.
     object_id = models.CharField(max_length=50, blank=True)

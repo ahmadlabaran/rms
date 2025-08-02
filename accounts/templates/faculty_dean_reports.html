@@ -152,8 +152,8 @@
                     <span style="font-size: 14px; color: var(--text-primary);">{{ level }} Level</span>
                     <span style="font-weight: 600; color: var(--ios-blue);">{{ count }}</span>
                 </div>
-                <div class="progress-bar">
-                    <div class="progress-fill bg-primary" style="width: {% widthratio count stats.overview.total_students 100 %}%;"></div>
+                <div class="progress">
+                    <div class="progress-bar bg-primary" role="progressbar" data-count="{{ count }}" data-total="{{ stats.overview.total_students }}" aria-valuenow="{{ count }}" aria-valuemin="0" aria-valuemax="{{ stats.overview.total_students }}"></div>
                 </div>
                 {% endfor %}
             </div>
@@ -166,8 +166,8 @@
                     <span style="font-size: 14px; color: var(--text-primary);">{{ dept }}</span>
                     <span style="font-weight: 600; color: var(--ios-green);">{{ count }}</span>
                 </div>
-                <div class="progress-bar">
-                    <div class="progress-fill bg-success" style="width: {% widthratio count stats.overview.total_students 100 %}%;"></div>
+                <div class="progress">
+                    <div class="progress-bar bg-success" role="progressbar" data-count="{{ count }}" data-total="{{ stats.overview.total_students }}" aria-valuenow="{{ count }}" aria-valuemin="0" aria-valuemax="{{ stats.overview.total_students }}"></div>
                 </div>
                 {% endfor %}
             </div>
@@ -188,8 +188,8 @@
                     <span style="font-size: 14px; color: var(--text-primary);">Grade {{ grade }}</span>
                     <span class="fw-semibold {% if grade == 'A' %}text-success{% elif grade == 'B' %}text-primary{% elif grade == 'C' %}text-warning{% else %}text-danger{% endif %}">{{ count }}</span>
                 </div>
-                <div class="progress-bar">
-                    <div class="progress-fill {% if grade == 'A' %}bg-success{% elif grade == 'B' %}bg-primary{% elif grade == 'C' %}bg-warning{% else %}bg-danger{% endif %}" style="width: {% widthratio count stats.overview.total_results 100 %}%;"></div>
+                <div class="progress">
+                    <div class="progress-bar {% if grade == 'A' %}bg-success{% elif grade == 'B' %}bg-primary{% elif grade == 'C' %}bg-warning{% else %}bg-danger{% endif %}" role="progressbar" data-count="{{ count }}" data-total="{{ stats.overview.total_results }}" aria-valuenow="{{ count }}" aria-valuemin="0" aria-valuemax="{{ stats.overview.total_results }}"></div>
                 </div>
                 {% endfor %}
             </div>
@@ -287,5 +287,15 @@ function exportCourseReport() {
 function exportPerformanceReport() {
     alert('Performance report export - to be implemented');
 }
+
+// Initialize progress bars
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.progress-bar[data-count]').forEach(function(progressBar) {
+        const count = parseInt(progressBar.getAttribute('data-count'));
+        const total = parseInt(progressBar.getAttribute('data-total'));
+        const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+        progressBar.style.width = percentage + '%';
+    });
+});
 </script>
 {% endblock %}

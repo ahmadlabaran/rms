@@ -149,7 +149,7 @@
                         </td>
                         <td style="padding: 16px; text-align: center;">
                             {% if result.grade %}
-                            <span style="background: {% if result.grade == 'A' %}var(--accent-green-light); color: var(--accent-green){% elif result.grade == 'B' %}var(--accent-blue-light); color: var(--accent-blue){% elif result.grade == 'C' %}var(--accent-orange-light); color: var(--accent-orange){% else %}var(--accent-red-light); color: var(--accent-red){% endif %}; padding: 6px 12px; border-radius: 20px; font-size: 16px; font-weight: 700;">
+                            <span class="badge rounded-pill fs-6 fw-bold px-3 py-2 {% if result.grade == 'A' %}text-success bg-success-subtle{% elif result.grade == 'B' %}text-primary bg-primary-subtle{% elif result.grade == 'C' %}text-warning bg-warning-subtle{% else %}text-danger bg-danger-subtle{% endif %}">
                                 {{ result.grade }}
                             </span>
                             {% else %}

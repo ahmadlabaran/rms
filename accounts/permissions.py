@@ -342,3 +342,21 @@ def count_active_delegations(user):
         delegate=user,
         status='ACTIVE'
     ).count()
+
+
+def get_role_display_name(role):
+    """
+    Get user-friendly display name for role
+    """
+    role_display_names = {
+        'STUDENT': 'Student',
+        'LECTURER': 'Lecturer',
+        'EXAM_OFFICER': 'Exam Officer',
+        'HOD': 'Head of Department',
+        'FACULTY_DEAN': 'Faculty Dean',
+        'DAAA': 'DAAA',
+        'SENATE': 'Senate',
+        'SUPER_ADMIN': 'Super Admin',
+        'ADMISSION_OFFICER': 'Admission Officer'
+    }
+    return role_display_names.get(role, role)

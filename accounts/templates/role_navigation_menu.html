@@ -1,46 +1,39 @@
 {% load role_tags %}
 
-<!-- Enhanced Role-Based Navigation Menu with Royal Blue Theme -->
+<!-- Clean Role-Based Navigation Menu -->
 <div class="role-navigation-container">
     {% if user_roles %}
-    <nav class="navbar navbar-expand-lg" style="background: var(--royal-blue-gradient); border-radius: 16px; margin-bottom: 24px; box-shadow: var(--shadow-medium);">
-        <div class="container-fluid" style="padding: 16px 24px;">
-            <div class="navbar-nav d-flex flex-wrap gap-3 w-100 justify-content-start">
+    <nav class="navbar navbar-expand-lg" style="background: var(--royal-blue-gradient); border-radius: 12px; margin-bottom: 16px; box-shadow: var(--shadow-medium);">
+        <div class="container-fluid" style="padding: 12px 20px;">
 
-                <!-- Student Dashboard -->
+            <!-- Compact Role Navigation - One Link Per Role Type -->
+            <div class="navbar-nav d-flex flex-wrap gap-2 w-100 justify-content-start">
+
+                <!-- Student Portal -->
                 {% if 'STUDENT' in user_roles %}
-                <a href="{% url 'student_dashboard' %}"
-                   class="btn btn-nav-role"
-                   role="button"
-                   aria-label="Access Student Dashboard">
+                <a href="{% url 'student_dashboard' %}" class="btn btn-nav-role">
                     <i class="fas fa-graduation-cap" aria-hidden="true"></i>
-                    <span class="nav-text">Student Portal</span>
+                    <span class="nav-text">Student</span>
                     {% if user|has_delegated_role:'STUDENT' %}
                     <span class="badge badge-delegated">Delegated</span>
                     {% endif %}
                 </a>
                 {% endif %}
 
-                <!-- Lecturer Dashboard -->
+                <!-- Lecturer -->
                 {% if 'LECTURER' in user_roles %}
-                <a href="{% url 'lecturer_dashboard' %}"
-                   class="btn btn-nav-role"
-                   role="button"
-                   aria-label="Access Lecturer Dashboard">
+                <a href="{% url 'lecturer_dashboard' %}" class="btn btn-nav-role">
                     <i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>
-                    <span class="nav-text">Lecturer Dashboard</span>
+                    <span class="nav-text">Lecturer</span>
                     {% if user|has_delegated_role:'LECTURER' %}
                     <span class="badge badge-delegated">Delegated</span>
                     {% endif %}
                 </a>
                 {% endif %}
 
-                <!-- Exam Officer Dashboard -->
+                <!-- Exam Officer -->
                 {% if 'EXAM_OFFICER' in user_roles %}
-                <a href="{% url 'exam_officer_dashboard' %}"
-                   class="btn btn-nav-role"
-                   role="button"
-                   aria-label="Access Exam Officer Dashboard">
+                <a href="{% url 'exam_officer_dashboard' %}" class="btn btn-nav-role">
                     <i class="fas fa-clipboard-list" aria-hidden="true"></i>
                     <span class="nav-text">Exam Officer</span>
                     {% if user|has_delegated_role:'EXAM_OFFICER' %}
@@ -49,84 +42,66 @@
                 </a>
                 {% endif %}
 
-                <!-- HOD Dashboard -->
+                <!-- HOD -->
                 {% if 'HOD' in user_roles %}
-                <a href="{% url 'hod_dashboard' %}"
-                   class="btn btn-nav-role"
-                   role="button"
-                   aria-label="Access HOD Dashboard">
+                <a href="{% url 'hod_dashboard' %}" class="btn btn-nav-role">
                     <i class="fas fa-user-tie" aria-hidden="true"></i>
-                    <span class="nav-text">HOD Dashboard</span>
+                    <span class="nav-text">HOD</span>
                     {% if user|has_delegated_role:'HOD' %}
                     <span class="badge badge-delegated">Delegated</span>
                     {% endif %}
                 </a>
                 {% endif %}
 
-                <!-- Faculty Dean Dashboard -->
+                <!-- Faculty Dean -->
                 {% if 'FACULTY_DEAN' in user_roles %}
-                <a href="{% url 'faculty_dean_dashboard' %}"
-                   class="btn btn-nav-role"
-                   role="button"
-                   aria-label="Access Faculty Dean Dashboard">
+                <a href="{% url 'faculty_dean_dashboard' %}" class="btn btn-nav-role">
                     <i class="fas fa-university" aria-hidden="true"></i>
-                    <span class="nav-text">Faculty Dean</span>
+                    <span class="nav-text">Dean</span>
                     {% if user|has_delegated_role:'FACULTY_DEAN' %}
                     <span class="badge badge-delegated">Delegated</span>
                     {% endif %}
                 </a>
                 {% endif %}
 
-                <!-- DAAA Dashboard -->
+                <!-- DAAA -->
                 {% if 'DAAA' in user_roles %}
-                <a href="{% url 'daaa_dashboard' %}"
-                   class="btn btn-nav-role"
-                   role="button"
-                   aria-label="Access DAAA Dashboard">
+                <a href="{% url 'daaa_dashboard' %}" class="btn btn-nav-role">
                     <i class="fas fa-cogs" aria-hidden="true"></i>
-                    <span class="nav-text">DAAA Dashboard</span>
+                    <span class="nav-text">DAAA</span>
                     {% if user|has_delegated_role:'DAAA' %}
                     <span class="badge badge-delegated">Delegated</span>
                     {% endif %}
                 </a>
                 {% endif %}
 
-                <!-- Senate Dashboard -->
+                <!-- Senate -->
                 {% if 'SENATE' in user_roles %}
-                <a href="{% url 'senate_dashboard' %}"
-                   class="btn btn-nav-role"
-                   role="button"
-                   aria-label="Access Senate Dashboard">
+                <a href="{% url 'senate_dashboard' %}" class="btn btn-nav-role">
                     <i class="fas fa-gavel" aria-hidden="true"></i>
-                    <span class="nav-text">Senate Dashboard</span>
+                    <span class="nav-text">Senate</span>
                     {% if user|has_delegated_role:'SENATE' %}
                     <span class="badge badge-delegated">Delegated</span>
                     {% endif %}
                 </a>
                 {% endif %}
 
-                <!-- Super Admin Dashboard -->
+                <!-- Super Admin -->
                 {% if 'SUPER_ADMIN' in user_roles %}
-                <a href="{% url 'super_admin_dashboard' %}"
-                   class="btn btn-nav-role"
-                   role="button"
-                   aria-label="Access Super Admin Dashboard">
+                <a href="{% url 'super_admin_dashboard' %}" class="btn btn-nav-role">
                     <i class="fas fa-crown" aria-hidden="true"></i>
-                    <span class="nav-text">Super Admin</span>
+                    <span class="nav-text">Admin</span>
                     {% if user|has_delegated_role:'SUPER_ADMIN' %}
                     <span class="badge badge-delegated">Delegated</span>
                     {% endif %}
                 </a>
                 {% endif %}
 
-                <!-- Admission Officer Dashboard -->
+                <!-- Admission Officer -->
                 {% if 'ADMISSION_OFFICER' in user_roles %}
-                <a href="{% url 'admission_officer_dashboard' %}"
-                   class="btn btn-nav-role"
-                   role="button"
-                   aria-label="Access Admission Officer Dashboard">
+                <a href="{% url 'admission_officer_dashboard' %}" class="btn btn-nav-role">
                     <i class="fas fa-user-plus" aria-hidden="true"></i>
-                    <span class="nav-text">Admission Officer</span>
+                    <span class="nav-text">Admissions</span>
                     {% if user|has_delegated_role:'ADMISSION_OFFICER' %}
                     <span class="badge badge-delegated">Delegated</span>
                     {% endif %}
@@ -134,9 +109,9 @@
                 {% endif %}
             </div>
 
-            <!-- Role Summary Badge -->
+            <!-- Compact Role Summary Badge -->
             <div class="ms-auto">
-                <span class="badge bg-light text-dark" style="font-size: 11px; padding: 6px 12px; border-radius: 8px;">
+                <span class="badge bg-light text-dark" style="font-size: 10px; padding: 4px 8px; border-radius: 6px;">
                     {{ user_roles|length }} Role{{ user_roles|length|pluralize }}
                 </span>
             </div>
@@ -148,24 +123,25 @@
 
 <!-- Navigation Button Styles with Royal Blue Theme -->
 <style>
-/* Navigation Role Button Styling */
+/* Compact Navigation Role Button Styling */
 .btn-nav-role {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: white !important;
-    padding: 12px 20px;
-    border-radius: 12px;
+    padding: 8px 16px;
+    border-radius: 10px;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     position: relative;
     overflow: hidden;
-    min-height: 48px;
-    /* I think this ensures good accessibility with proper touch targets */
+    min-height: 40px;
+    white-space: nowrap;
+    /* I think this compact design will prevent navigation clutter */
 }
 
 .btn-nav-role:hover {
@@ -194,15 +170,15 @@
     /* Based on the documentation, this should improve readability */
 }
 
-/* Delegation Badge Styling */
+/* Compact Delegation Badge Styling */
 .badge-delegated {
     background: rgba(255, 193, 7, 0.9) !important;
     color: #000 !important;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 600;
-    padding: 3px 8px;
-    border-radius: 6px;
-    margin-left: 8px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
     border: 1px solid rgba(255, 255, 255, 0.3);
 }
 

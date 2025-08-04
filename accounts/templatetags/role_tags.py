@@ -78,15 +78,17 @@ def show_delegation_badges(user):
 
 @register.inclusion_tag('role_navigation_menu.html')
 def show_role_navigation(user):
-    """Show navigation menu based on user roles including delegated ones"""
-    # I think this simpler approach will be more reliable and easier to debug
+    """Show clean navigation menu with unique roles only"""
+    # I think this approach will prevent duplicate navigation links
     roles_info = get_user_roles_with_details(user)
 
-    # Create simple role list for navigation
-    all_roles = []
+    # Create unique role list - no duplicates even if user has multiple contexts
+    unique_roles = set()
     for role_info in roles_info:
-        if role_info['role'] not in all_roles:
-            all_roles.append(role_info['role'])
+        unique_roles.add(role_info['role'])
+
+    # Convert back to list for template
+    all_roles = list(unique_roles)
 
     return {
         'user_roles': all_roles,

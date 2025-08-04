@@ -1,0 +1,359 @@
+{% extends 'base.html' %}
+
+{% block title %}Approve Results - DAAA Dashboard{% endblock %}
+
+{% block content %}
+<style>
+    .card {
+        background: #FFFFFF;
+        border: 1px solid var(--border-light);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    .btn {
+        border-radius: 12px;
+        font-weight: 600;
+        border: none;
+        font-size: 14px;
+    }
+
+    .btn-primary {
+        background: var(--royal-blue-gradient);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: var(--royal-blue-dark);
+        color: white;
+    }
+
+    .btn-success {
+        background: #10b981;
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        color: white;
+    }
+
+    .table th {
+        background: var(--royal-blue-ultra-light);
+        color: var(--royal-blue);
+        font-weight: 600;
+        border: none;
+        padding: 16px;
+    }
+
+    .table td {
+        padding: 16px;
+        border-color: var(--border-light);
+    }
+
+    .form-check-input:checked {
+        background-color: var(--royal-blue);
+        border-color: var(--royal-blue);
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">Approve Results for Senate</h1>
+                            <p class="mb-0 opacity-75">Submit approved results to Senate for final approval</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">
+                                <div class="h3 fw-bold mb-0">{{ stats.total_approved }}</div>
+                                <small class="opacity-75">Ready for Senate</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="h2 fw-bold text-success mb-2">{{ stats.total_approved }}</div>
+                    <h6 class="card-title mb-0">Approved Results</h6>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="h2 fw-bold text-primary mb-2">{{ stats.total_students }}</div>
+                    <h6 class="card-title mb-0">Students</h6>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="h2 fw-bold text-info mb-2">{{ stats.by_faculty|length }}</div>
+                    <h6 class="card-title mb-0">Faculties</h6>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="h2 fw-bold text-warning mb-2">{{ stats.by_level|length }}</div>
+                    <h6 class="card-title mb-0">Levels</h6>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Faculty Breakdown -->
+    {% if stats.by_faculty %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3">Approved Results by Faculty</h5>
+                    <div class="row">
+                        {% for faculty, count in stats.by_faculty.items %}
+                        <div class="col-lg-3 col-md-4 col-sm-6 mb-2">
+                            <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                                <span class="fw-medium">{{ faculty }}</span>
+                                <span class="badge bg-success">{{ count }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Submit to Senate Action -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3">Submit to Senate</h5>
+                    
+                    <form method="post" id="submitToSenateForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="submit_to_senate">
+                        
+                        <div class="row align-items-end">
+                            <div class="col-md-8">
+                                <p class="text-muted mb-3">
+                                    Select the results you want to submit to Senate for final approval. 
+                                    Once submitted, these results will be reviewed by the Senate before publication.
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button type="button" class="btn btn-secondary me-2" onclick="selectAll()">
+                                    Select All
+                                </button>
+                                <button type="submit" class="btn btn-success" id="submitBtn" disabled>
+                                    <i class="bi bi-send me-1"></i>Submit to Senate
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Approved Results Table -->
+    {% if approved_results %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3">
+                        Approved Results Ready for Senate
+                        <span class="badge bg-success">{{ approved_results.count }} total</span>
+                    </h5>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th width="50">
+                                        <input type="checkbox" class="form-check-input" id="selectAllCheckbox" onchange="toggleSelectAll()">
+                                    </th>
+                                    <th>Student</th>
+                                    <th>Course</th>
+                                    <th>Faculty</th>
+                                    <th>Level</th>
+                                    <th>CA</th>
+                                    <th>Exam</th>
+                                    <th>Total</th>
+                                    <th>Grade</th>
+                                    <th>Approved Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for result in approved_results %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" class="form-check-input result-checkbox" 
+                                               name="result_ids" value="{{ result.id }}" form="submitToSenateForm"
+                                               onchange="updateSubmitButton()">
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold">{{ result.student.get_full_name }}</div>
+                                        <small class="text-muted">{{ result.student.student_profile.matric_number }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold">{{ result.course.code }}</div>
+                                        <small class="text-muted">{{ result.course.title|truncatechars:25 }}</small>
+                                    </td>
+                                    <td>
+                                        {% for dept in result.course.departments.all %}
+                                            <small class="text-muted">{{ dept.faculty.name }}</small>
+                                            {% if not forloop.last %}<br>{% endif %}
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ result.course.level }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="fw-bold">{{ result.ca_score|default:"-" }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="fw-bold">{{ result.exam_score|default:"-" }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="fw-bold text-success">{{ result.total_score|default:"-" }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if result.grade %}
+                                            <span class="badge bg-success">{{ result.grade }}</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ result.updated_at|date:"M d, Y" }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'daaa_review_single_result' result.id %}" 
+                                               class="btn btn-outline-primary btn-sm" 
+                                               title="View Details">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <button class="btn btn-outline-success btn-sm" 
+                                                    onclick="submitSingleResult({{ result.id }})" 
+                                                    title="Submit to Senate">
+                                                <i class="bi bi-send"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size: 64px;"></i>
+                    </div>
+                    <h4 class="fw-bold mb-2">No Approved Results</h4>
+                    <p class="text-muted mb-4">
+                        There are currently no results approved by DAAA waiting for Senate submission.
+                        Check the pending results to approve more results.
+                    </p>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <a href="{% url 'daaa_pending_results' %}" class="btn btn-primary">Review Pending Results</a>
+                        <a href="{% url 'daaa_review_results' %}" class="btn btn-secondary">Review Results</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Update submit button state
+    window.updateSubmitButton = function() {
+        const checkboxes = document.querySelectorAll('.result-checkbox:checked');
+        const button = document.getElementById('submitBtn');
+        button.disabled = checkboxes.length === 0;
+        
+        if (checkboxes.length > 0) {
+            button.innerHTML = `<i class="bi bi-send me-1"></i>Submit ${checkboxes.length} Result(s) to Senate`;
+        } else {
+            button.innerHTML = `<i class="bi bi-send me-1"></i>Submit to Senate`;
+        }
+    };
+
+    // Select all functionality
+    window.toggleSelectAll = function() {
+        const selectAll = document.getElementById('selectAllCheckbox');
+        const checkboxes = document.querySelectorAll('.result-checkbox');
+        checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        updateSubmitButton();
+    };
+
+    window.selectAll = function() {
+        const checkboxes = document.querySelectorAll('.result-checkbox');
+        checkboxes.forEach(cb => cb.checked = true);
+        document.getElementById('selectAllCheckbox').checked = true;
+        updateSubmitButton();
+    };
+
+    // Submit single result
+    window.submitSingleResult = function(resultId) {
+        if (confirm('Are you sure you want to submit this result to Senate?')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.innerHTML = `
+                {% csrf_token %}
+                <input type="hidden" name="action" value="submit_to_senate">
+                <input type="hidden" name="result_ids" value="${resultId}">
+            `;
+            document.body.appendChild(form);
+            form.submit();
+        }
+    };
+
+    // Form validation
+    document.getElementById('submitToSenateForm').addEventListener('submit', function(e) {
+        const checkboxes = document.querySelectorAll('.result-checkbox:checked');
+        
+        if (checkboxes.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one result to submit to Senate.');
+            return;
+        }
+        
+        if (!confirm(`Are you sure you want to submit ${checkboxes.length} result(s) to Senate for final approval?`)) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+
+{% endblock %}

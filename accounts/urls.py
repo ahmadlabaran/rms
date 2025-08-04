@@ -50,6 +50,7 @@ urlpatterns = [
     path('super-admin/get-eligible-delegates/', views.get_eligible_delegates, name='get_eligible_delegates'),
     path('super-admin/check-delegation-conflicts/', views.check_delegation_conflicts_view, name='check_delegation_conflicts'),
     path('super-admin/manage-users/', views.super_admin_manage_users, name='super_admin_manage_users'),
+    path('super-admin/debug-users/', views.debug_user_display, name='debug_user_display'),
     path('super-admin/get-all-role-holders/', views.super_admin_get_all_role_holders, name='get_all_role_holders'),
     path('super-admin/get-departments/', views.get_departments, name='get_departments'),
     path('super-admin/delegate-permission/', views.super_admin_delegate_permission, name='super_admin_delegate_permission'),

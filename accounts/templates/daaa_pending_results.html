@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+
+{% block title %}Pending Results - DAAA Dashboard{% endblock %}
+
+{% block content %}
+<style>
+    .card {
+        background: #FFFFFF;
+        border: 1px solid var(--border-light);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    .btn {
+        border-radius: 12px;
+        font-weight: 600;
+        border: none;
+        font-size: 14px;
+    }
+
+    .btn-primary {
+        background: var(--royal-blue-gradient);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: var(--royal-blue-dark);
+        color: white;
+    }
+
+    .btn-secondary {
+        background: var(--surface-secondary);
+        color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+        background: var(--royal-blue-ultra-light);
+        color: var(--royal-blue);
+    }
+
+    .btn-success {
+        background: #10b981;
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        color: white;
+    }
+
+    .btn-warning {
+        background: #f59e0b;
+        color: white;
+    }
+
+    .btn-warning:hover {
+        background: #d97706;
+        color: white;
+    }
+
+    .badge {
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    .table {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .table th {
+        background: var(--royal-blue-ultra-light);
+        color: var(--royal-blue);
+        font-weight: 600;
+        border: none;
+        padding: 16px;
+    }
+
+    .table td {
+        padding: 16px;
+        border-color: var(--border-light);
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">Pending Results Review</h1>
+                            <p class="mb-0 opacity-75">Results submitted by Faculty Deans awaiting DAAA approval</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">
+                                <div class="h3 fw-bold mb-0">{{ stats.total_pending }}</div>
+                                <small class="opacity-75">Pending Results</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="h2 fw-bold text-primary mb-2">{{ stats.total_pending }}</div>
+                    <h6 class="card-title mb-0">Total Pending</h6>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="h2 fw-bold text-success mb-2">{{ stats.total_students }}</div>
+                    <h6 class="card-title mb-0">Students Affected</h6>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="h2 fw-bold text-info mb-2">{{ stats.by_faculty|length }}</div>
+                    <h6 class="card-title mb-0">Faculties</h6>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="h2 fw-bold text-warning mb-2">{{ stats.by_level|length }}</div>
+                    <h6 class="card-title mb-0">Levels</h6>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Faculty Breakdown -->
+    {% if stats.by_faculty %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3">Results by Faculty</h5>
+                    <div class="row">
+                        {% for faculty, count in stats.by_faculty.items %}
+                        <div class="col-lg-3 col-md-4 col-sm-6 mb-2">
+                            <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                                <span class="fw-medium">{{ faculty }}</span>
+                                <span class="badge bg-primary">{{ count }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3">Quick Actions</h5>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{% url 'daaa_review_results' %}" class="btn btn-primary">
+                            <i class="bi bi-eye me-1"></i>Review Results
+                        </a>
+                        <a href="{% url 'daaa_approve_results' %}" class="btn btn-success">
+                            <i class="bi bi-check-circle me-1"></i>Approve Results
+                        </a>
+                        <button class="btn btn-warning" onclick="showBulkRejectModal()">
+                            <i class="bi bi-x-circle me-1"></i>Bulk Reject
+                        </button>
+                        <a href="{% url 'daaa_reports' %}" class="btn btn-secondary">
+                            <i class="bi bi-graph-up me-1"></i>Generate Report
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Results Table -->
+    {% if pending_results %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3">Pending Results Details</h5>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Course</th>
+                                    <th>Faculty</th>
+                                    <th>Level</th>
+                                    <th>CA Score</th>
+                                    <th>Exam Score</th>
+                                    <th>Total</th>
+                                    <th>Grade</th>
+                                    <th>Submitted</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for result in pending_results|slice:":20" %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold">{{ result.student.get_full_name }}</div>
+                                        <small class="text-muted">{{ result.student.student_profile.matric_number }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold">{{ result.course.code }}</div>
+                                        <small class="text-muted">{{ result.course.title|truncatechars:30 }}</small>
+                                    </td>
+                                    <td>
+                                        {% for dept in result.course.departments.all %}
+                                            <small class="text-muted">{{ dept.faculty.name }}</small>
+                                            {% if not forloop.last %}<br>{% endif %}
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ result.course.level }} Level</span>
+                                    </td>
+                                    <td class="text-center">{{ result.ca_score|default:"-" }}</td>
+                                    <td class="text-center">{{ result.exam_score|default:"-" }}</td>
+                                    <td class="text-center fw-bold">{{ result.total_score|default:"-" }}</td>
+                                    <td class="text-center">
+                                        {% if result.grade %}
+                                            <span class="badge bg-success">{{ result.grade }}</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ result.created_at|date:"M d, Y" }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'daaa_review_single_result' result.id %}" class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <button class="btn btn-outline-success btn-sm" onclick="approveResult({{ result.id }})">
+                                                <i class="bi bi-check"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger btn-sm" onclick="rejectResult({{ result.id }})">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if pending_results.count > 20 %}
+                    <div class="text-center mt-3">
+                        <p class="text-muted">Showing first 20 results. <a href="{% url 'daaa_review_results' %}" class="text-primary">View all {{ pending_results.count }} results</a></p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size: 64px;"></i>
+                    </div>
+                    <h4 class="fw-bold mb-2">No Pending Results</h4>
+                    <p class="text-muted mb-4">All results have been reviewed and processed. Great work!</p>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <a href="{% url 'daaa_approve_results' %}" class="btn btn-primary">View Approved Results</a>
+                        <a href="{% url 'daaa_reports' %}" class="btn btn-secondary">Generate Reports</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add any JavaScript functionality here
+    window.approveResult = function(resultId) {
+        if (confirm('Are you sure you want to approve this result?')) {
+            // Implementation for single result approval
+            console.log('Approving result:', resultId);
+        }
+    };
+    
+    window.rejectResult = function(resultId) {
+        const reason = prompt('Please provide a reason for rejection:');
+        if (reason) {
+            // Implementation for single result rejection
+            console.log('Rejecting result:', resultId, 'Reason:', reason);
+        }
+    };
+    
+    window.showBulkRejectModal = function() {
+        alert('Bulk reject functionality will be implemented in the review page.');
+    };
+});
+</script>
+
+{% endblock %}

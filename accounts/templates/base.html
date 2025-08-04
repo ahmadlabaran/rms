@@ -701,13 +701,13 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if 'faculty' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'super_admin_faculties' %}">
+                        <a class="nav-link {% if 'faculty' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'super_admin_manage_faculties' %}">
                             <i class="bi bi-building"></i>
                             <span>Faculties</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if 'user' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'super_admin_users' %}">
+                        <a class="nav-link {% if 'user' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'super_admin_manage_users' %}">
                             <i class="bi bi-people-fill"></i>
                             <span>Users</span>
                         </a>
@@ -751,21 +751,27 @@
                     <!-- HOD Navigation -->
                     {% if is_hod %}
                     <li class="nav-item">
-                        <a class="nav-link {% if 'students' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_students' %}">
-                            <i class="bi bi-people-fill"></i>
-                            <span>Students</span>
+                        <a class="nav-link {% if 'pending' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_pending_results' %}">
+                            <i class="bi bi-clock"></i>
+                            <span>Pending Results</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if 'courses' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_courses' %}">
+                        <a class="nav-link {% if 'courses' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_manage_courses' %}">
                             <i class="bi bi-book-fill"></i>
                             <span>Courses</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if 'results' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_results' %}">
-                            <i class="bi bi-clipboard-data-fill"></i>
-                            <span>Results</span>
+                        <a class="nav-link {% if 'lecturer' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_lecturer_list' %}">
+                            <i class="bi bi-person-badge"></i>
+                            <span>Lecturers</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'department' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_department_summary' %}">
+                            <i class="bi bi-graph-up"></i>
+                            <span>Reports</span>
                         </a>
                     </li>
                     {% endif %}
@@ -779,9 +785,15 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if 'results' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'lecturer_results' %}">
+                        <a class="nav-link {% if 'results' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'lecturer_enter_results' %}">
                             <i class="bi bi-clipboard-data-fill"></i>
-                            <span>Results</span>
+                            <span>Enter Results</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'student' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'lecturer_student_list' %}">
+                            <i class="bi bi-people-fill"></i>
+                            <span>Students</span>
                         </a>
                     </li>
                     {% endif %}
@@ -789,15 +801,49 @@
                     <!-- Student Navigation -->
                     {% if is_student %}
                     <li class="nav-item">
-                        <a class="nav-link {% if 'courses' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'student_courses' %}">
-                            <i class="bi bi-book-fill"></i>
-                            <span>My Courses</span>
+                        <a class="nav-link {% if 'current' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'student_current_results' %}">
+                            <i class="bi bi-clipboard-check"></i>
+                            <span>Current Results</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if 'results' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'student_results' %}">
+                        <a class="nav-link {% if 'all' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'student_all_results' %}">
                             <i class="bi bi-clipboard-data-fill"></i>
-                            <span>My Results</span>
+                            <span>All Results</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'transcript' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'student_transcript' %}">
+                            <i class="bi bi-file-earmark-text"></i>
+                            <span>Transcript</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- DAAA Navigation -->
+                    {% if is_daaa %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'pending' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'daaa_pending_results' %}">
+                            <i class="bi bi-clock"></i>
+                            <span>Pending Results</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'sessions' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'daaa_manage_sessions' %}">
+                            <i class="bi bi-calendar3"></i>
+                            <span>Sessions</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'publish' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'daaa_publish_results' %}">
+                            <i class="bi bi-megaphone"></i>
+                            <span>Publish Results</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'reports' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'daaa_reports' %}">
+                            <i class="bi bi-graph-up"></i>
+                            <span>Reports</span>
                         </a>
                     </li>
                     {% endif %}

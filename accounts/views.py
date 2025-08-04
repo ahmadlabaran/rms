@@ -42,7 +42,7 @@ from .permissions import (
 def check_if_user_has_access(user, required_role_list):
     """
     Checks if user has required roles or is Super Admin
-    Also checks delegated roles
+    Also checks delegated roles and returns proper context
     """
     # Super Admin always has access
     if user.is_superuser:
@@ -2092,13 +2092,28 @@ def super_admin_dashboard(request):
     current_session = AcademicSession.objects.filter(is_active=True).first()
 
     # Calculate system statistics
+    all_users = User.objects.all().prefetch_related('rms_roles')
+
+    # Separate users with and without roles
+    users_with_roles = []
+    users_without_roles = []
+
+    for user in all_users:
+        user_roles = user.rms_roles.all()
+        if user_roles.exists():
+            users_with_roles.append(user)
+        else:
+            users_without_roles.append(user)
+
     stats = {
-        'total_users': User.objects.count(),
+        'total_users': all_users.count(),
         'total_faculties': Faculty.objects.count(),
         'total_departments': Department.objects.count(),
         'total_students': Student.objects.count(),
         'total_courses': Course.objects.count(),
-        'active_users': User.objects.filter(is_active=True).count(),
+        'active_users': all_users.filter(is_active=True).count(),
+        'users_with_roles_count': len(users_with_roles),
+        'users_without_roles_count': len(users_without_roles),
         'total_sessions': AcademicSession.objects.count(),
         'total_results': Result.objects.count(),
         'total_notifications': Notification.objects.count(),
@@ -2681,11 +2696,15 @@ def super_admin_create_user(request):
             errors.append('Last name is required')
         if not email:
             errors.append('Email is required')
-        elif User.objects.filter(email=email).exists():
+        elif User.objects.filter(email__iexact=email).exists():
             errors.append('User with this email already exists')
         if not username:
             errors.append('Username is required')
-        elif User.objects.filter(username=username).exists():
+        elif len(username) < 3:
+            errors.append('Username must be at least 3 characters long')
+        elif not username.replace('_', '').replace('-', '').isalnum():
+            errors.append('Username can only contain letters, numbers, underscores, and hyphens')
+        elif User.objects.filter(username__iexact=username).exists():
             errors.append('User with this username already exists')
         if not password:
             errors.append('Password is required')
@@ -2704,9 +2723,46 @@ def super_admin_create_user(request):
 
         if not errors:
             try:
-                from django.db import transaction
+                from django.db import transaction, IntegrityError
 
                 with transaction.atomic():
+                    # Double-check for existing username/email before creation (race condition protection)
+                    if User.objects.filter(username__iexact=username).exists():
+                        messages.error(request, f'Username "{username}" is already taken. Please choose a different username.')
+                        return render(request, 'super_admin_create_user.html', {
+                            'faculties': Faculty.objects.all().order_by('name'),
+                            'departments': Department.objects.all().order_by('name'),
+                            'role_choices': UserRole.ROLE_CHOICES,
+                            'departments_json': json.dumps(get_departments_by_faculty(Department.objects.all().order_by('name'))),
+                            'form_data': {
+                                'first_name': first_name,
+                                'last_name': last_name,
+                                'email': email,
+                                'username': username,
+                                'role': role,
+                                'faculty_id': faculty_id,
+                                'department_id': department_id,
+                            }
+                        })
+
+                    if User.objects.filter(email__iexact=email).exists():
+                        messages.error(request, f'Email "{email}" is already registered. Please use a different email address.')
+                        return render(request, 'super_admin_create_user.html', {
+                            'faculties': Faculty.objects.all().order_by('name'),
+                            'departments': Department.objects.all().order_by('name'),
+                            'role_choices': UserRole.ROLE_CHOICES,
+                            'departments_json': json.dumps(get_departments_by_faculty(Department.objects.all().order_by('name'))),
+                            'form_data': {
+                                'first_name': first_name,
+                                'last_name': last_name,
+                                'email': email,
+                                'username': username,
+                                'role': role,
+                                'faculty_id': faculty_id,
+                                'department_id': department_id,
+                            }
+                        })
+
                     # Create new user
                     new_user = User.objects.create_user(
                         username=username,
@@ -2720,9 +2776,29 @@ def super_admin_create_user(request):
                     faculty = None
                     department = None
                     if faculty_id:
-                        faculty = Faculty.objects.get(id=faculty_id)
+                        try:
+                            faculty = Faculty.objects.get(id=faculty_id)
+                        except Faculty.DoesNotExist:
+                            messages.error(request, 'Selected faculty does not exist.')
+                            new_user.delete()  # Clean up created user
+                            return render(request, 'super_admin_create_user.html', {
+                                'faculties': Faculty.objects.all().order_by('name'),
+                                'departments': Department.objects.all().order_by('name'),
+                                'role_choices': UserRole.ROLE_CHOICES,
+                                'departments_json': json.dumps(get_departments_by_faculty(Department.objects.all().order_by('name'))),
+                            })
                     if department_id:
-                        department = Department.objects.get(id=department_id)
+                        try:
+                            department = Department.objects.get(id=department_id)
+                        except Department.DoesNotExist:
+                            messages.error(request, 'Selected department does not exist.')
+                            new_user.delete()  # Clean up created user
+                            return render(request, 'super_admin_create_user.html', {
+                                'faculties': Faculty.objects.all().order_by('name'),
+                                'departments': Department.objects.all().order_by('name'),
+                                'role_choices': UserRole.ROLE_CHOICES,
+                                'departments_json': json.dumps(get_departments_by_faculty(Department.objects.all().order_by('name'))),
+                            })
 
                     # Create role assignment
                     UserRole.objects.create(
@@ -2746,8 +2822,16 @@ def super_admin_create_user(request):
                     messages.success(request, f'User {new_user.get_full_name()} created successfully with role {role}!')
                     return redirect('super_admin_manage_users')
 
+            except IntegrityError as e:
+                error_message = str(e).lower()
+                if 'username' in error_message:
+                    messages.error(request, f'Username "{username}" is already taken. Please choose a different username.')
+                elif 'email' in error_message:
+                    messages.error(request, f'Email "{email}" is already registered. Please use a different email address.')
+                else:
+                    messages.error(request, 'A user with this information already exists. Please check your input and try again.')
             except Exception as e:
-                messages.error(request, f'Error creating user: {str(e)}')
+                messages.error(request, f'An unexpected error occurred while creating the user: {str(e)}. Please try again.')
         else:
             for error in errors:
                 messages.error(request, error)
@@ -2785,7 +2869,7 @@ def check_email_exists(request):
         if not email:
             return Response({'exists': False})
 
-        exists = User.objects.filter(email=email).exists()
+        exists = User.objects.filter(email__iexact=email).exists()
         return Response({'exists': exists})
 
     except Exception as e:
@@ -2810,7 +2894,7 @@ def check_username_exists(request):
         if not username:
             return Response({'exists': False})
 
-        exists = User.objects.filter(username=username).exists()
+        exists = User.objects.filter(username__iexact=username).exists()
         return Response({'exists': exists})
 
     except Exception as e:
@@ -3272,10 +3356,15 @@ def super_admin_manage_users(request):
         else:
             users_without_roles.append(user)
 
-    # Group users by faculty
+    # Group users by faculty and handle non-faculty roles
     faculty_groups = {}
+    users_with_non_faculty_roles = []
+
     for user in users_with_roles:
-        for role in user.rms_roles.all():
+        user_roles = user.rms_roles.all()
+        has_faculty_role = False
+
+        for role in user_roles:
             if role.faculty:
                 faculty_name = role.faculty.name
                 if faculty_name not in faculty_groups:
@@ -3285,6 +3374,11 @@ def super_admin_manage_users(request):
                     }
                 if user not in faculty_groups[faculty_name]['users']:
                     faculty_groups[faculty_name]['users'].append(user)
+                has_faculty_role = True
+
+        # If user has roles but none are faculty-associated, add to non-faculty group
+        if not has_faculty_role:
+            users_with_non_faculty_roles.append(user)
 
     # Get all faculties for the create faculty form
     faculties = Faculty.objects.all().order_by('name')
@@ -3299,15 +3393,97 @@ def super_admin_manage_users(request):
         'all_users': all_users,
         'users_with_roles': users_with_roles,
         'users_without_roles': users_without_roles,
+        'users_with_non_faculty_roles': users_with_non_faculty_roles,
         'faculty_groups': faculty_groups,
         'faculties': faculties,
         'total_users': total_users,
         'active_users': active_users,
         'users_with_roles_count': users_with_roles_count,
         'users_without_roles_count': users_without_roles_count,
+        'users_with_non_faculty_roles_count': len(users_with_non_faculty_roles),
     }
 
     return render(request, 'super_admin_manage_users.html', context)
+
+
+@login_required
+def debug_user_display(request):
+    """Debug endpoint to verify user display logic"""
+    from django.http import JsonResponse
+
+    # Check if user has Super Admin role
+    super_admin_roles = UserRole.objects.filter(user=request.user, role='SUPER_ADMIN')
+    if not super_admin_roles.exists():
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    # Get all users (same as manage_users view)
+    all_users = User.objects.all().prefetch_related('rms_roles__faculty', 'rms_roles__department').order_by('first_name', 'last_name')
+
+    # Separate users with and without roles
+    users_with_roles = []
+    users_without_roles = []
+
+    for user in all_users:
+        user_roles = user.rms_roles.all()
+        if user_roles.exists():
+            users_with_roles.append(user)
+        else:
+            users_without_roles.append(user)
+
+    # Group users by faculty and handle non-faculty roles
+    faculty_groups = {}
+    users_with_non_faculty_roles = []
+
+    for user in users_with_roles:
+        user_roles = user.rms_roles.all()
+        has_faculty_role = False
+
+        for role in user_roles:
+            if role.faculty:
+                faculty_name = role.faculty.name
+                if faculty_name not in faculty_groups:
+                    faculty_groups[faculty_name] = {
+                        'faculty': role.faculty,
+                        'users': []
+                    }
+                if user not in faculty_groups[faculty_name]['users']:
+                    faculty_groups[faculty_name]['users'].append(user)
+                has_faculty_role = True
+
+        if not has_faculty_role:
+            users_with_non_faculty_roles.append(user)
+
+    # Calculate totals
+    total_displayed = len(users_without_roles) + len(users_with_non_faculty_roles)
+    for faculty_data in faculty_groups.values():
+        total_displayed += len(faculty_data['users'])
+
+    # Prepare response data
+    response_data = {
+        'total_users_in_db': all_users.count(),
+        'users_with_roles': len(users_with_roles),
+        'users_without_roles': len(users_without_roles),
+        'users_with_non_faculty_roles': len(users_with_non_faculty_roles),
+        'faculty_groups_count': len(faculty_groups),
+        'total_displayed': total_displayed,
+        'match': total_displayed == all_users.count(),
+        'users_detail': []
+    }
+
+    # Add detailed user info
+    for user in all_users:
+        user_roles = [{'role': role.role, 'faculty': role.faculty.name if role.faculty else None} for role in user.rms_roles.all()]
+        response_data['users_detail'].append({
+            'id': user.id,
+            'username': user.username,
+            'full_name': user.get_full_name(),
+            'email': user.email,
+            'is_active': user.is_active,
+            'roles': user_roles,
+            'roles_count': len(user_roles)
+        })
+
+    return JsonResponse(response_data, indent=2)
 
 
 
@@ -7099,15 +7275,233 @@ def daaa_unlock_session(request, session_id):
 
 @login_required
 def daaa_pending_results(request):
-    return render(request, 'placeholder.html', {'page_title': 'Pending Results', 'message': 'Review results awaiting DAAA approval'})
+    """DAAA Pending Results Management"""
+    # Check if user has DAAA role
+    daaa_roles = UserRole.objects.filter(user=request.user, role='DAAA')
+    if not daaa_roles.exists():
+        messages.error(request, 'Access denied. DAAA role required.')
+        return redirect('dashboard')
+
+    # Get results submitted to DAAA (approved by Faculty Dean)
+    pending_results = Result.objects.filter(
+        status='SUBMITTED_TO_DAAA'
+    ).select_related(
+        'course', 'student', 'session', 'lecturer'
+    ).prefetch_related(
+        'course__departments__faculty'
+    ).order_by('-created_at')
+
+    # Get statistics
+    stats = {
+        'total_pending': pending_results.count(),
+        'by_faculty': {},
+        'by_level': {},
+        'total_students': pending_results.values('student').distinct().count(),
+    }
+
+    # Calculate faculty-wise statistics
+    for result in pending_results:
+        for dept in result.course.departments.all():
+            faculty_name = dept.faculty.name
+            if faculty_name not in stats['by_faculty']:
+                stats['by_faculty'][faculty_name] = 0
+            stats['by_faculty'][faculty_name] += 1
+
+    # Calculate level-wise statistics
+    for result in pending_results:
+        level = result.course.level
+        if level not in stats['by_level']:
+            stats['by_level'][level] = 0
+        stats['by_level'][level] += 1
+
+    # Get current session
+    current_session = AcademicSession.objects.filter(is_active=True).first()
+
+    context = {
+        'pending_results': pending_results,
+        'stats': stats,
+        'current_session': current_session,
+    }
+
+    return render(request, 'daaa_pending_results.html', context)
 
 @login_required
 def daaa_review_results(request):
-    return render(request, 'placeholder.html', {'page_title': 'Review Results', 'message': 'Review submitted results'})
+    """DAAA Review Individual Results"""
+    # Check if user has DAAA role
+    daaa_roles = UserRole.objects.filter(user=request.user, role='DAAA')
+    if not daaa_roles.exists():
+        messages.error(request, 'Access denied. DAAA role required.')
+        return redirect('dashboard')
+
+    # Handle bulk actions
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        result_ids = request.POST.getlist('result_ids')
+
+        if action and result_ids:
+            results = Result.objects.filter(id__in=result_ids, status='SUBMITTED_TO_DAAA')
+
+            if action == 'approve':
+                for result in results:
+                    result.status = 'APPROVED_BY_DAAA'
+                    result.save()
+
+                    # Create approval record
+                    ResultApproval.objects.create(
+                        result=result,
+                        approved_by=request.user,
+                        action='APPROVE',
+                        role='DAAA',
+                        comments='Bulk approved by DAAA'
+                    )
+
+                    # Log the action
+                    AuditLog.objects.create(
+                        user=request.user,
+                        action='APPROVE_RESULT',
+                        description=f'Approved result for {result.student.get_full_name()} in {result.course.code}',
+                        level='INFO'
+                    )
+
+                messages.success(request, f'Successfully approved {len(results)} results.')
+
+            elif action == 'reject':
+                rejection_reason = request.POST.get('rejection_reason', 'No reason provided')
+                for result in results:
+                    result.status = 'REJECTED'
+                    result.save()
+
+                    # Create approval record
+                    ResultApproval.objects.create(
+                        result=result,
+                        approved_by=request.user,
+                        action='REJECT',
+                        role='DAAA',
+                        comments=rejection_reason
+                    )
+
+                    # Log the action
+                    AuditLog.objects.create(
+                        user=request.user,
+                        action='REJECT_RESULT',
+                        description=f'Rejected result for {result.student.get_full_name()} in {result.course.code}: {rejection_reason}',
+                        level='WARNING'
+                    )
+
+                messages.warning(request, f'Rejected {len(results)} results.')
+
+            return redirect('daaa_review_results')
+
+    # Get results for review
+    results = Result.objects.filter(
+        status='SUBMITTED_TO_DAAA'
+    ).select_related(
+        'course', 'student', 'session', 'lecturer'
+    ).prefetch_related(
+        'course__departments__faculty'
+    ).order_by('-created_at')
+
+    # Filter by faculty if specified
+    faculty_filter = request.GET.get('faculty')
+    if faculty_filter:
+        results = results.filter(course__departments__faculty__id=faculty_filter)
+
+    # Filter by level if specified
+    level_filter = request.GET.get('level')
+    if level_filter:
+        results = results.filter(course__level=level_filter)
+
+    # Get faculties for filter
+    faculties = Faculty.objects.all().order_by('name')
+
+    context = {
+        'results': results,
+        'faculties': faculties,
+        'selected_faculty': faculty_filter,
+        'selected_level': level_filter,
+    }
+
+    return render(request, 'daaa_review_results.html', context)
 
 @login_required
 def daaa_approve_results(request):
-    return render(request, 'placeholder.html', {'page_title': 'Approve Results', 'message': 'Approve results for Senate submission'})
+    """DAAA Approve Results for Senate Submission"""
+    # Check if user has DAAA role
+    daaa_roles = UserRole.objects.filter(user=request.user, role='DAAA')
+    if not daaa_roles.exists():
+        messages.error(request, 'Access denied. DAAA role required.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        result_ids = request.POST.getlist('result_ids')
+        action = request.POST.get('action')
+
+        if action == 'submit_to_senate' and result_ids:
+            results = Result.objects.filter(id__in=result_ids, status='APPROVED_BY_DAAA')
+
+            for result in results:
+                result.status = 'SUBMITTED_TO_SENATE'
+                result.save()
+
+                # Create approval record
+                ResultApproval.objects.create(
+                    result=result,
+                    approved_by=request.user,
+                    action='SUBMIT_TO_SENATE',
+                    role='DAAA',
+                    comments='Submitted to Senate by DAAA'
+                )
+
+                # Log the action
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='SUBMIT_TO_SENATE',
+                    description=f'Submitted result to Senate for {result.student.get_full_name()} in {result.course.code}',
+                    level='INFO'
+                )
+
+            messages.success(request, f'Successfully submitted {len(results)} results to Senate.')
+            return redirect('daaa_approve_results')
+
+    # Get approved results ready for Senate submission
+    approved_results = Result.objects.filter(
+        status='APPROVED_BY_DAAA'
+    ).select_related(
+        'course', 'student', 'session', 'lecturer'
+    ).prefetch_related(
+        'course__departments__faculty'
+    ).order_by('-created_at')
+
+    # Calculate statistics
+    stats = {
+        'total_approved': approved_results.count(),
+        'by_faculty': {},
+        'by_level': {},
+        'total_students': approved_results.values('student').distinct().count(),
+    }
+
+    # Calculate faculty-wise statistics
+    for result in approved_results:
+        for dept in result.course.departments.all():
+            faculty_name = dept.faculty.name
+            if faculty_name not in stats['by_faculty']:
+                stats['by_faculty'][faculty_name] = 0
+            stats['by_faculty'][faculty_name] += 1
+
+    # Calculate level-wise statistics
+    for result in approved_results:
+        level = result.course.level
+        if level not in stats['by_level']:
+            stats['by_level'][level] = 0
+        stats['by_level'][level] += 1
+
+    context = {
+        'approved_results': approved_results,
+        'stats': stats,
+    }
+
+    return render(request, 'daaa_approve_results.html', context)
 
 @login_required
 def daaa_reject_results(request):
@@ -7123,7 +7517,112 @@ def daaa_senate_reports(request):
 
 @login_required
 def daaa_publish_results(request):
-    return render(request, 'placeholder.html', {'page_title': 'Publish Results', 'message': 'Publish results to students'})
+    """DAAA Publish Results to Students"""
+    # Check if user has DAAA role
+    daaa_roles = UserRole.objects.filter(user=request.user, role='DAAA')
+    if not daaa_roles.exists():
+        messages.error(request, 'Access denied. DAAA role required.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'publish_results':
+            session_id = request.POST.get('session_id')
+            notification_method = request.POST.get('notification_method', 'IMMEDIATE')
+            faculty_ids = request.POST.getlist('faculty_ids')
+            department_ids = request.POST.getlist('department_ids')
+            level_filter = request.POST.get('level_filter')
+
+            try:
+                session = AcademicSession.objects.get(id=session_id)
+
+                # Get results to publish (approved by Senate)
+                results_query = Result.objects.filter(
+                    session=session,
+                    status='PUBLISHED'  # Assuming Senate sets this status
+                )
+
+                # Apply filters based on notification method
+                if notification_method == 'BY_FACULTY' and faculty_ids:
+                    results_query = results_query.filter(course__departments__faculty__id__in=faculty_ids)
+                elif notification_method == 'BY_DEPARTMENT' and department_ids:
+                    results_query = results_query.filter(course__departments__id__in=department_ids)
+                elif notification_method == 'BY_LEVEL' and level_filter:
+                    results_query = results_query.filter(course__level=level_filter)
+
+                results = results_query.distinct()
+
+                # Create publication record
+                publication = ResultPublication.objects.create(
+                    session=session,
+                    published_by=request.user,
+                    notification_method=notification_method,
+                    published_at=timezone.now()
+                )
+
+                # Add target filters
+                if notification_method == 'BY_FACULTY' and faculty_ids:
+                    publication.target_faculties.set(faculty_ids)
+                elif notification_method == 'BY_DEPARTMENT' and department_ids:
+                    publication.target_departments.set(department_ids)
+
+                # Send notifications to students
+                students = User.objects.filter(
+                    rms_roles__role='STUDENT',
+                    student_profile__results__in=results
+                ).distinct()
+
+                notification_count = 0
+                for student in students:
+                    notification = Notification.objects.create(
+                        user=student,
+                        title=f'Results Published - {session.name}',
+                        message=f'Your results for {session.name} academic session have been published. Please check your dashboard.',
+                        notification_type='RESULT_PUBLISHED',
+                        created_by=request.user
+                    )
+
+                    # Send email notification
+                    if notification.send_email():
+                        notification_count += 1
+
+                # Log the action
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='PUBLISH_RESULTS',
+                    description=f'Published results for {session.name} session. Notified {notification_count} students.',
+                    level='INFO'
+                )
+
+                messages.success(request, f'Successfully published results for {session.name}. Notified {notification_count} students.')
+                return redirect('daaa_publish_results')
+
+            except AcademicSession.DoesNotExist:
+                messages.error(request, 'Academic session not found.')
+            except Exception as e:
+                messages.error(request, f'Error publishing results: {str(e)}')
+
+    # Get sessions with results ready for publication
+    sessions = AcademicSession.objects.filter(
+        result__status='PUBLISHED'
+    ).distinct().order_by('-name')
+
+    # Get faculties and departments for filtering
+    faculties = Faculty.objects.all().order_by('name')
+    departments = Department.objects.all().order_by('name')
+
+    # Get publication history
+    publications = ResultPublication.objects.all().order_by('-published_at')[:10]
+
+    context = {
+        'sessions': sessions,
+        'faculties': faculties,
+        'departments': departments,
+        'publications': publications,
+    }
+
+    return render(request, 'daaa_publish_results.html', context)
 
 @login_required
 def daaa_publication_settings(request):

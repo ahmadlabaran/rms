@@ -19,105 +19,121 @@
                 {% endif %}
                 
                 {% if 'LECTURER' in user_roles %}
-                <a class="nav-link text-white" href="{% url 'lecturer_dashboard' %}" 
+                <a class="nav-link text-white" href="{% url 'lecturer_dashboard' %}"
                    style="padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease;"
                    onmouseover="this.style.background='rgba(255,255,255,0.2)'"
                    onmouseout="this.style.background='transparent'">
                     <i class="fas fa-chalkboard-teacher" style="margin-right: 6px;"></i>
                     Lecturer Dashboard
-                    {% if user|has_delegated_role:'LECTURER' %}
+                    {% if unique_roles.LECTURER.has_delegated and not unique_roles.LECTURER.has_direct %}
                     <span class="badge bg-warning text-dark ms-1" style="font-size: 9px;">Delegated</span>
+                    {% elif unique_roles.LECTURER.has_delegated and unique_roles.LECTURER.has_direct %}
+                    <span class="badge bg-info text-white ms-1" style="font-size: 9px;">Direct + Delegated</span>
                     {% endif %}
                 </a>
                 {% endif %}
                 
                 {% if 'EXAM_OFFICER' in user_roles %}
-                <a class="nav-link text-white" href="{% url 'exam_officer_dashboard' %}" 
+                <a class="nav-link text-white" href="{% url 'exam_officer_dashboard' %}"
                    style="padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease;"
                    onmouseover="this.style.background='rgba(255,255,255,0.2)'"
                    onmouseout="this.style.background='transparent'">
                     <i class="fas fa-clipboard-list" style="margin-right: 6px;"></i>
                     Exam Officer
-                    {% if user|has_delegated_role:'EXAM_OFFICER' %}
+                    {% if unique_roles.EXAM_OFFICER.has_delegated and not unique_roles.EXAM_OFFICER.has_direct %}
                     <span class="badge bg-warning text-dark ms-1" style="font-size: 9px;">Delegated</span>
+                    {% elif unique_roles.EXAM_OFFICER.has_delegated and unique_roles.EXAM_OFFICER.has_direct %}
+                    <span class="badge bg-info text-white ms-1" style="font-size: 9px;">Direct + Delegated</span>
                     {% endif %}
                 </a>
                 {% endif %}
                 
                 {% if 'HOD' in user_roles %}
-                <a class="nav-link text-white" href="{% url 'hod_dashboard' %}" 
+                <a class="nav-link text-white" href="{% url 'hod_dashboard' %}"
                    style="padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease;"
                    onmouseover="this.style.background='rgba(255,255,255,0.2)'"
                    onmouseout="this.style.background='transparent'">
                     <i class="fas fa-user-tie" style="margin-right: 6px;"></i>
                     HOD Dashboard
-                    {% if user|has_delegated_role:'HOD' %}
+                    {% if unique_roles.HOD.has_delegated and not unique_roles.HOD.has_direct %}
                     <span class="badge bg-warning text-dark ms-1" style="font-size: 9px;">Delegated</span>
+                    {% elif unique_roles.HOD.has_delegated and unique_roles.HOD.has_direct %}
+                    <span class="badge bg-info text-white ms-1" style="font-size: 9px;">Direct + Delegated</span>
                     {% endif %}
                 </a>
                 {% endif %}
                 
                 {% if 'FACULTY_DEAN' in user_roles %}
-                <a class="nav-link text-white" href="{% url 'faculty_dean_dashboard' %}" 
+                <a class="nav-link text-white" href="{% url 'faculty_dean_dashboard' %}"
                    style="padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease;"
                    onmouseover="this.style.background='rgba(255,255,255,0.2)'"
                    onmouseout="this.style.background='transparent'">
                     <i class="fas fa-university" style="margin-right: 6px;"></i>
                     Faculty Dean
-                    {% if user|has_delegated_role:'FACULTY_DEAN' %}
+                    {% if unique_roles.FACULTY_DEAN.has_delegated and not unique_roles.FACULTY_DEAN.has_direct %}
                     <span class="badge bg-warning text-dark ms-1" style="font-size: 9px;">Delegated</span>
+                    {% elif unique_roles.FACULTY_DEAN.has_delegated and unique_roles.FACULTY_DEAN.has_direct %}
+                    <span class="badge bg-info text-white ms-1" style="font-size: 9px;">Direct + Delegated</span>
                     {% endif %}
                 </a>
                 {% endif %}
-                
+
                 {% if 'DAAA' in user_roles %}
-                <a class="nav-link text-white" href="{% url 'daaa_dashboard' %}" 
+                <a class="nav-link text-white" href="{% url 'daaa_dashboard' %}"
                    style="padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease;"
                    onmouseover="this.style.background='rgba(255,255,255,0.2)'"
                    onmouseout="this.style.background='transparent'">
                     <i class="fas fa-cogs" style="margin-right: 6px;"></i>
                     DAAA Dashboard
-                    {% if user|has_delegated_role:'DAAA' %}
+                    {% if unique_roles.DAAA.has_delegated and not unique_roles.DAAA.has_direct %}
                     <span class="badge bg-warning text-dark ms-1" style="font-size: 9px;">Delegated</span>
+                    {% elif unique_roles.DAAA.has_delegated and unique_roles.DAAA.has_direct %}
+                    <span class="badge bg-info text-white ms-1" style="font-size: 9px;">Direct + Delegated</span>
                     {% endif %}
                 </a>
                 {% endif %}
                 
                 {% if 'SENATE' in user_roles %}
-                <a class="nav-link text-white" href="{% url 'senate_dashboard' %}" 
+                <a class="nav-link text-white" href="{% url 'senate_dashboard' %}"
                    style="padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease;"
                    onmouseover="this.style.background='rgba(255,255,255,0.2)'"
                    onmouseout="this.style.background='transparent'">
                     <i class="fas fa-gavel" style="margin-right: 6px;"></i>
                     Senate Dashboard
-                    {% if user|has_delegated_role:'SENATE' %}
+                    {% if unique_roles.SENATE.has_delegated and not unique_roles.SENATE.has_direct %}
                     <span class="badge bg-warning text-dark ms-1" style="font-size: 9px;">Delegated</span>
+                    {% elif unique_roles.SENATE.has_delegated and unique_roles.SENATE.has_direct %}
+                    <span class="badge bg-info text-white ms-1" style="font-size: 9px;">Direct + Delegated</span>
                     {% endif %}
                 </a>
                 {% endif %}
-                
+
                 {% if 'SUPER_ADMIN' in user_roles %}
-                <a class="nav-link text-white" href="{% url 'super_admin_dashboard' %}" 
+                <a class="nav-link text-white" href="{% url 'super_admin_dashboard' %}"
                    style="padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease;"
                    onmouseover="this.style.background='rgba(255,255,255,0.2)'"
                    onmouseout="this.style.background='transparent'">
                     <i class="fas fa-crown" style="margin-right: 6px;"></i>
                     Super Admin
-                    {% if user|has_delegated_role:'SUPER_ADMIN' %}
+                    {% if unique_roles.SUPER_ADMIN.has_delegated and not unique_roles.SUPER_ADMIN.has_direct %}
                     <span class="badge bg-warning text-dark ms-1" style="font-size: 9px;">Delegated</span>
+                    {% elif unique_roles.SUPER_ADMIN.has_delegated and unique_roles.SUPER_ADMIN.has_direct %}
+                    <span class="badge bg-info text-white ms-1" style="font-size: 9px;">Direct + Delegated</span>
                     {% endif %}
                 </a>
                 {% endif %}
                 
                 {% if 'ADMISSION_OFFICER' in user_roles %}
-                <a class="nav-link text-white" href="{% url 'admission_officer_dashboard' %}" 
+                <a class="nav-link text-white" href="{% url 'admission_officer_dashboard' %}"
                    style="padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease;"
                    onmouseover="this.style.background='rgba(255,255,255,0.2)'"
                    onmouseout="this.style.background='transparent'">
                     <i class="fas fa-user-plus" style="margin-right: 6px;"></i>
                     Admission Officer
-                    {% if user|has_delegated_role:'ADMISSION_OFFICER' %}
+                    {% if unique_roles.ADMISSION_OFFICER.has_delegated and not unique_roles.ADMISSION_OFFICER.has_direct %}
                     <span class="badge bg-warning text-dark ms-1" style="font-size: 9px;">Delegated</span>
+                    {% elif unique_roles.ADMISSION_OFFICER.has_delegated and unique_roles.ADMISSION_OFFICER.has_direct %}
+                    <span class="badge bg-info text-white ms-1" style="font-size: 9px;">Direct + Delegated</span>
                     {% endif %}
                 </a>
                 {% endif %}

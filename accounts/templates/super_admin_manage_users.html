@@ -237,6 +237,66 @@
         </div>
         {% endif %}
 
+        <!-- Users with Non-Faculty Roles Section -->
+        {% if users_with_non_faculty_roles %}
+        <div class="card shadow-sm mb-4" style="border-radius: 20px; backdrop-filter: blur(20px);">
+            <div class="card-body p-4">
+                <h2 class="h4 fw-bold text-info mb-4 d-flex align-items-center">
+                    <i class="bi bi-shield-check me-2"></i>
+                    System Administrators ({{ users_with_non_faculty_roles_count }})
+                </h2>
+                <div class="row g-3">
+                {% for user in users_with_non_faculty_roles %}
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="card border-info h-100 shadow-sm" style="border-radius: 16px; border-width: 2px;">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="flex-grow-1">
+                                    <h5 class="card-title mb-1 fw-bold">{{ user.get_full_name }}</h5>
+                                    <p class="card-text text-muted small mb-2">{{ user.email }}</p>
+                                    <p class="card-text text-muted small mb-0">@{{ user.username }}</p>
+                                </div>
+                            </div>
+
+                            <!-- User Roles -->
+                            <div class="mb-3">
+                                {% for role in user.rms_roles.all %}
+                                <span class="badge bg-info me-1 mb-1" style="font-size: 10px;">
+                                    {{ role.get_role_display }}
+                                </span>
+                                {% endfor %}
+                            </div>
+
+                            <!-- User Status -->
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <small class="text-muted">
+                                    Joined: {{ user.date_joined|date:"M d, Y" }}
+                                </small>
+                                <span class="badge {% if user.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {% if user.is_active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                            </div>
+
+                            <div class="d-flex flex-wrap gap-1">
+                                <a href="{% url 'super_admin_user_details' user.id %}" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-eye me-1"></i>View
+                                </a>
+                                <a href="{% url 'super_admin_edit_user' user.id %}" class="btn btn-secondary btn-sm">
+                                    <i class="bi bi-pencil me-1"></i>Edit
+                                </a>
+                                <button class="btn btn-outline-danger btn-sm delete-user-btn"
+                                        data-user-id="{{ user.id }}" data-user-name="{{ user.get_full_name }}">
+                                    <i class="bi bi-trash me-1"></i>Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Users by Faculty Section -->
         {% if faculty_groups %}
         {% for faculty_name, faculty_data in faculty_groups.items %}
@@ -309,7 +369,7 @@
         {% endif %}
 
         <!-- Empty State -->
-        {% if not users_without_roles and not faculty_groups %}
+        {% if not users_without_roles and not users_with_non_faculty_roles and not faculty_groups %}
         <div class="card shadow-sm text-center" style="border-radius: 20px;">
             <div class="card-body p-5">
                 <i class="bi bi-people display-1 text-muted mb-3"></i>

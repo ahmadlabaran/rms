@@ -43,7 +43,7 @@
                         <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary); font-size: 14px;">
                             First Name
                         </label>
-                        <input type="text" name="first_name" required 
+                        <input type="text" name="first_name" required value="{{ form_data.first_name|default:'' }}"
                                style="width: 100%; padding: 16px 20px; border: 1px solid var(--border-color); border-radius: 16px; font-size: 16px; background: #FFFFFF; transition: all 0.2s ease;"
                                onfocus="this.style.borderColor='var(--ios-blue)'; this.style.boxShadow='0 0 0 4px var(--ios-blue-ultra-light)'"
                                onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none'">
@@ -52,7 +52,7 @@
                         <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary); font-size: 14px;">
                             Last Name
                         </label>
-                        <input type="text" name="last_name" required 
+                        <input type="text" name="last_name" required value="{{ form_data.last_name|default:'' }}"
                                style="width: 100%; padding: 16px 20px; border: 1px solid var(--border-color); border-radius: 16px; font-size: 16px; background: #FFFFFF; transition: all 0.2s ease;"
                                onfocus="this.style.borderColor='var(--ios-blue)'; this.style.boxShadow='0 0 0 4px var(--ios-blue-ultra-light)'"
                                onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none'">
@@ -63,7 +63,7 @@
                     <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary); font-size: 14px;">
                         Email Address
                     </label>
-                    <input type="email" name="email" id="email" required
+                    <input type="email" name="email" id="email" required value="{{ form_data.email|default:'' }}"
                            style="width: 100%; padding: 16px 20px; border: 1px solid var(--border-color); border-radius: 16px; font-size: 16px; background: #FFFFFF; transition: all 0.2s ease;"
                            onfocus="this.style.borderColor='var(--ios-blue)'; this.style.boxShadow='0 0 0 4px var(--ios-blue-ultra-light)'"
                            onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none'"
@@ -83,7 +83,7 @@
                     <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary); font-size: 14px;">
                         Username
                     </label>
-                    <input type="text" name="username" id="username" required
+                    <input type="text" name="username" id="username" required value="{{ form_data.username|default:'' }}"
                            style="width: 100%; padding: 16px 20px; border: 1px solid var(--border-color); border-radius: 16px; font-size: 16px; background: #FFFFFF; transition: all 0.2s ease;"
                            onfocus="this.style.borderColor='var(--ios-blue)'; this.style.boxShadow='0 0 0 4px var(--ios-blue-ultra-light)'"
                            onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none'"
@@ -155,7 +155,7 @@
                             onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none'">
                         <option value="">Select a role</option>
                         {% for role_code, role_name in role_choices %}
-                            <option value="{{ role_code }}">{{ role_name }}</option>
+                            <option value="{{ role_code }}" {% if form_data.role == role_code %}selected{% endif %}>{{ role_name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -242,8 +242,8 @@
         } else if (username.length < 3) {
             showError(usernameError, 'Username must be at least 3 characters long');
             setFieldState(input, 'error');
-        } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-            showError(usernameError, 'Username can only contain letters, numbers, and underscores');
+        } else if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+            showError(usernameError, 'Username can only contain letters, numbers, underscores, and hyphens');
             setFieldState(input, 'error');
         } else {
             showError(usernameError, '');

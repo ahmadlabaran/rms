@@ -58,7 +58,14 @@
                     <div class="row align-items-center">
                         <div class="col-md-8">
                             <h1 class="mb-1 fw-bold">{{ faculty.name }}</h1>
-                            <p class="mb-0 opacity-75">Faculty Dean Dashboard</p>
+                            <p class="mb-0 opacity-75">
+                                Faculty Dean Dashboard
+                                {% if user|has_delegated_role:'FACULTY_DEAN' %}
+                                <span style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 8px; font-size: 12px; margin-left: 8px;">
+                                    Acting as Delegated Dean
+                                </span>
+                                {% endif %}
+                            </p>
                         </div>
                         <div class="col-md-4 text-center">
                             <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">

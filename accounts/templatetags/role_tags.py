@@ -80,8 +80,34 @@ def show_delegation_badges(user):
 def show_role_navigation(user):
     """Show navigation menu based on user roles including delegated ones"""
     roles_info = get_user_roles_with_details(user)
-    all_roles = [role['role'] for role in roles_info]
-    return {'user_roles': all_roles, 'roles_info': roles_info, 'user': user}
+
+    # Create a dictionary to avoid duplicates and track delegation status
+    # I think this should work to prevent duplicate navigation links
+    unique_roles = {}
+    for role_info in roles_info:
+        role_name = role_info['role']
+        if role_name not in unique_roles:
+            unique_roles[role_name] = {
+                'role': role_name,
+                'has_direct': False,
+                'has_delegated': False,
+                'delegation_info': None
+            }
+
+        if role_info['is_delegated']:
+            unique_roles[role_name]['has_delegated'] = True
+            unique_roles[role_name]['delegation_info'] = role_info
+        else:
+            unique_roles[role_name]['has_direct'] = True
+
+    # Convert back to list format for template
+    all_roles = list(unique_roles.keys())
+    return {
+        'user_roles': all_roles,
+        'roles_info': roles_info,
+        'unique_roles': unique_roles,
+        'user': user
+    }
 
 
 @register.filter
@@ -143,3 +169,25 @@ def count_delegations_by_user(user):
         delegator=user,
         status='ACTIVE'
     ).count()
+
+
+@register.filter
+def get_delegation_context(user, role_name):
+    """Get delegation context for a specific role"""
+    # I think this should help show delegation details in templates
+    delegation_role = UserRole.objects.filter(
+        user=user,
+        role=role_name,
+        is_temporary=True,
+        delegation__status='ACTIVE'
+    ).select_related('delegation', 'delegation__delegated_role', 'faculty', 'department').first()
+
+    if delegation_role and delegation_role.delegation:
+        return {
+            'is_delegated': True,
+            'delegated_from': delegation_role.delegation.delegator,
+            'department': delegation_role.department,
+            'faculty': delegation_role.faculty,
+            'end_date': delegation_role.delegation.end_date
+        }
+    return {'is_delegated': False}

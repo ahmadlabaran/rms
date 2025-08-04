@@ -1,0 +1,351 @@
+{% extends 'base.html' %}
+
+{% block title %}Publish Results - DAAA Dashboard{% endblock %}
+
+{% block content %}
+<style>
+    .card {
+        background: #FFFFFF;
+        border: 1px solid var(--border-light);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    .btn {
+        border-radius: 12px;
+        font-weight: 600;
+        border: none;
+        font-size: 14px;
+    }
+
+    .btn-primary {
+        background: var(--royal-blue-gradient);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: var(--royal-blue-dark);
+        color: white;
+    }
+
+    .btn-success {
+        background: #10b981;
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        color: white;
+    }
+
+    .form-check-input:checked {
+        background-color: var(--royal-blue);
+        border-color: var(--royal-blue);
+    }
+
+    .publication-card {
+        border-left: 4px solid var(--royal-blue);
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">Publish Results</h1>
+                            <p class="mb-0 opacity-75">Publish approved results to students and send notifications</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <a href="{% url 'daaa_approve_results' %}" class="btn" style="background: rgba(255,255,255,0.2); color: white;">
+                                ← Back to Approve Results
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Publication Form -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3">
+                        <i class="bi bi-megaphone me-2"></i>Publish Results
+                    </h5>
+                    
+                    <form method="post" id="publishForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="publish_results">
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Academic Session *</label>
+                                <select name="session_id" required class="form-select">
+                                    <option value="">Select session...</option>
+                                    {% for session in sessions %}
+                                    <option value="{{ session.id }}">{{ session.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Only sessions with approved results are shown</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Notification Method *</label>
+                                <select name="notification_method" id="notificationMethod" required class="form-select">
+                                    <option value="IMMEDIATE">Immediate - All students at once</option>
+                                    <option value="BY_FACULTY">By Faculty</option>
+                                    <option value="BY_DEPARTMENT">By Department</option>
+                                    <option value="BY_LEVEL">By Level</option>
+                                    <option value="CUSTOM">Custom Selection</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Faculty Filter -->
+                        <div class="row" id="facultyFilter" style="display: none;">
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-bold">Select Faculties</label>
+                                <div class="row">
+                                    {% for faculty in faculties %}
+                                    <div class="col-md-4 col-sm-6 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="faculty_ids" value="{{ faculty.id }}" id="faculty{{ faculty.id }}">
+                                            <label class="form-check-label" for="faculty{{ faculty.id }}">
+                                                {{ faculty.name }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Department Filter -->
+                        <div class="row" id="departmentFilter" style="display: none;">
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-bold">Select Departments</label>
+                                <div class="row">
+                                    {% for department in departments %}
+                                    <div class="col-md-4 col-sm-6 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="department_ids" value="{{ department.id }}" id="dept{{ department.id }}">
+                                            <label class="form-check-label" for="dept{{ department.id }}">
+                                                {{ department.name }} ({{ department.faculty.name }})
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Level Filter -->
+                        <div class="row" id="levelFilter" style="display: none;">
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-bold">Select Level</label>
+                                <div class="row">
+                                    <div class="col-md-3 col-sm-6 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="level_filter" value="100" id="level100">
+                                            <label class="form-check-label" for="level100">100 Level</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="level_filter" value="200" id="level200">
+                                            <label class="form-check-label" for="level200">200 Level</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="level_filter" value="300" id="level300">
+                                            <label class="form-check-label" for="level300">300 Level</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="level_filter" value="400" id="level400">
+                                            <label class="form-check-label" for="level400">400 Level</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-megaphone me-1"></i>Publish Results
+                            </button>
+                            <button type="reset" class="btn btn-secondary">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Reset Form
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Publication History -->
+    {% if publications %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3">
+                        <i class="bi bi-clock-history me-2"></i>Recent Publications
+                    </h5>
+                    
+                    <div class="row">
+                        {% for publication in publications %}
+                        <div class="col-lg-6 mb-3">
+                            <div class="card publication-card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="fw-bold mb-0">{{ publication.session.name }}</h6>
+                                        <span class="badge bg-success">Published</span>
+                                    </div>
+                                    
+                                    <div class="row text-sm">
+                                        <div class="col-6">
+                                            <small class="text-muted">Method:</small><br>
+                                            <span class="fw-medium">{{ publication.get_notification_method_display }}</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Published by:</small><br>
+                                            <span class="fw-medium">{{ publication.published_by.get_full_name }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-2">
+                                        <small class="text-muted">Published on: {{ publication.published_at|date:"M d, Y H:i" }}</small>
+                                    </div>
+                                    
+                                    {% if publication.target_faculties.all %}
+                                    <div class="mt-2">
+                                        <small class="text-muted">Faculties:</small>
+                                        {% for faculty in publication.target_faculties.all %}
+                                            <span class="badge bg-light text-dark me-1">{{ faculty.name }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if publication.target_departments.all %}
+                                    <div class="mt-2">
+                                        <small class="text-muted">Departments:</small>
+                                        {% for dept in publication.target_departments.all %}
+                                            <span class="badge bg-light text-dark me-1">{{ dept.name }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Information Card -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h6 class="card-title text-info fw-bold">
+                        <i class="bi bi-info-circle me-2"></i>Publication Information
+                    </h6>
+                    <ul class="mb-0">
+                        <li>Only results approved by Senate can be published to students</li>
+                        <li>Students will receive email notifications when their results are published</li>
+                        <li>Published results become visible on student dashboards immediately</li>
+                        <li>You can publish results by faculty, department, level, or all at once</li>
+                        <li>Publication history is maintained for audit purposes</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const notificationMethod = document.getElementById('notificationMethod');
+    const facultyFilter = document.getElementById('facultyFilter');
+    const departmentFilter = document.getElementById('departmentFilter');
+    const levelFilter = document.getElementById('levelFilter');
+
+    // Show/hide filters based on notification method
+    notificationMethod.addEventListener('change', function() {
+        // Hide all filters first
+        facultyFilter.style.display = 'none';
+        departmentFilter.style.display = 'none';
+        levelFilter.style.display = 'none';
+
+        // Show relevant filter
+        switch(this.value) {
+            case 'BY_FACULTY':
+            case 'CUSTOM':
+                facultyFilter.style.display = 'block';
+                break;
+            case 'BY_DEPARTMENT':
+                departmentFilter.style.display = 'block';
+                break;
+            case 'BY_LEVEL':
+                levelFilter.style.display = 'block';
+                break;
+        }
+    });
+
+    // Form validation
+    document.getElementById('publishForm').addEventListener('submit', function(e) {
+        const method = notificationMethod.value;
+        let isValid = true;
+        let errorMessage = '';
+
+        if (method === 'BY_FACULTY' || method === 'CUSTOM') {
+            const facultyChecked = document.querySelectorAll('input[name="faculty_ids"]:checked');
+            if (facultyChecked.length === 0) {
+                isValid = false;
+                errorMessage = 'Please select at least one faculty.';
+            }
+        } else if (method === 'BY_DEPARTMENT') {
+            const deptChecked = document.querySelectorAll('input[name="department_ids"]:checked');
+            if (deptChecked.length === 0) {
+                isValid = false;
+                errorMessage = 'Please select at least one department.';
+            }
+        } else if (method === 'BY_LEVEL') {
+            const levelChecked = document.querySelector('input[name="level_filter"]:checked');
+            if (!levelChecked) {
+                isValid = false;
+                errorMessage = 'Please select a level.';
+            }
+        }
+
+        if (!isValid) {
+            e.preventDefault();
+            alert(errorMessage);
+            return;
+        }
+
+        // Confirmation dialog
+        const sessionSelect = document.querySelector('select[name="session_id"]');
+        const sessionText = sessionSelect.options[sessionSelect.selectedIndex].text;
+        
+        if (!confirm(`Are you sure you want to publish results for ${sessionText}? This action cannot be undone and students will be notified immediately.`)) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+
+{% endblock %}

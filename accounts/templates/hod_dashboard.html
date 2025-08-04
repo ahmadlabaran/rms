@@ -170,7 +170,14 @@
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
             <h1 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 600;">{{ department.name }} Department</h1>
-            <p style="margin: 0; opacity: 0.9; font-size: 16px;">Head of Department - {{ current_session.name }}</p>
+            <p style="margin: 0; opacity: 0.9; font-size: 16px;">
+                Head of Department - {{ current_session.name }}
+                {% if user|has_delegated_role:'HOD' %}
+                <span style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 8px; font-size: 12px; margin-left: 8px;">
+                    Acting as Delegated HOD
+                </span>
+                {% endif %}
+            </p>
         </div>
         <div style="text-align: right;">
             <div style="background: rgba(255,255,255,0.2); padding: 12px 20px; border-radius: 12px; margin-bottom: 8px;">

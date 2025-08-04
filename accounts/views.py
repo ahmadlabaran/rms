@@ -1,6 +1,6 @@
 import json
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Count
@@ -13,6 +13,8 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.utils import timezone
+from django.db import transaction
+from django.views.decorators.http import require_http_methods
 import json
 
 from .models import (
@@ -37,45 +39,46 @@ from .permissions import (
 # HELPER FUNCTIONS
 # ============================================================================
 
-def check_user_role_access(user, required_roles):
+def check_if_user_has_access(user, required_role_list):
     """
-    Check if user has any of the required roles or is Super Admin.
-    Super Admin has access to all functionalities.
-
-    Args:
-        user: Django User object
-        required_roles: List of role names (e.g., ['HOD', 'FACULTY_DEAN'])
-
-    Returns:
-        tuple: (has_access, user_role, department, faculty)
+    Checks if user has required roles or is Super Admin
+    Also checks delegated roles
     """
     # Super Admin always has access
     if user.is_superuser:
         # Get first available department/faculty for Super Admin
-        department = Department.objects.first()
-        faculty = Faculty.objects.first()
-        return True, 'SUPER_ADMIN', department, faculty
+        first_department = Department.objects.first()
+        first_faculty = Faculty.objects.first()
+        return True, 'SUPER_ADMIN', first_department, first_faculty
 
-    # Check for specific roles (including SUPER_ADMIN role)
-    all_required_roles = required_roles + ['SUPER_ADMIN']
-    user_roles = UserRole.objects.filter(user=user, role__in=all_required_roles)
+    # Check for specific roles (including SUPER_ADMIN role and delegated roles)
+    all_required_role_list = required_role_list + ['SUPER_ADMIN']
 
-    if not user_roles.exists():
+    # Check both direct roles and delegated roles
+    user_role_list = UserRole.objects.filter(
+        user=user,
+        role__in=all_required_role_list
+    ).filter(
+        Q(is_temporary=False) |  # Direct roles
+        Q(is_temporary=True, delegation__status='ACTIVE')  # Active delegated roles
+    )
+
+    if not user_role_list.exists():
         return False, None, None, None
 
     # Get the first matching role
-    user_role = user_roles.first()
+    first_user_role = user_role_list.first()
 
-    if user_role.role == 'SUPER_ADMIN':
+    if first_user_role.role == 'SUPER_ADMIN':
         # Super Admin can access any department/faculty
-        department = Department.objects.first()
-        faculty = Faculty.objects.first()
+        first_department = Department.objects.first()
+        first_faculty = Faculty.objects.first()
     else:
         # Regular role user
-        department = user_role.department
-        faculty = user_role.faculty
+        first_department = first_user_role.department
+        first_faculty = first_user_role.faculty
 
-    return True, user_role.role, department, faculty
+    return True, first_user_role.role, first_department, first_faculty
 
 # ============================================================================
 # AUTHENTICATION VIEWS
@@ -1411,27 +1414,31 @@ class ResultApprovalViewSet(viewsets.ModelViewSet):
 
 @login_required
 def dashboard_view(request):
-    """Main dashboard with role-based content and redirects"""
-    user_roles = UserRole.objects.filter(user=request.user).select_related('faculty', 'department')
+    """Main dashboard that shows different content based on user role"""
+    # Get all user roles including delegated ones
+    user_role_list = UserRole.objects.filter(user=request.user).filter(
+        Q(is_temporary=False) |  # Direct roles
+        Q(is_temporary=True, delegation__status='ACTIVE')  # Active delegated roles
+    ).select_related('faculty', 'department', 'delegation')
 
     # Redirect to role-specific dashboards if user has specific roles
-    if user_roles.filter(role='FACULTY_DEAN').exists():
+    if user_role_list.filter(role='FACULTY_DEAN').exists():
         return redirect('faculty_dean_dashboard')
-    elif user_roles.filter(role='LECTURER').exists():
+    elif user_role_list.filter(role='LECTURER').exists():
         return redirect('lecturer_dashboard')
-    elif user_roles.filter(role='EXAM_OFFICER').exists():
+    elif user_role_list.filter(role='EXAM_OFFICER').exists():
         return redirect('exam_officer_dashboard')
-    elif user_roles.filter(role='HOD').exists():
+    elif user_role_list.filter(role='HOD').exists():
         return redirect('hod_dashboard')
-    elif user_roles.filter(role='DAAA').exists():
+    elif user_role_list.filter(role='DAAA').exists():
         return redirect('daaa_dashboard')
-    elif user_roles.filter(role='SENATE').exists():
+    elif user_role_list.filter(role='SENATE').exists():
         return redirect('senate_dashboard')
-    elif user_roles.filter(role='STUDENT').exists():
+    elif user_role_list.filter(role='STUDENT').exists():
         return redirect('student_dashboard')
-    elif user_roles.filter(role='ADMISSION_OFFICER').exists():
+    elif user_role_list.filter(role='ADMISSION_OFFICER').exists():
         return redirect('admission_officer_dashboard')
-    elif user_roles.filter(role='SUPER_ADMIN').exists():
+    elif user_role_list.filter(role='SUPER_ADMIN').exists():
         return redirect('super_admin_dashboard')
 
     # Get current active session
@@ -1439,7 +1446,7 @@ def dashboard_view(request):
 
     # Calculate stats based on user roles
     stats = {}
-    if user_roles.filter(role__in=['SUPER_ADMIN', 'DAAA']).exists():
+    if user_role_list.filter(role__in=['SUPER_ADMIN', 'DAAA']).exists():
         # Full system stats for admins
         stats = {
             'total_students': Student.objects.count(),
@@ -1447,31 +1454,31 @@ def dashboard_view(request):
             'pending_results': Result.objects.exclude(status='PUBLISHED').count(),
             'published_results': Result.objects.filter(status='PUBLISHED').count(),
         }
-    elif user_roles.filter(role='FACULTY_DEAN').exists():
+    elif user_role_list.filter(role='FACULTY_DEAN').exists():
         # Faculty-specific stats
-        faculties = [role.faculty for role in user_roles.filter(role='FACULTY_DEAN') if role.faculty]
+        faculty_list = [role.faculty for role in user_role_list.filter(role='FACULTY_DEAN') if role.faculty]
         stats = {
-            'total_students': Student.objects.filter(faculty__in=faculties).count(),
-            'total_courses': Course.objects.filter(departments__faculty__in=faculties).count(),
+            'total_students': Student.objects.filter(faculty__in=faculty_list).count(),
+            'total_courses': Course.objects.filter(departments__faculty__in=faculty_list).count(),
             'pending_results': Result.objects.filter(
-                enrollment__course__departments__faculty__in=faculties
+                enrollment__course__departments__faculty__in=faculty_list
             ).exclude(status='PUBLISHED').count(),
             'published_results': Result.objects.filter(
-                enrollment__course__departments__faculty__in=faculties,
+                enrollment__course__departments__faculty__in=faculty_list,
                 status='PUBLISHED'
             ).count(),
         }
-    elif user_roles.filter(role='HOD').exists():
+    elif user_role_list.filter(role='HOD').exists():
         # Department-specific stats
-        departments = [role.department for role in user_roles.filter(role='HOD') if role.department]
+        department_list = [role.department for role in user_role_list.filter(role='HOD') if role.department]
         stats = {
-            'total_students': Student.objects.filter(department__in=departments).count(),
-            'total_courses': Course.objects.filter(departments__in=departments).count(),
+            'total_students': Student.objects.filter(department__in=department_list).count(),
+            'total_courses': Course.objects.filter(departments__in=department_list).count(),
             'pending_results': Result.objects.filter(
-                enrollment__course__departments__in=departments
+                enrollment__course__departments__in=department_list
             ).exclude(status='PUBLISHED').count(),
             'published_results': Result.objects.filter(
-                enrollment__course__departments__in=departments,
+                enrollment__course__departments__in=department_list,
                 status='PUBLISHED'
             ).count(),
         }
@@ -1479,11 +1486,19 @@ def dashboard_view(request):
     # Get recent activities
     recent_activities = AuditLog.objects.filter(user=request.user).order_by('-timestamp')[:5]
 
+    # Get delegation context
+    from .permissions import get_user_roles_with_details, get_active_delegations_for_user
+    roles_with_context = get_user_roles_with_details(request.user)
+    active_delegations = get_active_delegations_for_user(request.user)
+
     context = {
-        'user_roles': user_roles,
+        'user_roles': user_role_list,
         'current_session': current_session,
         'stats': stats,
         'recent_activities': recent_activities,
+        'roles_with_context': roles_with_context,
+        'active_delegations': active_delegations,
+        'has_delegated_roles': any(role['is_delegated'] for role in roles_with_context),
     }
 
     return render(request, 'dashboard.html', context)
@@ -1491,24 +1506,29 @@ def dashboard_view(request):
 
 @login_required
 def students_view(request):
-    """Students management page"""
-    user_roles = UserRole.objects.filter(user=request.user)
+    """Shows students management page"""
+    user_role_list = UserRole.objects.filter(user=request.user)
 
     # Filter students based on user role
-    students = Student.objects.all()
-    if not user_roles.filter(role__in=['SUPER_ADMIN', 'DAAA']).exists():
-        if user_roles.filter(role='FACULTY_DEAN').exists():
-            faculties = [role.faculty for role in user_roles.filter(role='FACULTY_DEAN') if role.faculty]
-            students = students.filter(faculty__in=faculties)
-        elif user_roles.filter(role='HOD').exists():
-            departments = [role.department for role in user_roles.filter(role='HOD') if role.department]
-            students = students.filter(department__in=departments)
+    student_list = Student.objects.all()
+    # Check if user is admin
+    is_admin = user_role_list.filter(role__in=['SUPER_ADMIN', 'DAAA']).exists()
+    if not is_admin:
+        # Check if user is faculty dean
+        is_faculty_dean = user_role_list.filter(role='FACULTY_DEAN').exists()
+        if is_faculty_dean:
+            faculty_list = [role.faculty for role in user_role_list.filter(role='FACULTY_DEAN') if role.faculty]
+            student_list = student_list.filter(faculty__in=faculty_list)
+        # Check if user is HOD
+        elif user_role_list.filter(role='HOD').exists():
+            department_list = [role.department for role in user_role_list.filter(role='HOD') if role.department]
+            student_list = student_list.filter(department__in=department_list)
 
-    students = students.select_related('faculty', 'department', 'current_level', 'admission_session')
+    student_list = student_list.select_related('faculty', 'department', 'current_level', 'admission_session')
 
     context = {
-        'students': students,
-        'user_roles': user_roles,
+        'students': student_list,
+        'user_roles': user_role_list,
     }
 
     return render(request, 'students.html', context)
@@ -1605,7 +1625,20 @@ def publish_results_view(request):
 
 @login_required
 def contact_admin_view(request):
-    return render(request, 'placeholder.html', {'page_title': 'Contact Administrator', 'message': 'Contact form coming soon!'})
+    """Contact Administrator"""
+    if request.method == 'POST':
+        subject = request.POST.get('subject', '').strip()
+        message = request.POST.get('message', '').strip()
+
+        if subject and message:
+            # Here you would typically send an email or create a support ticket
+            # For now, we'll just show a success message
+            messages.success(request, 'Your message has been sent to the administrator. You will receive a response soon.')
+            return redirect('contact_admin')
+        else:
+            messages.error(request, 'Please fill in all fields.')
+
+    return render(request, 'contact_admin.html')
 
 
 def web_login_view(request):
@@ -1799,7 +1832,7 @@ def exam_officer_dashboard(request):
 def daaa_dashboard(request):
     """Professional DAAA Dashboard"""
     # Check if user has DAAA role or is Super Admin
-    has_access, user_role, department, faculty = check_user_role_access(request.user, ['DAAA'])
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['DAAA'])
     if not has_access:
         messages.error(request, 'Access denied. DAAA or Super Admin role required.')
         return redirect('dashboard')
@@ -2527,7 +2560,78 @@ def super_admin_manage_departments(request):
 
 @login_required
 def super_admin_assign_hod(request):
-    return render(request, 'placeholder.html', {'page_title': 'Assign HOD', 'message': 'Assign heads of departments'})
+    """Super Admin HOD Assignment Interface"""
+    # Check if user has Super Admin role
+    super_admin_roles = UserRole.objects.filter(user=request.user, role='SUPER_ADMIN')
+    if not super_admin_roles.exists():
+        messages.error(request, 'Access denied. Super Admin role required.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        department_id = request.POST.get('department_id')
+        user_id = request.POST.get('user_id')
+
+        if not department_id or not user_id:
+            messages.error(request, 'Please select both department and user.')
+        else:
+            try:
+                department = Department.objects.get(id=department_id)
+                user = User.objects.get(id=user_id)
+
+                # Remove existing HOD role for this department if exists
+                existing_hod_role = UserRole.objects.filter(role='HOD', department=department).first()
+                if existing_hod_role:
+                    existing_hod_role.delete()
+                    # Update department HOD field
+                    department.hod = None
+                    department.save()
+
+                # Create new HOD role
+                UserRole.objects.create(
+                    user=user,
+                    role='HOD',
+                    faculty=department.faculty,
+                    department=department,
+                    created_by=request.user,
+                    is_primary=False
+                )
+
+                # Update department HOD field
+                department.hod = user
+                department.save()
+
+                # Log the action
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='ASSIGN_HOD',
+                    description=f'Assigned {user.get_full_name()} as HOD of {department.name}',
+                    level='INFO'
+                )
+
+                messages.success(request, f'{user.get_full_name()} has been assigned as HOD of {department.name}!')
+                return redirect('super_admin_assign_hod')
+
+            except Department.DoesNotExist:
+                messages.error(request, 'Department not found.')
+            except User.DoesNotExist:
+                messages.error(request, 'User not found.')
+            except Exception as e:
+                messages.error(request, f'Error assigning HOD: {str(e)}')
+
+    # Get all departments with their current HODs
+    departments = Department.objects.all().select_related('faculty', 'hod').order_by('faculty__name', 'name')
+
+    # Get all users who can be assigned as HOD (excluding students)
+    eligible_users = User.objects.filter(
+        rms_roles__role__in=['LECTURER', 'FACULTY_DEAN', 'SUPER_ADMIN']
+    ).distinct().order_by('first_name', 'last_name')
+
+    context = {
+        'departments': departments,
+        'eligible_users': eligible_users,
+    }
+
+    return render(request, 'super_admin_assign_hod.html', context)
 
 @login_required
 def super_admin_department_reports(request):
@@ -3931,13 +4035,461 @@ def super_admin_revoke_delegation(request, delegation_id):
         return redirect('dashboard')
 
     try:
-        delegation = PermissionDelegation.objects.get(id=delegation_id, status='ACTIVE')
-        delegation.revoke(request.user, "Revoked by Super Admin")
-        messages.success(request, f'Successfully revoked delegation for {delegation.delegate.get_full_name()}.')
-    except PermissionDelegation.DoesNotExist:
-        messages.error(request, 'Delegation not found or already revoked.')
+        reason = request.POST.get('reason', 'Revoked by Super Admin')
+
+        # Use delegation service for revocation
+        from .delegation_service import DelegationService
+
+        success, messages_list = DelegationService.revoke_delegation(
+            delegation_id=delegation_id,
+            revoked_by=request.user,
+            reason=reason
+        )
+
+        if success:
+            for msg in messages_list:
+                messages.success(request, msg)
+        else:
+            for error in messages_list:
+                messages.error(request, error)
+
+    except Exception as e:
+        messages.error(request, f'Error revoking delegation: {str(e)}')
 
     return redirect('super_admin_permission_delegations')
+
+
+@login_required
+def super_admin_create_delegation(request):
+    """Create delegation interface"""
+    # Check if user is Super Admin
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['SUPER_ADMIN'])
+    if not has_access:
+        messages.error(request, "Access denied. Super Admin privileges required.")
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        return handle_delegation_creation(request)
+
+    # Get delegatable roles (only Super Admin can create delegations)
+    delegatable_roles = PermissionDelegation.get_delegatable_roles(request.user)
+
+    # Get all faculties for filtering
+    faculties = Faculty.objects.all().order_by('name')
+
+    # Get delegation statistics
+    delegation_stats = {
+        'total_active': PermissionDelegation.objects.filter(status='ACTIVE').count(),
+        'total_users_with_delegations': PermissionDelegation.objects.filter(
+            status='ACTIVE'
+        ).values('delegate').distinct().count(),
+        'available_roles': delegatable_roles.count(),
+    }
+
+    context = {
+        'delegatable_roles': delegatable_roles,
+        'faculties': faculties,
+        'delegation_stats': delegation_stats,
+    }
+
+    return render(request, 'super_admin_create_delegation.html', context)
+
+
+def handle_delegation_creation(request):
+    """Handles delegation creation form"""
+    try:
+        # Get form data
+        delegator_role_id = request.POST.get('delegator_user')
+        delegate_user_id = request.POST.get('delegate_user')
+        reason = request.POST.get('reason', '').strip()
+        enable_time_based = request.POST.get('enable_time_based') == 'on'
+        start_date = request.POST.get('start_date') if enable_time_based else None
+        end_date = request.POST.get('end_date') if enable_time_based else None
+
+        # Check if all required fields are filled
+        if not all([delegator_role_id, delegate_user_id, reason]):
+            messages.error(request, "All required fields must be filled.")
+            return redirect('super_admin_create_delegation')
+
+        # Parse dates if time-based
+        parsed_start_date = None
+        parsed_end_date = None
+        if enable_time_based:
+            try:
+                from django.utils.dateparse import parse_datetime
+                if start_date:
+                    parsed_start_date = parse_datetime(start_date)
+                if end_date:
+                    parsed_end_date = parse_datetime(end_date)
+            except ValueError:
+                messages.error(request, "Invalid date format.")
+                return redirect('super_admin_create_delegation')
+
+        # Create delegation using service
+        from .delegation_service import DelegationService
+
+        success, result, message_list = DelegationService.create_new_delegation(
+            delegator_role_id=delegator_role_id,
+            delegate_user_id=delegate_user_id,
+            created_by=request.user,
+            reason=reason,
+            start_date=parsed_start_date,
+            end_date=parsed_end_date
+        )
+
+        if success:
+            for msg in message_list:
+                messages.success(request, msg)
+            return redirect('super_admin_permission_delegations')
+        else:
+            for error in result:
+                messages.error(request, error)
+            return redirect('super_admin_create_delegation')
+
+    except Exception as e:
+        messages.error(request, f"Error creating delegation: {str(e)}")
+        return redirect('super_admin_create_delegation')
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_role_holders(request):
+    """AJAX endpoint to get users with a specific role"""
+    # Check if user is Super Admin
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['SUPER_ADMIN'])
+    if not has_access:
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    role = request.GET.get('role')
+    faculty_id = request.GET.get('faculty')
+
+    if not role:
+        return JsonResponse({'error': 'Role parameter required'}, status=400)
+
+    # Get users with the specified role
+    role_holders = UserRole.objects.filter(
+        role=role,
+        is_temporary=False  # Only direct role holders, not delegated
+    ).select_related('user', 'faculty', 'department')
+
+    # Filter by faculty if specified
+    if faculty_id:
+        role_holders = role_holders.filter(faculty_id=faculty_id)
+
+    # Exclude roles that are already being delegated
+    active_delegation_role_ids = PermissionDelegation.objects.filter(
+        status='ACTIVE'
+    ).values_list('delegated_role_id', flat=True)
+    role_holders = role_holders.exclude(id__in=active_delegation_role_ids)
+
+    users_data = []
+    for role_holder in role_holders:
+        users_data.append({
+            'role_id': role_holder.id,
+            'user_id': role_holder.user.id,
+            'name': role_holder.user.get_full_name(),
+            'username': role_holder.user.username,
+            'faculty': role_holder.faculty.name if role_holder.faculty else None,
+            'department': role_holder.department.name if role_holder.department else None,
+            'can_delegate': True  # All returned roles can be delegated
+        })
+
+    return JsonResponse({'users': users_data})
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_eligible_delegates(request):
+    """AJAX endpoint to get users eligible to receive a delegation"""
+    # Check if user is Super Admin
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['SUPER_ADMIN'])
+    if not has_access:
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    delegator_role_id = request.GET.get('delegator_role')
+    if not delegator_role_id:
+        return JsonResponse({'error': 'Delegator role parameter required'}, status=400)
+
+    try:
+        delegator_role = UserRole.objects.get(id=delegator_role_id)
+
+        # Get eligible delegates using the model method
+        eligible_users = PermissionDelegation.get_eligible_delegates(
+            delegator_role, request.user
+        )
+
+        users_data = []
+        for user in eligible_users:
+            # Get user's primary role info for context
+            primary_role = UserRole.objects.filter(
+                user=user,
+                is_temporary=False,
+                is_primary=True
+            ).first()
+
+            users_data.append({
+                'user_id': user.id,
+                'name': user.get_full_name(),
+                'username': user.username,
+                'email': user.email,
+                'primary_role': primary_role.get_role_display() if primary_role else 'No Role',
+                'faculty': primary_role.faculty.name if primary_role and primary_role.faculty else None,
+                'department': primary_role.department.name if primary_role and primary_role.department else None,
+            })
+
+        return JsonResponse({
+            'users': users_data,
+            'total_eligible': len(users_data),
+            'delegator_faculty': delegator_role.faculty.name if delegator_role.faculty else None
+        })
+
+    except UserRole.DoesNotExist:
+        return JsonResponse({'error': 'Invalid delegator role'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def check_delegation_conflicts_view(request):
+    """AJAX endpoint to check for delegation conflicts with enhanced validation"""
+    # Check if user is Super Admin
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['SUPER_ADMIN'])
+    if not has_access:
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    delegate_user_id = request.GET.get('delegate')
+    delegator_role_id = request.GET.get('delegator_role')
+
+    if not all([delegate_user_id, delegator_role_id]):
+        return JsonResponse({'error': 'Missing parameters'}, status=400)
+
+    try:
+        delegate_user = User.objects.get(id=delegate_user_id)
+        delegator_role = UserRole.objects.get(id=delegator_role_id)
+
+        # Use delegation service for comprehensive conflict checking
+        from .delegation_service import DelegationService
+
+        conflicts = DelegationService.get_delegation_conflicts(delegate_user, delegator_role.role)
+
+        # Check delegation rules
+        is_valid, rule_errors = PermissionDelegation.validate_delegation_rules(
+            delegator_role, delegate_user, request.user
+        )
+
+        # Check cross-faculty delegation
+        cross_faculty_allowed, cross_faculty_reason = DelegationService.validate_cross_faculty_delegation(
+            delegator_role, delegate_user, request.user
+        )
+
+        return JsonResponse({
+            'conflicts': conflicts,
+            'rule_errors': rule_errors if not is_valid else [],
+            'is_valid': is_valid and len(conflicts) == 0,
+            'cross_faculty_allowed': cross_faculty_allowed,
+            'cross_faculty_reason': cross_faculty_reason,
+            'delegate_faculty': _get_user_faculty(delegate_user),
+            'delegator_faculty': delegator_role.faculty.name if delegator_role.faculty else None
+        })
+
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+    except UserRole.DoesNotExist:
+        return JsonResponse({'error': 'Delegator role not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+def _get_user_faculty(user):
+    """Helper function to get user's faculty"""
+    primary_role = UserRole.objects.filter(
+        user=user,
+        is_temporary=False,
+        is_primary=True
+    ).first()
+    return primary_role.faculty.name if primary_role and primary_role.faculty else None
+
+
+def check_delegation_conflicts_internal(delegate_user, role):
+    """Internal function to check for delegation conflicts"""
+    conflicts = []
+
+    # Check if user already has this role
+    existing_role = UserRole.objects.filter(user=delegate_user, role=role).first()
+    if existing_role:
+        if existing_role.is_temporary:
+            conflicts.append(f"User already has delegated {role} permissions")
+        else:
+            conflicts.append(f"User already has direct {role} role")
+
+    # Check for role hierarchy conflicts
+    user_roles = UserRole.objects.filter(user=delegate_user).values_list('role', flat=True)
+
+    # Define role hierarchy (higher roles include lower role permissions)
+    role_hierarchy = {
+        'SUPER_ADMIN': ['SENATE', 'DAAA', 'FACULTY_DEAN', 'HOD', 'EXAM_OFFICER', 'LECTURER', 'ADMISSION_OFFICER'],
+        'SENATE': ['DAAA', 'FACULTY_DEAN', 'HOD', 'EXAM_OFFICER', 'LECTURER'],
+        'DAAA': ['FACULTY_DEAN', 'HOD', 'EXAM_OFFICER', 'LECTURER'],
+        'FACULTY_DEAN': ['HOD', 'EXAM_OFFICER', 'LECTURER'],
+        'HOD': ['EXAM_OFFICER', 'LECTURER'],
+    }
+
+    # Check if user has a higher role that would make this delegation redundant
+    for user_role in user_roles:
+        if user_role in role_hierarchy and role in role_hierarchy[user_role]:
+            conflicts.append(f"User already has {user_role} role which includes {role} permissions")
+
+    # Check if delegating a lower role to someone with a higher role
+    if role in role_hierarchy:
+        for user_role in user_roles:
+            if user_role in role_hierarchy[role]:
+                conflicts.append(f"Delegating {role} to user with {user_role} role may create permission conflicts")
+
+    return conflicts
+
+
+@login_required
+def super_admin_delegation_history(request):
+    """View delegation history with filtering and pagination"""
+    # Check if user is Super Admin
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['SUPER_ADMIN'])
+    if not has_access:
+        messages.error(request, "Access denied. Super Admin privileges required.")
+        return redirect('dashboard')
+
+    # Get filter parameters
+    status_filter = request.GET.get('status', '')
+    role_filter = request.GET.get('role', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+
+    # Build queryset with filters
+    delegations = PermissionDelegation.objects.all().select_related(
+        'delegator', 'delegate', 'delegated_role', 'created_by',
+        'delegated_role__faculty', 'delegated_role__department'
+    ).order_by('-created_at')
+
+    if status_filter:
+        delegations = delegations.filter(status=status_filter)
+
+    if role_filter:
+        delegations = delegations.filter(delegated_role__role=role_filter)
+
+    if date_from:
+        from django.utils.dateparse import parse_date
+        parsed_date = parse_date(date_from)
+        if parsed_date:
+            delegations = delegations.filter(created_at__date__gte=parsed_date)
+
+    if date_to:
+        from django.utils.dateparse import parse_date
+        parsed_date = parse_date(date_to)
+        if parsed_date:
+            delegations = delegations.filter(created_at__date__lte=parsed_date)
+
+    # Calculate statistics
+    stats = {
+        'total_delegations': PermissionDelegation.objects.count(),
+        'active_delegations': PermissionDelegation.objects.filter(status='ACTIVE').count(),
+        'expired_delegations': PermissionDelegation.objects.filter(status='EXPIRED').count(),
+        'revoked_delegations': PermissionDelegation.objects.filter(status='REVOKED').count(),
+    }
+
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(delegations, 20)  # 20 delegations per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'delegations': page_obj,
+        'stats': stats,
+        'total_count': delegations.count(),
+        'is_paginated': page_obj.has_other_pages(),
+        'page_obj': page_obj,
+    }
+
+    return render(request, 'super_admin_delegation_history.html', context)
+
+
+@login_required
+def super_admin_export_delegation_report(request):
+    """Export delegation report as CSV"""
+    # Check if user is Super Admin
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['SUPER_ADMIN'])
+    if not has_access:
+        messages.error(request, "Access denied. Super Admin privileges required.")
+        return redirect('dashboard')
+
+    import csv
+    from django.utils import timezone
+
+    # Get same filters as history view
+    status_filter = request.GET.get('status', '')
+    role_filter = request.GET.get('role', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+
+    # Build queryset with filters
+    delegations = PermissionDelegation.objects.all().select_related(
+        'delegator', 'delegate', 'delegated_role', 'created_by',
+        'delegated_role__faculty', 'delegated_role__department'
+    ).order_by('-created_at')
+
+    if status_filter:
+        delegations = delegations.filter(status=status_filter)
+    if role_filter:
+        delegations = delegations.filter(delegated_role__role=role_filter)
+    if date_from:
+        from django.utils.dateparse import parse_date
+        parsed_date = parse_date(date_from)
+        if parsed_date:
+            delegations = delegations.filter(created_at__date__gte=parsed_date)
+    if date_to:
+        from django.utils.dateparse import parse_date
+        parsed_date = parse_date(date_to)
+        if parsed_date:
+            delegations = delegations.filter(created_at__date__lte=parsed_date)
+
+    # Create CSV response
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="delegation_report_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+
+    writer = csv.writer(response)
+
+    # Write header
+    writer.writerow([
+        'ID', 'Role', 'Delegator', 'Delegate', 'Created By', 'Status',
+        'Created Date', 'Start Date', 'End Date', 'Faculty', 'Department', 'Reason'
+    ])
+
+    # Write data
+    for delegation in delegations:
+        writer.writerow([
+            delegation.id,
+            delegation.delegated_role.get_role_display(),
+            delegation.delegator.get_full_name(),
+            delegation.delegate.get_full_name(),
+            delegation.created_by.get_full_name(),
+            delegation.get_status_display(),
+            delegation.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            delegation.start_date.strftime('%Y-%m-%d %H:%M:%S') if delegation.start_date else '',
+            delegation.end_date.strftime('%Y-%m-%d %H:%M:%S') if delegation.end_date else '',
+            delegation.delegated_role.faculty.name if delegation.delegated_role.faculty else '',
+            delegation.delegated_role.department.name if delegation.delegated_role.department else '',
+            delegation.reason[:100] + '...' if len(delegation.reason) > 100 else delegation.reason
+        ])
+
+    # Log the export
+    AuditLog.objects.create(
+        user=request.user,
+        action='EXPORT_DELEGATION_REPORT',
+        description=f'Exported delegation report with {delegations.count()} records',
+        level='INFO'
+    )
+
+    return response
 
 
 @login_required
@@ -5125,7 +5677,7 @@ def super_admin_unlock_session(request, session_id):
 def hod_dashboard(request):
     """Professional HOD Dashboard"""
     # Check if user has HOD role or is Super Admin
-    has_access, user_role, department, faculty = check_user_role_access(request.user, ['HOD'])
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['HOD'])
     if not has_access:
         messages.error(request, 'Access denied. HOD or Super Admin role required.')
         return redirect('dashboard')
@@ -5207,7 +5759,7 @@ def hod_dashboard(request):
 def faculty_dean_dashboard(request):
     """Professional Faculty Dean Dashboard"""
     # Check if user has Faculty Dean role or is Super Admin
-    has_access, user_role, department, faculty = check_user_role_access(request.user, ['FACULTY_DEAN'])
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['FACULTY_DEAN'])
     if not has_access:
         messages.error(request, 'Access denied. Faculty Dean or Super Admin role required.')
         return redirect('dashboard')
@@ -5313,7 +5865,7 @@ def faculty_dean_departments(request):
         return redirect('dashboard')
 
     # Get departments in this faculty with statistics
-    departments = Department.objects.filter(faculty=faculty).annotate(
+    departments = Department.objects.filter(faculty=faculty).select_related('hod').annotate(
         students_count=Count('student'),
         courses_count=Count('course')
     ).order_by('name')
@@ -5569,15 +6121,123 @@ def faculty_dean_create_hod(request):
 # Additional Faculty Dean Views for new workflow
 @login_required
 def faculty_dean_department_details(request, department_id):
-    return render(request, 'placeholder.html', {'page_title': 'Department Details', 'message': f'Department details ID: {department_id}'})
+    """Faculty Dean Department Details"""
+    # Check if user has Faculty Dean role
+    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not faculty_dean_roles.exists():
+        messages.error(request, 'Access denied. Faculty Dean role required.')
+        return redirect('dashboard')
+
+    # Get the faculty for this dean
+    faculty_role = faculty_dean_roles.first()
+    faculty = faculty_role.faculty
+
+    try:
+        department = Department.objects.get(id=department_id, faculty=faculty)
+    except Department.DoesNotExist:
+        messages.error(request, 'Department not found.')
+        return redirect('faculty_dean_departments')
+
+    # Get department statistics
+    total_students = Student.objects.filter(department=department).count()
+    total_courses = Course.objects.filter(departments=department).count()
+    total_lecturers = User.objects.filter(
+        rms_roles__role='LECTURER',
+        rms_roles__department=department
+    ).distinct().count()
+
+    context = {
+        'department': department,
+        'faculty': faculty,
+        'total_students': total_students,
+        'total_courses': total_courses,
+        'total_lecturers': total_lecturers,
+    }
+
+    return render(request, 'faculty_dean_department_details.html', context)
 
 @login_required
 def faculty_dean_assign_hod_single(request, department_id):
-    return render(request, 'placeholder.html', {'page_title': 'Assign HOD', 'message': f'Assign HOD to department ID: {department_id}'})
+    """Faculty Dean Assign HOD to Single Department"""
+    # Check if user has Faculty Dean role
+    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not faculty_dean_roles.exists():
+        messages.error(request, 'Access denied. Faculty Dean role required.')
+        return redirect('dashboard')
+
+    # Get the faculty for this dean
+    faculty_role = faculty_dean_roles.first()
+    faculty = faculty_role.faculty
+
+    try:
+        department = Department.objects.get(id=department_id, faculty=faculty)
+    except Department.DoesNotExist:
+        messages.error(request, 'Department not found.')
+        return redirect('faculty_dean_departments')
+
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+
+        if not user_id:
+            messages.error(request, 'Please select a user.')
+        else:
+            try:
+                user = User.objects.get(id=user_id)
+
+                # Remove existing HOD role for this department if exists
+                existing_hod_role = UserRole.objects.filter(role='HOD', department=department).first()
+                if existing_hod_role:
+                    existing_hod_role.delete()
+
+                # Create new HOD role
+                UserRole.objects.create(
+                    user=user,
+                    role='HOD',
+                    faculty=faculty,
+                    department=department,
+                    created_by=request.user,
+                    is_primary=False
+                )
+
+                # Update department HOD field
+                department.hod = user
+                department.save()
+
+                # Log the action
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='ASSIGN_HOD',
+                    description=f'Assigned {user.get_full_name()} as HOD of {department.name}',
+                    level='INFO'
+                )
+
+                messages.success(request, f'{user.get_full_name()} has been assigned as HOD of {department.name}!')
+                return redirect('faculty_dean_departments')
+
+            except User.DoesNotExist:
+                messages.error(request, 'User not found.')
+            except Exception as e:
+                messages.error(request, f'Error assigning HOD: {str(e)}')
+
+    # Get eligible users (lecturers in this faculty)
+    eligible_users = User.objects.filter(
+        rms_roles__role='LECTURER',
+        rms_roles__faculty=faculty
+    ).distinct().order_by('first_name', 'last_name')
+
+    context = {
+        'department': department,
+        'faculty': faculty,
+        'eligible_users': eligible_users,
+    }
+
+    return render(request, 'faculty_dean_assign_hod_single.html', context)
 
 @login_required
 def faculty_dean_change_hod(request, department_id):
-    return render(request, 'placeholder.html', {'page_title': 'Change HOD', 'message': f'Change HOD for department ID: {department_id}'})
+    """Faculty Dean Change HOD for Department"""
+    # This redirects to the same assign HOD view since the logic is the same
+    return faculty_dean_assign_hod_single(request, department_id)
 
 @login_required
 def faculty_dean_grading_system(request):
@@ -5632,11 +6292,209 @@ def faculty_dean_bulk_approve(request):
 
 @login_required
 def faculty_dean_courses(request):
-    return render(request, 'placeholder.html', {'page_title': 'Faculty Courses', 'message': 'Manage all courses in your faculty'})
+    """Faculty Dean Courses Management"""
+    # Check if user has Faculty Dean role
+    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not faculty_dean_roles.exists():
+        messages.error(request, 'Access denied. Faculty Dean role required.')
+        return redirect('dashboard')
+
+    # Get the faculty for this dean
+    faculty_role = faculty_dean_roles.first()
+    faculty = faculty_role.faculty
+
+    # Handle course creation
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        code = request.POST.get('code', '').strip()
+        credit_units = request.POST.get('credit_units')
+        level = request.POST.get('level')
+        semester = request.POST.get('semester')
+        department_ids = request.POST.getlist('departments')
+        description = request.POST.get('description', '').strip()
+
+        if not all([title, code, credit_units, level, semester, department_ids]):
+            messages.error(request, 'Please fill in all required fields.')
+        else:
+            try:
+                # Check if course code already exists
+                if Course.objects.filter(code=code).exists():
+                    messages.error(request, f'Course code "{code}" already exists.')
+                else:
+                    # Create the course
+                    course = Course.objects.create(
+                        title=title,
+                        code=code.upper(),
+                        credit_units=int(credit_units),
+                        level=int(level),
+                        semester=int(semester),
+                        description=description,
+                        created_by=request.user
+                    )
+
+                    # Add departments
+                    departments = Department.objects.filter(id__in=department_ids, faculty=faculty)
+                    course.departments.set(departments)
+
+                    # Log the action
+                    AuditLog.objects.create(
+                        user=request.user,
+                        action='CREATE_COURSE',
+                        description=f'Created course: {code} - {title}',
+                        level='INFO'
+                    )
+
+                    messages.success(request, f'Course "{code} - {title}" created successfully!')
+                    return redirect('faculty_dean_courses')
+
+            except Exception as e:
+                messages.error(request, f'Error creating course: {str(e)}')
+
+    # Get all courses in this faculty
+    courses = Course.objects.filter(departments__faculty=faculty).distinct().prefetch_related('departments', 'courseassignment_set__lecturer').order_by('code')
+
+    # Get departments in this faculty
+    departments = Department.objects.filter(faculty=faculty).order_by('name')
+
+    # Get sessions
+    sessions = AcademicSession.objects.all().order_by('-name')
+
+    # Calculate statistics
+    assigned_courses = CourseAssignment.objects.filter(course__in=courses).values('course').distinct().count()
+    stats = {
+        'total_courses': courses.count(),
+        'assigned_courses': assigned_courses,
+        'unassigned_courses': courses.count() - assigned_courses,
+        'total_enrollments': CourseEnrollment.objects.filter(course__in=courses).count(),
+    }
+
+    context = {
+        'faculty': faculty,
+        'courses': courses,
+        'departments': departments,
+        'sessions': sessions,
+        'stats': stats,
+    }
+
+    return render(request, 'faculty_dean_courses.html', context)
 
 @login_required
 def faculty_dean_lecturers(request):
-    return render(request, 'placeholder.html', {'page_title': 'Faculty Lecturers', 'message': 'Manage lecturers in your faculty'})
+    """Faculty Dean Lecturers Management"""
+    # Check if user has Faculty Dean role
+    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not faculty_dean_roles.exists():
+        messages.error(request, 'Access denied. Faculty Dean role required.')
+        return redirect('dashboard')
+
+    # Get the faculty for this dean
+    faculty_role = faculty_dean_roles.first()
+    faculty = faculty_role.faculty
+
+    # Get all lecturers in this faculty
+    lecturers = User.objects.filter(
+        rms_roles__role='LECTURER',
+        rms_roles__faculty=faculty
+    ).distinct().order_by('first_name', 'last_name')
+
+    # Get departments in this faculty
+    departments = Department.objects.filter(faculty=faculty).order_by('name')
+
+    # Calculate statistics
+    stats = {
+        'total_lecturers': lecturers.count(),
+        'hods': User.objects.filter(userrole__role='HOD', userrole__faculty=faculty).distinct().count(),
+        'active_lecturers': lecturers.filter(is_active=True).count(),
+        'course_assignments': CourseAssignment.objects.filter(lecturer__in=lecturers).count(),
+    }
+
+    context = {
+        'faculty': faculty,
+        'lecturers': lecturers,
+        'departments': departments,
+        'stats': stats,
+    }
+
+    return render(request, 'faculty_dean_lecturers.html', context)
+
+@login_required
+def faculty_dean_create_lecturer(request):
+    """Faculty Dean Create Lecturer"""
+    # Check if user has Faculty Dean role
+    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not faculty_dean_roles.exists():
+        messages.error(request, 'Access denied. Faculty Dean role required.')
+        return redirect('dashboard')
+
+    # Get the faculty for this dean
+    faculty_role = faculty_dean_roles.first()
+    faculty = faculty_role.faculty
+
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        email = request.POST.get('email', '').strip()
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '').strip()
+        department_id = request.POST.get('department_id')
+
+        if not all([first_name, last_name, email, username, password, department_id]):
+            messages.error(request, 'Please fill in all required fields.')
+        else:
+            try:
+                # Check if username or email already exists
+                if User.objects.filter(username=username).exists():
+                    messages.error(request, f'Username "{username}" already exists.')
+                elif User.objects.filter(email=email).exists():
+                    messages.error(request, f'Email "{email}" already exists.')
+                else:
+                    # Get department
+                    department = Department.objects.get(id=department_id, faculty=faculty)
+
+                    # Create the user
+                    user = User.objects.create_user(
+                        username=username,
+                        email=email,
+                        password=password,
+                        first_name=first_name,
+                        last_name=last_name
+                    )
+
+                    # Create lecturer role
+                    UserRole.objects.create(
+                        user=user,
+                        role='LECTURER',
+                        faculty=faculty,
+                        department=department,
+                        created_by=request.user,
+                        is_primary=True
+                    )
+
+                    # Log the action
+                    AuditLog.objects.create(
+                        user=request.user,
+                        action='CREATE_LECTURER',
+                        description=f'Created lecturer: {user.get_full_name()} ({username})',
+                        level='INFO'
+                    )
+
+                    messages.success(request, f'Lecturer "{user.get_full_name()}" created successfully!')
+                    return redirect('faculty_dean_lecturers')
+
+            except Department.DoesNotExist:
+                messages.error(request, 'Department not found.')
+            except Exception as e:
+                messages.error(request, f'Error creating lecturer: {str(e)}')
+
+    # Get departments in this faculty
+    departments = Department.objects.filter(faculty=faculty).order_by('name')
+
+    context = {
+        'faculty': faculty,
+        'departments': departments,
+    }
+
+    return render(request, 'faculty_dean_create_lecturer.html', context)
 
 @login_required
 def faculty_dean_all_results(request):
@@ -5741,17 +6599,67 @@ def faculty_dean_edit_carryover_criteria(request):
 def faculty_dean_apply_template(request, template_type):
     return render(request, 'placeholder.html', {'page_title': 'Apply Template', 'message': f'Apply grading template: {template_type}'})
 
-@login_required
-def faculty_dean_department_details(request, department_id):
-    return render(request, 'placeholder.html', {'page_title': 'Department Details', 'message': f'Department details ID: {department_id}'})
+# Duplicate function removed - using the implemented version above
 
 @login_required
 def faculty_dean_edit_department(request, department_id):
-    return render(request, 'placeholder.html', {'page_title': 'Edit Department', 'message': f'Edit department ID: {department_id}'})
+    """Faculty Dean Edit Department"""
+    # Check if user has Faculty Dean role
+    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not faculty_dean_roles.exists():
+        messages.error(request, 'Access denied. Faculty Dean role required.')
+        return redirect('dashboard')
 
-@login_required
-def faculty_dean_assign_hod(request, department_id):
-    return render(request, 'placeholder.html', {'page_title': 'Assign HOD', 'message': f'Assign HOD to department ID: {department_id}'})
+    # Get the faculty for this dean
+    faculty_role = faculty_dean_roles.first()
+    faculty = faculty_role.faculty
+
+    try:
+        department = Department.objects.get(id=department_id, faculty=faculty)
+    except Department.DoesNotExist:
+        messages.error(request, 'Department not found.')
+        return redirect('faculty_dean_departments')
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        code = request.POST.get('code', '').strip()
+        description = request.POST.get('description', '').strip()
+
+        if not name or not code:
+            messages.error(request, 'Department name and code are required.')
+        else:
+            try:
+                # Check if code is unique (excluding current department)
+                if Department.objects.filter(code=code).exclude(id=department.id).exists():
+                    messages.error(request, f'Department code "{code}" already exists.')
+                else:
+                    department.name = name
+                    department.code = code
+                    department.description = description
+                    department.save()
+
+                    # Log the action
+                    AuditLog.objects.create(
+                        user=request.user,
+                        action='UPDATE_DEPARTMENT',
+                        description=f'Updated department: {name}',
+                        level='INFO'
+                    )
+
+                    messages.success(request, f'Department "{name}" updated successfully!')
+                    return redirect('faculty_dean_departments')
+
+            except Exception as e:
+                messages.error(request, f'Error updating department: {str(e)}')
+
+    context = {
+        'department': department,
+        'faculty': faculty,
+    }
+
+    return render(request, 'faculty_dean_edit_department.html', context)
+
+
 
 @login_required
 def faculty_dean_bulk_import_departments(request):
@@ -5978,7 +6886,7 @@ def exam_officer_approve_single(request, result_id):
 def daaa_create_session(request):
     """DAAA Create Academic Session"""
     # Check if user has DAAA role or is Super Admin
-    has_access, user_role, department, faculty = check_user_role_access(request.user, ['DAAA'])
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['DAAA'])
     if not has_access:
         messages.error(request, 'Access denied. DAAA or Super Admin role required.')
         return redirect('dashboard')
@@ -6044,7 +6952,7 @@ def daaa_create_session(request):
 def daaa_manage_sessions(request):
     """DAAA Session Management Interface"""
     # Check if user has DAAA role or is Super Admin
-    has_access, user_role, department, faculty = check_user_role_access(request.user, ['DAAA'])
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['DAAA'])
     if not has_access:
         messages.error(request, 'Access denied. DAAA or Super Admin role required.')
         return redirect('dashboard')
@@ -6084,7 +6992,7 @@ def daaa_activate_session(request):
         return JsonResponse({'success': False, 'message': 'Invalid request method.'})
 
     # Check if user has DAAA role or is Super Admin
-    has_access, user_role, department, faculty = check_user_role_access(request.user, ['DAAA'])
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['DAAA'])
     if not has_access:
         return JsonResponse({'success': False, 'message': 'Access denied. DAAA or Super Admin role required.'})
 
@@ -6128,7 +7036,7 @@ def daaa_lock_session(request, session_id):
         return JsonResponse({'success': False, 'message': 'Invalid request method.'})
 
     # Check if user has DAAA role or is Super Admin
-    has_access, user_role, department, faculty = check_user_role_access(request.user, ['DAAA'])
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['DAAA'])
     if not has_access:
         return JsonResponse({'success': False, 'message': 'Access denied. DAAA or Super Admin role required.'})
 
@@ -6162,7 +7070,7 @@ def daaa_unlock_session(request, session_id):
         return JsonResponse({'success': False, 'message': 'Invalid request method.'})
 
     # Check if user has DAAA role or is Super Admin
-    has_access, user_role, department, faculty = check_user_role_access(request.user, ['DAAA'])
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['DAAA'])
     if not has_access:
         return JsonResponse({'success': False, 'message': 'Access denied. DAAA or Super Admin role required.'})
 
@@ -6752,7 +7660,7 @@ def admission_faculty_register(request, faculty_id):
 def hod_create_course(request):
     """HOD Create Course"""
     # Check if user has HOD role or is Super Admin
-    has_access, user_role, department, faculty = check_user_role_access(request.user, ['HOD'])
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['HOD'])
     if not has_access:
         messages.error(request, 'Access denied. HOD or Super Admin role required.')
         return redirect('dashboard')

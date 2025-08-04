@@ -1,275 +1,293 @@
 {% extends 'base.html' %}
 
-{% block title %}Faculty Reports - Faculty Dean{% endblock %}
+{% block title %}Faculty Reports - {{ faculty.name }}{% endblock %}
 
 {% block content %}
 <style>
-    :root {
-        --ios-red: #dc2626;    /* School brand red */
-        --ios-blue: #007AFF;
-        --ios-green: #3b82f6;  /* Changed to blue variant */
-        --ios-orange: #1e40af; /* Changed to dark blue */
-        --text-primary: #1D1D1F;
-        --text-secondary: #86868B;
-        --text-tertiary: #C7C7CC;
-        --surface-primary: #FFFFFF;
-        --surface-secondary: #F2F2F7;
-        --border-color: #D1D1D6;
-        --border-light: #E5E5EA;
-        --royal-blue-gradient: linear-gradient(135deg, #007AFF 0%, #1e40af 100%);
-    }
-
-    .ios-card {
-        background: white;
+    .card {
+        background: #FFFFFF;
+        border: 1px solid var(--border-light);
         border-radius: 16px;
-        padding: 20px;
         box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        border: 1px solid var(--border-light);
-        transition: all 0.3s ease;
-        margin-bottom: 20px;
-    }
-
-    .stat-card {
-        background: white;
-        border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        border: 1px solid var(--border-light);
-        text-align: center;
     }
 
     .btn {
-        padding: 10px 20px;
-        border-radius: 8px;
+        border-radius: 12px;
         font-weight: 600;
-        text-align: center;
-        transition: all 0.3s ease;
         border: none;
-        cursor: pointer;
         font-size: 14px;
-        text-decoration: none;
-        display: inline-block;
     }
 
     .btn-primary {
-        background: var(--royal-blue-gradient);
+        background: var(--ios-blue);
         color: white;
     }
 
     .btn-secondary {
-        background: var(--surface-secondary);
+        background: var(--ios-gray-light);
         color: var(--text-primary);
-        border: 1px solid var(--border-color);
     }
 
-    .chart-container {
-        background: var(--surface-secondary);
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 16px;
+    .btn-success {
+        background: var(--ios-green);
+        color: white;
     }
 
-    .progress-bar {
-        background: var(--surface-secondary);
-        border-radius: 8px;
-        height: 8px;
-        overflow: hidden;
-        margin-top: 8px;
+    .btn-warning {
+        background: var(--ios-orange);
+        color: white;
     }
 
-    .progress-fill {
-        height: 100%;
-        border-radius: 8px;
-        transition: width 0.3s ease;
-    }
-
-    /* Mobile Responsive */
-    @media (max-width: 768px) {
-        .mobile-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
-        .mobile-card { padding: 16px !important; }
-        .btn { padding: 8px 16px !important; font-size: 12px !important; }
+    .btn-danger {
+        background: var(--ios-red);
+        color: white;
     }
 </style>
 
-<div style="max-width: 1400px; margin: 0 auto; padding: 16px;">
-    
+<div class="container-fluid">
     <!-- Header -->
-    <div class="ios-card" style="background: var(--royal-blue-gradient); color: white;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-            <div>
-                <h1 style="margin: 0 0 6px 0; font-size: 28px; font-weight: 600;">
-                    Faculty Reports & Analytics
-                </h1>
-                <p style="margin: 0; opacity: 0.9; font-size: 16px;">
-                    {{ faculty.name }} • {{ current_session.name|default:"No Active Session" }}
-                </p>
-            </div>
-            <div style="display: flex; gap: 12px;">
-                <button onclick="exportReport()" class="btn" style="background: rgba(255,255,255,0.2); color: white;">
-                    Export Report
-                </button>
-                <a href="{% url 'faculty_dean_dashboard' %}" class="btn" style="background: rgba(255,255,255,0.2); color: white;">
-                    ← Back to Dashboard
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Overview Statistics -->
-    <div class="mobile-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-        <div class="stat-card" style="background: var(--ios-blue); color: white;">
-            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.overview.total_departments }}</div>
-            <div style="font-size: 14px; opacity: 0.9;">Departments</div>
-        </div>
-        <div class="stat-card" style="background: var(--ios-green); color: white;">
-            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.overview.total_students }}</div>
-            <div style="font-size: 14px; opacity: 0.9;">Students</div>
-        </div>
-        <div class="stat-card" style="background: var(--ios-orange); color: white;">
-            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.overview.total_lecturers }}</div>
-            <div style="font-size: 14px; opacity: 0.9;">Lecturers</div>
-        </div>
-        <div class="stat-card" style="background: var(--ios-red); color: white;">
-            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.overview.total_courses }}</div>
-            <div style="font-size: 14px; opacity: 0.9;">Courses</div>
-        </div>
-    </div>
-
-    <!-- Detailed Analytics -->
-    <div class="mobile-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-        
-        <!-- Students Analytics -->
-        <div class="ios-card">
-            <h3 style="color: var(--text-primary); margin-bottom: 16px; font-size: 18px; font-weight: 700;">
-                Student Distribution
-            </h3>
-            
-            <!-- By Level -->
-            <div style="margin-bottom: 20px;">
-                <h4 style="color: var(--text-secondary); margin-bottom: 12px; font-size: 14px; font-weight: 600;">By Level</h4>
-                {% for level, count in stats.students_by_level.items %}
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 14px; color: var(--text-primary);">{{ level }} Level</span>
-                    <span style="font-weight: 600; color: var(--ios-blue);">{{ count }}</span>
-                </div>
-                <div class="progress">
-                    <div class="progress-bar bg-primary" role="progressbar" data-count="{{ count }}" data-total="{{ stats.overview.total_students }}" aria-valuenow="{{ count }}" aria-valuemin="0" aria-valuemax="{{ stats.overview.total_students }}"></div>
-                </div>
-                {% endfor %}
-            </div>
-            
-            <!-- By Department -->
-            <div>
-                <h4 style="color: var(--text-secondary); margin-bottom: 12px; font-size: 14px; font-weight: 600;">By Department</h4>
-                {% for dept, count in stats.students_by_department.items %}
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 14px; color: var(--text-primary);">{{ dept }}</span>
-                    <span style="font-weight: 600; color: var(--ios-green);">{{ count }}</span>
-                </div>
-                <div class="progress">
-                    <div class="progress-bar bg-success" role="progressbar" data-count="{{ count }}" data-total="{{ stats.overview.total_students }}" aria-valuenow="{{ count }}" aria-valuemin="0" aria-valuemax="{{ stats.overview.total_students }}"></div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Academic Performance -->
-        <div class="ios-card">
-            <h3 style="color: var(--text-primary); margin-bottom: 16px; font-size: 18px; font-weight: 700;">
-                Academic Performance
-            </h3>
-            
-            <!-- Grade Distribution -->
-            {% if stats.grade_distribution %}
-            <div style="margin-bottom: 20px;">
-                <h4 style="color: var(--text-secondary); margin-bottom: 12px; font-size: 14px; font-weight: 600;">Grade Distribution</h4>
-                {% for grade, count in stats.grade_distribution.items %}
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 14px; color: var(--text-primary);">Grade {{ grade }}</span>
-                    <span class="fw-semibold {% if grade == 'A' %}text-success{% elif grade == 'B' %}text-primary{% elif grade == 'C' %}text-warning{% else %}text-danger{% endif %}">{{ count }}</span>
-                </div>
-                <div class="progress">
-                    <div class="progress-bar {% if grade == 'A' %}bg-success{% elif grade == 'B' %}bg-primary{% elif grade == 'C' %}bg-warning{% else %}bg-danger{% endif %}" role="progressbar" data-count="{{ count }}" data-total="{{ stats.overview.total_results }}" aria-valuenow="{{ count }}" aria-valuemin="0" aria-valuemax="{{ stats.overview.total_results }}"></div>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-            
-            <!-- Results Status -->
-            {% if stats.results_by_status %}
-            <div>
-                <h4 style="color: var(--text-secondary); margin-bottom: 12px; font-size: 14px; font-weight: 600;">Results Status</h4>
-                {% for status, count in stats.results_by_status.items %}
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 14px; color: var(--text-primary);">{{ status }}</span>
-                    <span style="font-weight: 600; color: var(--ios-orange);">{{ count }}</span>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Course Analytics -->
-    <div class="ios-card">
-        <h3 style="color: var(--text-primary); margin-bottom: 16px; font-size: 18px; font-weight: 700;">
-            Course Analytics
-        </h3>
-        
-        <div class="mobile-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-            {% for level, count in stats.courses_by_level.items %}
-            <div class="chart-container">
-                <div style="text-align: center;">
-                    <div style="font-size: 24px; font-weight: 700; color: var(--ios-blue); margin-bottom: 4px;">{{ count }}</div>
-                    <div style="font-size: 12px; color: var(--text-secondary);">{{ level }} Level Courses</div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-
-    <!-- Staff Analytics -->
-    <div class="ios-card">
-        <h3 style="color: var(--text-primary); margin-bottom: 16px; font-size: 18px; font-weight: 700;">
-            Staff Distribution
-        </h3>
-        
-        <div class="mobile-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
-            {% for dept, count in stats.lecturers_by_department.items %}
-            <div class="chart-container">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">{{ dept }}</div>
-                        <div style="font-size: 12px; color: var(--text-secondary);">Department</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 20px; font-weight: 700; color: var(--ios-orange);">{{ count }}</div>
-                        <div style="font-size: 11px; color: var(--text-secondary);">Lecturers</div>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">Faculty Reports</h1>
+                            <p class="mb-0 opacity-75">{{ faculty.name }} Faculty - Analytics and Reports</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">
+                                <div class="h3 fw-bold mb-0">{{ stats.total_departments }}</div>
+                                <small class="opacity-75">Departments</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="h2 text-primary fw-bold">{{ stats.total_students }}</div>
+                    <div class="text-muted">Total Students</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="h2 text-success fw-bold">{{ stats.total_lecturers }}</div>
+                    <div class="text-muted">Total Lecturers</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="h2 text-info fw-bold">{{ stats.total_courses }}</div>
+                    <div class="text-muted">Total Courses</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="h2 text-warning fw-bold">{{ stats.pending_results }}</div>
+                    <div class="text-muted">Pending Results</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Categories -->
+    <div class="row mb-4">
+        <!-- Student Reports -->
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold text-primary mb-3">
+                        <i class="bi bi-people me-2"></i>Student Reports
+                    </h5>
+                    <p class="text-muted mb-3">Generate comprehensive student performance and enrollment reports</p>
+                    
+                    <div class="d-grid gap-2">
+                        <button onclick="generateStudentReport()" class="btn btn-primary">
+                            <i class="bi bi-file-earmark-text me-1"></i>Student Performance Report
+                        </button>
+                        <button onclick="generateEnrollmentReport()" class="btn btn-outline-primary">
+                            <i class="bi bi-person-plus me-1"></i>Enrollment Statistics
+                        </button>
+                        <button onclick="generateGraduationReport()" class="btn btn-outline-primary">
+                            <i class="bi bi-mortarboard me-1"></i>Graduation Analysis
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Staff Reports -->
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold text-success mb-3">
+                        <i class="bi bi-person-badge me-2"></i>Staff Reports
+                    </h5>
+                    <p class="text-muted mb-3">Analyze lecturer performance and workload distribution</p>
+                    
+                    <div class="d-grid gap-2">
+                        <button onclick="generateStaffReport()" class="btn btn-success">
+                            <i class="bi bi-file-earmark-person me-1"></i>Staff Performance Report
+                        </button>
+                        <button onclick="generateWorkloadReport()" class="btn btn-outline-success">
+                            <i class="bi bi-bar-chart me-1"></i>Workload Analysis
+                        </button>
+                        <button onclick="generateAttendanceReport()" class="btn btn-outline-success">
+                            <i class="bi bi-calendar-check me-1"></i>Attendance Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <!-- Course Reports -->
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold text-info mb-3">
+                        <i class="bi bi-book me-2"></i>Course Reports
+                    </h5>
+                    <p class="text-muted mb-3">Course performance metrics and curriculum analysis</p>
+                    
+                    <div class="d-grid gap-2">
+                        <button onclick="generateCourseReport()" class="btn btn-info">
+                            <i class="bi bi-graph-up me-1"></i>Course Performance Report
+                        </button>
+                        <button onclick="generatePassRateReport()" class="btn btn-outline-info">
+                            <i class="bi bi-percent me-1"></i>Pass Rate Analysis
+                        </button>
+                        <button onclick="generateCurriculumReport()" class="btn btn-outline-info">
+                            <i class="bi bi-journal-text me-1"></i>Curriculum Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Reports -->
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold text-warning mb-3">
+                        <i class="bi bi-graph-up-arrow me-2"></i>Performance Reports
+                    </h5>
+                    <p class="text-muted mb-3">Faculty performance metrics and comparative analysis</p>
+                    
+                    <div class="d-grid gap-2">
+                        <button onclick="generatePerformanceReport()" class="btn btn-warning">
+                            <i class="bi bi-trophy me-1"></i>Faculty Performance
+                        </button>
+                        <button onclick="generateComparisonReport()" class="btn btn-outline-warning">
+                            <i class="bi bi-bar-chart-line me-1"></i>Comparative Analysis
+                        </button>
+                        <button onclick="generateTrendReport()" class="btn btn-outline-warning">
+                            <i class="bi bi-graph-down me-1"></i>Trend Analysis
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Export Options -->
-    <div class="ios-card">
-        <h3 style="color: var(--text-primary); margin-bottom: 16px; font-size: 18px; font-weight: 700;">
-            Export Reports
-        </h3>
-        
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-            <button onclick="exportStudentReport()" class="btn btn-primary">Student Report</button>
-            <button onclick="exportStaffReport()" class="btn btn-primary">Staff Report</button>
-            <button onclick="exportCourseReport()" class="btn btn-primary">Course Report</button>
-            <button onclick="exportPerformanceReport()" class="btn btn-primary">Performance Report</button>
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3">
+                        <i class="bi bi-download me-2"></i>Export Reports
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-lg-3 col-md-6 mb-2">
+                            <button onclick="exportStudentReport()" class="btn btn-primary w-100">
+                                <i class="bi bi-file-excel me-1"></i>Student Report
+                            </button>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-2">
+                            <button onclick="exportStaffReport()" class="btn btn-success w-100">
+                                <i class="bi bi-file-excel me-1"></i>Staff Report
+                            </button>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-2">
+                            <button onclick="exportCourseReport()" class="btn btn-info w-100">
+                                <i class="bi bi-file-excel me-1"></i>Course Report
+                            </button>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-2">
+                            <button onclick="exportPerformanceReport()" class="btn btn-warning w-100">
+                                <i class="bi bi-file-excel me-1"></i>Performance Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-function exportReport() {
-    alert('Full faculty report export - to be implemented');
+function generateStudentReport() {
+    alert('Student performance report generation - to be implemented');
+}
+
+function generateEnrollmentReport() {
+    alert('Enrollment statistics report - to be implemented');
+}
+
+function generateGraduationReport() {
+    alert('Graduation analysis report - to be implemented');
+}
+
+function generateStaffReport() {
+    alert('Staff performance report generation - to be implemented');
+}
+
+function generateWorkloadReport() {
+    alert('Workload analysis report - to be implemented');
+}
+
+function generateAttendanceReport() {
+    alert('Attendance report generation - to be implemented');
+}
+
+function generateCourseReport() {
+    alert('Course performance report generation - to be implemented');
+}
+
+function generatePassRateReport() {
+    alert('Pass rate analysis report - to be implemented');
+}
+
+function generateCurriculumReport() {
+    alert('Curriculum report generation - to be implemented');
+}
+
+function generatePerformanceReport() {
+    alert('Faculty performance report generation - to be implemented');
+}
+
+function generateComparisonReport() {
+    alert('Comparative analysis report - to be implemented');
+}
+
+function generateTrendReport() {
+    alert('Trend analysis report - to be implemented');
 }
 
 function exportStudentReport() {
@@ -287,15 +305,6 @@ function exportCourseReport() {
 function exportPerformanceReport() {
     alert('Performance report export - to be implemented');
 }
-
-// Initialize progress bars
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.progress-bar[data-count]').forEach(function(progressBar) {
-        const count = parseInt(progressBar.getAttribute('data-count'));
-        const total = parseInt(progressBar.getAttribute('data-total'));
-        const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
-        progressBar.style.width = percentage + '%';
-    });
-});
 </script>
+
 {% endblock %}

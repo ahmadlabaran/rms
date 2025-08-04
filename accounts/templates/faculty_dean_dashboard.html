@@ -4,66 +4,29 @@
 
 {% block content %}
 <style>
-    :root {
-        --ios-blue: #007AFF;
-        --ios-green: #34C759;
-        --ios-orange: #FF9500;
-        --ios-red: #FF3B30;
-        --text-primary: #1D1D1F;
-        --text-secondary: #86868B;
-        --text-tertiary: #C7C7CC;
-        --surface-primary: #FFFFFF;
-        --surface-secondary: #F2F2F7;
-        --border-color: #D1D1D6;
-        --border-light: #E5E5EA;
-        --royal-blue-gradient: linear-gradient(135deg, #007AFF 0%, #1e40af 100%);
-        --ios-blue-ultra-light: rgba(0, 122, 255, 0.1);
-    }
-
-    .ios-card {
+    .card {
         background: white;
         border-radius: 16px;
-        padding: 20px;
         box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         border: 1px solid var(--border-light);
-        transition: all 0.3s ease;
-        width: 100%;
-        box-sizing: border-box;
-    }
-
-    .ios-card:hover {
-        box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-        transform: translateY(-2px);
     }
 
     .btn {
-        display: inline-block;
-        padding: 12px 16px;
         border-radius: 12px;
-        text-decoration: none;
         font-weight: 600;
-        text-align: center;
-        transition: all 0.3s ease;
         border: none;
-        cursor: pointer;
         font-size: 14px;
-        width: 100%;
-        box-sizing: border-box;
-        word-wrap: break-word;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
 
     .btn-primary {
-        background: var(--ios-blue);
+        background: var(--royal-blue-gradient);
         color: white;
+        border: none;
     }
 
     .btn-primary:hover {
-        background: #0056CC;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3);
+        background: var(--royal-blue-dark);
+        color: white;
     }
 
     .btn-secondary {
@@ -73,269 +36,187 @@
     }
 
     .btn-secondary:hover {
-        background: #E8E8ED;
-        transform: translateY(-1px);
-    }
-
-    .btn-compact {
-        padding: 8px 12px;
-        font-size: 12px;
-    }
-
-    /* Mobile Responsive Styles */
-    @media (max-width: 768px) {
-        .ios-card {
-            padding: 16px;
-            border-radius: 12px;
-        }
-
-        .btn {
-            padding: 10px 12px;
-            font-size: 13px;
-            border-radius: 10px;
-        }
-
-        .btn-compact {
-            padding: 8px 10px;
-            font-size: 11px;
-        }
-
-        h1 {
-            font-size: 24px !important;
-        }
-
-        h2 {
-            font-size: 18px !important;
-        }
-
-        h3 {
-            font-size: 14px !important;
-        }
-
-        .mobile-grid {
-            grid-template-columns: 1fr !important;
-            gap: 16px !important;
-        }
-
-        .mobile-text {
-            font-size: 14px !important;
-        }
-
-        .mobile-small-text {
-            font-size: 12px !important;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .ios-card {
-            padding: 12px;
-            margin: 0 4px;
-        }
-
-        .btn {
-            padding: 8px 10px;
-            font-size: 12px;
-        }
-
-        h1 {
-            font-size: 20px !important;
-        }
-
-        h2 {
-            font-size: 16px !important;
-        }
-
-        .mobile-hide-on-small {
-            display: none !important;
-        }
+        background: var(--royal-blue-ultra-light);
+        border-color: var(--royal-blue);
+        color: var(--royal-blue);
     }
 </style>
 
-<div style="max-width: 1200px; margin: 0 auto; padding: 16px;">
-
+<div class="container-fluid">
     <!-- Faculty Overview Header -->
-    <div class="ios-card" style="background: var(--royal-blue-gradient); color: white; margin-bottom: 24px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-            <div style="flex: 1; min-width: 200px;">
-                <h1 style="margin: 0 0 6px 0; font-size: 28px; font-weight: 600; letter-spacing: -0.5px;">
-                    {{ faculty.name }}
-                </h1>
-                <p style="margin: 0; opacity: 0.9; font-size: 16px; font-weight: 500;" class="mobile-text">
-                    Faculty Dean Dashboard
-                </p>
-            </div>
-            <div style="text-align: center; min-width: 120px;">
-                <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px; backdrop-filter: blur(10px);">
-                    <div style="font-size: 24px; font-weight: 700; margin-bottom: 2px;">{{ stats.total_departments }}</div>
-                    <div style="font-size: 12px; opacity: 0.9; font-weight: 500;">Departments</div>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">{{ faculty.name }}</h1>
+                            <p class="mb-0 opacity-75">Faculty Dean Dashboard</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">
+                                <div class="h3 fw-bold mb-0">{{ stats.total_departments }}</div>
+                                <small class="opacity-75">Departments</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Main Dashboard Grid -->
-    <div class="mobile-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+    <div class="row mb-4">
 
         <!-- Faculty Management -->
-        <div class="ios-card">
-            <h2 style="color: var(--text-primary); margin-bottom: 16px; font-size: 20px; font-weight: 700; letter-spacing: -0.3px;">
-                Faculty Management
-            </h2>
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="card-title h5 fw-bold text-primary mb-3">Faculty Management</h2>
 
-            <div style="margin-bottom: 16px;">
-                <h3 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 16px; font-weight: 600;" class="mobile-small-text">
-                    Department Operations
-                </h3>
-                <a href="{% url 'faculty_dean_departments' %}" class="btn btn-primary">
-                    Manage Departments
-                </a>
-            </div>
+                    <div class="mb-3">
+                        <h6 class="text-primary mb-2">Department Operations</h6>
+                        <a href="{% url 'faculty_dean_departments' %}" class="btn btn-primary w-100">
+                            Manage Departments
+                        </a>
+                    </div>
 
-            <div>
-                <h3 style="color: var(--ios-green); margin-bottom: 8px; font-size: 16px; font-weight: 600;" class="mobile-small-text">
-                    Academic Setup
-                </h3>
-                <a href="{% url 'faculty_dean_courses' %}" class="btn btn-primary" style="background: var(--ios-green);">
-                    Manage Academics
-                </a>
+                    <div>
+                        <h6 class="text-success mb-2">Academic Setup</h6>
+                        <a href="{% url 'faculty_dean_courses' %}" class="btn btn-success w-100">
+                            Manage Academics
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Course Management -->
-        <div class="ios-card">
-            <h2 style="color: var(--text-primary); margin-bottom: 16px; font-size: 20px; font-weight: 700; letter-spacing: -0.3px;">
-                Course Management
-            </h2>
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="card-title h5 fw-bold text-primary mb-3">Course Management</h2>
 
-            <div style="margin-bottom: 16px;">
-                <h3 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 16px; font-weight: 600;" class="mobile-small-text">
-                    Course Assignments
-                </h3>
-                <a href="{% url 'faculty_dean_course_assignments' %}" class="btn btn-primary">
-                    Manage Assignments
-                </a>
-            </div>
+                    <div class="mb-3">
+                        <h6 class="text-primary mb-2">Course Assignments</h6>
+                        <a href="{% url 'faculty_dean_course_assignments' %}" class="btn btn-primary w-100">
+                            Manage Assignments
+                        </a>
+                    </div>
 
-            <div>
-                <h3 style="color: var(--ios-green); margin-bottom: 8px; font-size: 16px; font-weight: 600;" class="mobile-small-text">
-                    Course Catalog
-                </h3>
-                <a href="{% url 'faculty_dean_courses' %}" class="btn btn-primary" style="background: var(--ios-green);">
-                    View Courses
-                </a>
+                    <div>
+                        <h6 class="text-success mb-2">Course Catalog</h6>
+                        <a href="{% url 'faculty_dean_courses' %}" class="btn btn-success w-100">
+                            View Courses
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
 
+    <!-- Second Row -->
+    <div class="row mb-4">
         <!-- Result Management -->
-        <div class="ios-card">
-            <h2 style="color: var(--text-primary); margin-bottom: 16px; font-size: 20px; font-weight: 700; letter-spacing: -0.3px;">
-                Result Management
-            </h2>
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="card-title h5 fw-bold text-primary mb-3">Result Management</h2>
 
-            <div style="margin-bottom: 16px;">
-                <h3 style="color: var(--ios-orange); margin-bottom: 8px; font-size: 16px; font-weight: 600;" class="mobile-small-text">
-                    Result Operations
-                </h3>
-                <a href="{% url 'faculty_dean_pending_results' %}" class="btn btn-primary" style="background: var(--ios-orange);">
-                    Pending Approvals
-                </a>
-            </div>
+                    <div class="mb-3">
+                        <h6 class="text-warning mb-2">Result Operations</h6>
+                        <a href="{% url 'faculty_dean_pending_results' %}" class="btn btn-warning w-100">
+                            Pending Approvals
+                        </a>
+                    </div>
 
-            <div>
-                <h3 style="color: var(--ios-red); margin-bottom: 8px; font-size: 16px; font-weight: 600;" class="mobile-small-text">
-                    Reports & Analytics
-                </h3>
-                <a href="{% url 'faculty_dean_reports' %}" class="btn btn-primary" style="background: var(--ios-red);">
-                    Faculty Reports
-                </a>
+                    <div>
+                        <h6 class="text-danger mb-2">Reports & Analytics</h6>
+                        <a href="{% url 'faculty_dean_reports' %}" class="btn btn-danger w-100">
+                            Faculty Reports
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Recent Activity & Notifications -->
-    <div class="mobile-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
-
+    <div class="row">
         <!-- Recent Results Awaiting Approval -->
-        <div class="ios-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
-                <h2 style="color: var(--text-primary); font-size: 18px; font-weight: 700; margin: 0; letter-spacing: -0.3px;">
-                    Results Awaiting Approval
-                </h2>
-                <a href="{% url 'faculty_dean_pending_results' %}"
-                   style="color: var(--ios-blue); text-decoration: none; font-weight: 600; font-size: 12px; padding: 4px 8px; border-radius: 6px; background: rgba(0, 122, 255, 0.1); transition: all 0.2s ease; white-space: nowrap;">
-                    View All
-                </a>
-            </div>
-        
-        {% if pending_results %}
-            {% for result in pending_results|slice:":5" %}
-            <div style="padding: 12px; background: var(--surface-secondary); border-radius: 12px; margin-bottom: 10px; border: 1px solid var(--border-light);">
-                <div style="margin-bottom: 8px;">
-                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px; font-size: 14px;">
-                        {{ result.enrollment.student.matric_number }} - {{ result.enrollment.course.code }}
+        <div class="col-lg-8 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title fw-bold mb-0">Results Awaiting Approval</h5>
+                        <a href="{% url 'faculty_dean_pending_results' %}" class="btn btn-outline-primary btn-sm">
+                            View All
+                        </a>
                     </div>
-                    <div style="color: var(--text-secondary); font-size: 12px; margin-bottom: 2px;">
-                        {{ result.enrollment.course.title }}
-                    </div>
-                    <div style="color: var(--text-tertiary); font-size: 11px;">
-                        From: {{ result.enrollment.student.department.name }}
-                    </div>
-                </div>
-                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                    <a href="{% url 'faculty_dean_pending_results' %}" class="btn btn-primary btn-compact" style="flex: 1; min-width: 80px;">Approve</a>
-                    <a href="{% url 'faculty_dean_pending_results' %}" class="btn btn-secondary btn-compact" style="flex: 1; min-width: 60px;">View</a>
+
+                    {% if pending_results %}
+                        {% for result in pending_results|slice:":5" %}
+                        <div class="border rounded p-3 mb-2 bg-light">
+                            <div class="mb-2">
+                                <div class="fw-bold text-primary mb-1">
+                                    {{ result.enrollment.student.matric_number }} - {{ result.enrollment.course.code }}
+                                </div>
+                                <div class="text-muted small mb-1">
+                                    {{ result.enrollment.course.title }}
+                                </div>
+                                <div class="text-muted small">
+                                    From: {{ result.enrollment.student.department.name }}
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'faculty_dean_pending_results' %}" class="btn btn-primary btn-sm flex-fill">Approve</a>
+                                <a href="{% url 'faculty_dean_pending_results' %}" class="btn btn-secondary btn-sm flex-fill">View</a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5 text-muted">
+                            <div class="mb-3">
+                                <i class="bi bi-check-circle" style="font-size: 3rem; opacity: 0.3;"></i>
+                            </div>
+                            <p>No results awaiting approval</p>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
-            {% endfor %}
-        {% else %}
-            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
-                <div style="width: 60px; height: 60px; background: var(--ios-blue-ultra-light); border-radius: 15px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
-                    <div style="width: 30px; height: 30px; background: var(--ios-blue); border-radius: 8px; opacity: 0.6;"></div>
-                </div>
-                <p>No results awaiting approval</p>
-            </div>
-        {% endif %}
-    </div>
+        </div>
 
         <!-- Faculty Overview -->
-        <div class="ios-card">
-            <h2 style="color: var(--text-primary); margin-bottom: 16px; font-size: 18px; font-weight: 700; letter-spacing: -0.3px;">
-                Faculty Overview
-            </h2>
+        <div class="col-lg-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3">Faculty Overview</h5>
 
-            <!-- Departments List -->
-            <div style="margin-bottom: 16px;">
-                <h3 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                    Your Departments
-                </h3>
-                {% for department in departments %}
-                <div style="padding: 8px 12px; background: var(--surface-secondary); border-radius: 8px; margin-bottom: 6px; border: 1px solid var(--border-light);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
-                        <div style="flex: 1; min-width: 120px;">
-                            <div style="font-weight: 600; color: var(--text-primary); font-size: 12px; margin-bottom: 1px;">
-                                {{ department.name }}
-                            </div>
-                            <div style="color: var(--text-secondary); font-size: 10px; font-weight: 500;">
-                                {{ department.code }}
+                    <!-- Departments List -->
+                    <div class="mb-3">
+                        <h6 class="text-primary text-uppercase small fw-bold mb-2">Your Departments</h6>
+                        {% for department in departments %}
+                        <div class="border rounded p-2 mb-2 bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-bold small text-primary">{{ department.name }}</div>
+                                    <div class="text-muted small">{{ department.code }}</div>
+                                </div>
+                                <span class="badge bg-secondary small">{{ department.students_count }} students</span>
                             </div>
                         </div>
-                        <div style="color: var(--text-tertiary); font-size: 10px; font-weight: 600; background: white; padding: 2px 6px; border-radius: 4px; white-space: nowrap;">
-                            {{ department.students_count }} students
+                        {% endfor %}
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div>
+                        <h6 class="text-success text-uppercase small fw-bold mb-2">Quick Actions</h6>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'faculty_dean_students' %}" class="btn btn-outline-secondary btn-sm">View Students</a>
+                            <a href="{% url 'faculty_dean_lecturers' %}" class="btn btn-outline-secondary btn-sm">View Lecturers</a>
+                            <a href="{% url 'faculty_dean_statistics' %}" class="btn btn-outline-secondary btn-sm d-none d-md-block">View Statistics</a>
                         </div>
                     </div>
-                </div>
-                {% endfor %}
-            </div>
-
-            <!-- Quick Actions -->
-            <div>
-                <h3 style="color: var(--ios-green); margin-bottom: 8px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                    Quick Actions
-                </h3>
-                <div style="display: flex; flex-direction: column; gap: 6px;">
-                    <a href="{% url 'faculty_dean_students' %}" class="btn btn-secondary btn-compact">View Students</a>
-                    <a href="{% url 'faculty_dean_lecturers' %}" class="btn btn-secondary btn-compact">View Lecturers</a>
-                    <a href="{% url 'faculty_dean_statistics' %}" class="btn btn-secondary btn-compact mobile-hide-on-small">View Statistics</a>
                 </div>
             </div>
         </div>

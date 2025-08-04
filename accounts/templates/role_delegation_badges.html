@@ -1,0 +1,116 @@
+{% load role_tags %}
+
+<!-- Delegation Status Badges -->
+{% if delegated_roles %}
+<div class="delegation-badges-container" style="margin-bottom: 16px;">
+    <div class="alert alert-info border-start border-4 border-primary" style="background: rgba(13, 110, 253, 0.1); border-radius: 12px; padding: 16px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <i class="fas fa-user-shield" style="color: #0d6efd; font-size: 18px;"></i>
+            <h6 style="margin: 0; font-weight: 600; color: #0d6efd;">Acting with Delegated Permissions</h6>
+        </div>
+        
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+            {% for role_info in delegated_roles %}
+            <span class="badge bg-primary-subtle text-primary border border-primary" 
+                  style="padding: 8px 12px; font-size: 12px; font-weight: 600; border-radius: 20px;"
+                  title="Delegated from {{ role_info.delegated_from.get_full_name }}">
+                <i class="fas fa-arrow-right" style="margin-right: 6px; font-size: 10px;"></i>
+                {% get_role_display_name role_info.role %}
+            </span>
+            {% endfor %}
+        </div>
+        
+        <div style="font-size: 12px; color: #6c757d;">
+            <i class="fas fa-info-circle" style="margin-right: 4px;"></i>
+            You have temporary access to additional role permissions. These will be automatically revoked when the delegation expires.
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Detailed Delegation Information (Expandable) -->
+{% if delegated_roles %}
+<div class="delegation-details-container" style="margin-bottom: 20px;">
+    <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#delegationDetails" aria-expanded="false" aria-controls="delegationDetails" style="font-size: 12px;">
+        <i class="fas fa-chevron-down" style="margin-right: 6px;"></i>
+        View Delegation Details
+    </button>
+    
+    <div class="collapse" id="delegationDetails">
+        <div class="card mt-3" style="border: 1px solid #dee2e6; border-radius: 12px;">
+            <div class="card-body" style="padding: 16px;">
+                <h6 class="card-title" style="margin-bottom: 16px; font-weight: 600;">Delegation Information</h6>
+                
+                {% for role_info in delegated_roles %}
+                <div class="delegation-item" style="padding: 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 8px;">
+                        <div>
+                            <strong style="color: #0d6efd;">{% get_role_display_name role_info.role %}</strong>
+                            <div style="font-size: 12px; color: #6c757d; margin-top: 4px;">
+                                Delegated from: <strong>{{ role_info.delegated_from.get_full_name }}</strong>
+                            </div>
+                        </div>
+                        <span class="badge bg-success" style="font-size: 10px;">Active</span>
+                    </div>
+                    
+                    {% if role_info.delegation.reason %}
+                    <div style="font-size: 12px; color: #495057; margin-bottom: 8px;">
+                        <strong>Reason:</strong> {{ role_info.delegation.reason|truncatewords:15 }}
+                    </div>
+                    {% endif %}
+                    
+                    <div style="font-size: 11px; color: #6c757d;">
+                        <i class="fas fa-clock" style="margin-right: 4px;"></i>
+                        Delegated on: {{ role_info.delegation.created_at|date:"M d, Y \a\t H:i" }}
+                    </div>
+                    
+                    {% if role_info.faculty %}
+                    <div style="font-size: 11px; color: #6c757d; margin-top: 4px;">
+                        <i class="fas fa-building" style="margin-right: 4px;"></i>
+                        Faculty: {{ role_info.faculty.name }}
+                        {% if role_info.department %}
+                        | Department: {{ role_info.department.name }}
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.delegation-badges-container .badge {
+    transition: all 0.2s ease;
+}
+
+.delegation-badges-container .badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
+}
+
+.delegation-item {
+    transition: all 0.2s ease;
+}
+
+.delegation-item:hover {
+    background: #e9ecef !important;
+}
+
+@media (max-width: 768px) {
+    .delegation-badges-container {
+        margin-bottom: 12px;
+    }
+    
+    .delegation-badges-container .alert {
+        padding: 12px;
+    }
+    
+    .delegation-badges-container .badge {
+        font-size: 11px;
+        padding: 6px 10px;
+    }
+}
+</style>

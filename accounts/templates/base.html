@@ -684,32 +684,127 @@
             <!-- Navigation links -->
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
+                    <!-- Common Dashboard Link -->
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">
                             <i class="bi bi-house-fill"></i>
                             <span>Dashboard</span>
                         </a>
                     </li>
+
+                    <!-- Super Admin Navigation -->
+                    {% if is_super_admin %}
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'students' %}active{% endif %}" href="{% url 'students' %}">
-                            <i class="bi bi-people-fill"></i>
-                            <span>Students</span>
+                        <a class="nav-link {% if 'super_admin' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'super_admin_dashboard' %}">
+                            <i class="bi bi-shield-fill"></i>
+                            <span>Admin Panel</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'courses' %}active{% endif %}" href="{% url 'courses' %}">
+                        <a class="nav-link {% if 'faculty' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'super_admin_faculties' %}">
+                            <i class="bi bi-building"></i>
+                            <span>Faculties</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'user' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'super_admin_users' %}">
+                            <i class="bi bi-people-fill"></i>
+                            <span>Users</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- Faculty Dean Navigation -->
+                    {% if is_faculty_dean %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'departments' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'faculty_dean_departments' %}">
+                            <i class="bi bi-building"></i>
+                            <span>Departments</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'lecturers' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'faculty_dean_lecturers' %}">
+                            <i class="bi bi-person-badge"></i>
+                            <span>Lecturers</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'courses' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'faculty_dean_courses' %}">
                             <i class="bi bi-book-fill"></i>
                             <span>Courses</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'results' %}active{% endif %}" href="{% url 'results' %}">
+                        <a class="nav-link {% if 'pending' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'faculty_dean_pending_results' %}">
+                            <i class="bi bi-clipboard-check"></i>
+                            <span>Pending Results</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'reports' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'faculty_dean_reports' %}">
+                            <i class="bi bi-graph-up"></i>
+                            <span>Reports</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- HOD Navigation -->
+                    {% if is_hod %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'students' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_students' %}">
+                            <i class="bi bi-people-fill"></i>
+                            <span>Students</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'courses' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_courses' %}">
+                            <i class="bi bi-book-fill"></i>
+                            <span>Courses</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'results' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_results' %}">
                             <i class="bi bi-clipboard-data-fill"></i>
                             <span>Results</span>
                         </a>
                     </li>
+                    {% endif %}
+
+                    <!-- Lecturer Navigation -->
+                    {% if is_lecturer %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'courses' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'lecturer_courses' %}">
+                            <i class="bi bi-book-fill"></i>
+                            <span>My Courses</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'results' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'lecturer_results' %}">
+                            <i class="bi bi-clipboard-data-fill"></i>
+                            <span>Results</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- Student Navigation -->
+                    {% if is_student %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'courses' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'student_courses' %}">
+                            <i class="bi bi-book-fill"></i>
+                            <span>My Courses</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'results' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'student_results' %}">
+                            <i class="bi bi-clipboard-data-fill"></i>
+                            <span>My Results</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- Notifications (for all users) -->
                     <li class="nav-item nav-notification">
-                        <a class="nav-link" href="#" title="Notifications">
+                        <a class="nav-link" href="#" title="Notifications" onclick="showNotifications()">
                             <i class="bi bi-bell-fill"></i>
                             <span>Notifications</span>
                             <span class="badge">3</span>
@@ -826,6 +921,66 @@
             });
 
             // Clean navigation - no animations
+
+            // Notification system
+            window.showNotifications = function() {
+                // Create notification modal
+                const modal = document.createElement('div');
+                modal.className = 'modal fade';
+                modal.innerHTML = `
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">
+                                    <i class="bi bi-bell-fill me-2"></i>Notifications
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="list-group">
+                                    <div class="list-group-item">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">New result approval required</h6>
+                                            <small>3 days ago</small>
+                                        </div>
+                                        <p class="mb-1">5 results are pending your approval for CSC 301.</p>
+                                        <small>Faculty Dean</small>
+                                    </div>
+                                    <div class="list-group-item">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">Course assignment updated</h6>
+                                            <small>1 week ago</small>
+                                        </div>
+                                        <p class="mb-1">You have been assigned to teach CSC 401 for the current session.</p>
+                                        <small>System</small>
+                                    </div>
+                                    <div class="list-group-item">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">System maintenance scheduled</h6>
+                                            <small>2 weeks ago</small>
+                                        </div>
+                                        <p class="mb-1">The system will be under maintenance on Sunday from 2:00 AM to 4:00 AM.</p>
+                                        <small>Admin</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary">Mark All as Read</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+                const bsModal = new bootstrap.Modal(modal);
+                bsModal.show();
+
+                // Remove modal from DOM when hidden
+                modal.addEventListener('hidden.bs.modal', function() {
+                    document.body.removeChild(modal);
+                });
+            };
         });
     </script>
 

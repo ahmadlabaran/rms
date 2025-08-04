@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load role_tags %}
 
 {% block title %}Dashboard - RMS{% endblock %}
 
@@ -22,9 +23,36 @@
 </div>
 {% endif %}
 
+<!-- Delegation Status Badges -->
+{% show_delegation_badges user %}
+
+<!-- Enhanced Role Navigation -->
+{% show_role_navigation user %}
+
 <div class="page-header">
     <h1 class="page-title">Welcome back, {{ user.first_name|default:user.username }}</h1>
     <p class="page-subtitle">Result Management System Dashboard</p>
+
+    <!-- Role Summary with Delegation Info -->
+    {% get_user_roles_with_delegation user as roles_info %}
+    {% if roles_info %}
+    <div class="role-summary" style="margin-top: 16px;">
+        <div class="d-flex flex-wrap gap-2">
+            {% for role_info in roles_info %}
+            <span class="badge {% if role_info.is_delegated %}bg-warning text-dark{% else %}bg-primary{% endif %}"
+                  style="padding: 6px 12px; font-size: 12px; border-radius: 20px;"
+                  {% if role_info.is_delegated %}
+                  title="Delegated from {{ role_info.delegated_from.get_full_name }}"
+                  {% endif %}>
+                {% if role_info.is_delegated %}
+                <i class="fas fa-arrow-right" style="margin-right: 4px; font-size: 10px;"></i>
+                {% endif %}
+                {% get_role_display_name role_info.role %}
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Role-based Dashboard Content -->

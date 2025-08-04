@@ -4,307 +4,331 @@
 
 {% block content %}
 <style>
-    :root {
-        --ios-red: #FF3B30;
-        --ios-blue: #007AFF;
-        --ios-green: #34C759;
-        --ios-orange: #FF9500;
-        --text-primary: #1D1D1F;
-        --text-secondary: #86868B;
-        --text-tertiary: #C7C7CC;
-        --surface-primary: #FFFFFF;
-        --surface-secondary: #F2F2F7;
-        --border-color: #D1D1D6;
-        --border-light: #E5E5EA;
-        --royal-blue-gradient: linear-gradient(135deg, #007AFF 0%, #FF3B30 100%);
-    }
-
-    .ios-card {
-        background: white;
-        border-radius: 16px;
-        padding: 20px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    .card {
+        background: #FFFFFF;
         border: 1px solid var(--border-light);
-        transition: all 0.3s ease;
-        margin-bottom: 20px;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     }
 
     .btn {
-        padding: 8px 16px;
-        border-radius: 8px;
+        border-radius: 12px;
         font-weight: 600;
-        text-align: center;
-        transition: all 0.3s ease;
         border: none;
-        cursor: pointer;
-        font-size: 12px;
-        text-decoration: none;
-        display: inline-block;
+        font-size: 14px;
     }
 
     .btn-primary {
-        background: var(--royal-blue-gradient);
+        background: var(--ios-blue);
         color: white;
     }
 
-    .btn-primary:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3);
+    .btn-secondary {
+        background: var(--ios-gray-light);
+        color: var(--text-primary);
     }
 
-    .btn-secondary {
-        background: var(--surface-secondary);
-        color: var(--text-primary);
-        border: 1px solid var(--border-color);
+    .btn-success {
+        background: var(--ios-green);
+        color: white;
+    }
+
+    .btn-warning {
+        background: var(--ios-orange);
+        color: white;
     }
 
     .btn-danger {
         background: var(--ios-red);
         color: white;
     }
-
-    .form-input {
-        width: 100%;
-        padding: 10px 12px;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        font-size: 14px;
-        background: #FFFFFF;
-        box-sizing: border-box;
-    }
-
-    .assignment-card {
-        background: var(--surface-secondary);
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 12px;
-        border: 1px solid var(--border-light);
-    }
-
-    .unassigned-card {
-        background: rgba(255, 149, 0, 0.1);
-        border: 1px solid rgba(255, 149, 0, 0.3);
-    }
-
-    /* Mobile Responsive */
-    @media (max-width: 768px) {
-        .mobile-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
-        .mobile-card { padding: 16px !important; }
-        .btn { padding: 6px 10px !important; font-size: 11px !important; }
-    }
 </style>
 
-<div style="max-width: 1400px; margin: 0 auto; padding: 16px;">
-    
+<div class="container-fluid">
     <!-- Header -->
-    <div class="ios-card" style="background: var(--royal-blue-gradient); color: white;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-            <div>
-                <h1 style="margin: 0 0 6px 0; font-size: 28px; font-weight: 600;">
-                    Course Assignments
-                </h1>
-                <p style="margin: 0; opacity: 0.9; font-size: 16px;">
-                    {{ faculty.name }} • {{ current_session.name }}
-                </p>
-            </div>
-            <div style="display: flex; gap: 12px;">
-                <a href="{% url 'faculty_dean_dashboard' %}" class="btn" style="background: rgba(255,255,255,0.2); color: white;">
-                    ← Back to Dashboard
-                </a>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">Course Assignments</h1>
+                            <p class="mb-0 opacity-75">{{ faculty.name }} Faculty - Manage lecturer course assignments</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">
+                                <div class="h3 fw-bold mb-0">{{ assignments.count }}</div>
+                                <small class="opacity-75">Total Assignments</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Statistics -->
-    <div class="mobile-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-        <div class="ios-card" style="text-align: center; background: var(--ios-blue); color: white;">
-            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.total_courses }}</div>
-            <div style="font-size: 14px; opacity: 0.9;">Total Courses</div>
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="h2 text-primary fw-bold">{{ stats.total_assignments }}</div>
+                    <div class="text-muted">Total Assignments</div>
+                </div>
+            </div>
         </div>
-        <div class="ios-card" style="text-align: center; background: var(--ios-green); color: white;">
-            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.assigned_courses }}</div>
-            <div style="font-size: 14px; opacity: 0.9;">Assigned</div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="h2 text-success fw-bold">{{ stats.assigned_courses }}</div>
+                    <div class="text-muted">Assigned Courses</div>
+                </div>
+            </div>
         </div>
-        <div class="ios-card" style="text-align: center; background: var(--ios-orange); color: white;">
-            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.unassigned_courses }}</div>
-            <div style="font-size: 14px; opacity: 0.9;">Unassigned</div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="h2 text-warning fw-bold">{{ stats.unassigned_courses }}</div>
+                    <div class="text-muted">Unassigned Courses</div>
+                </div>
+            </div>
         </div>
-        <div class="ios-card" style="text-align: center; background: var(--ios-red); color: white;">
-            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.total_lecturers }}</div>
-            <div style="font-size: 14px; opacity: 0.9;">Lecturers</div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="h2 text-info fw-bold">{{ stats.active_lecturers }}</div>
+                    <div class="text-muted">Active Lecturers</div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Quick Assignment Form -->
-    {% if unassigned_courses and lecturers %}
-    <div class="ios-card">
-        <h2 style="color: var(--text-primary); margin-bottom: 16px; font-size: 20px; font-weight: 700;">
-            Quick Course Assignment
-        </h2>
-        
-        <form id="assignCourseForm" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end;">
-            {% csrf_token %}
-            <div>
-                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-primary); font-size: 14px;">Course</label>
-                <select name="course_id" class="form-input" required>
-                    <option value="">Select a course...</option>
-                    {% for course in unassigned_courses %}
-                    <option value="{{ course.id }}">{{ course.code }} - {{ course.title }}</option>
-                    {% endfor %}
-                </select>
+    <!-- Assignment Form -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3">
+                        <i class="bi bi-plus-circle me-2"></i>Create New Assignment
+                    </h5>
+                    
+                    <form method="post" action="{% url 'faculty_dean_course_assignments' %}">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Select Course *</label>
+                                <select name="course_id" required class="form-select">
+                                    <option value="">Choose a course...</option>
+                                    {% for course in unassigned_courses %}
+                                    <option value="{{ course.id }}">
+                                        {{ course.code }} - {{ course.title }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Select Lecturer *</label>
+                                <select name="lecturer_id" required class="form-select">
+                                    <option value="">Choose a lecturer...</option>
+                                    {% for lecturer in lecturers %}
+                                    <option value="{{ lecturer.id }}">
+                                        {{ lecturer.get_full_name }} ({{ lecturer.department.name }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">Session *</label>
+                                <select name="session_id" required class="form-select">
+                                    <option value="">Choose session...</option>
+                                    {% for session in sessions %}
+                                    <option value="{{ session.id }}">{{ session.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Create Assignment
+                            </button>
+                            <button type="reset" class="btn btn-secondary">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Reset Form
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            
-            <div>
-                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-primary); font-size: 14px;">Lecturer</label>
-                <select name="lecturer_id" class="form-input" required>
-                    <option value="">Select a lecturer...</option>
-                    {% for lecturer in lecturers %}
-                    <option value="{{ lecturer.id }}">{{ lecturer.user.get_full_name }} ({{ lecturer.department.name }})</option>
-                    {% endfor %}
-                </select>
-            </div>
-            
-            <button type="submit" class="btn btn-primary" style="padding: 10px 20px; font-size: 14px;">
-                Assign Course
-            </button>
-        </form>
+        </div>
     </div>
-    {% endif %}
 
     <!-- Current Assignments -->
-    <div class="ios-card">
-        <h2 style="color: var(--text-primary); margin-bottom: 16px; font-size: 20px; font-weight: 700;">
-            Current Assignments ({{ assignments.count }})
-        </h2>
-        
-        {% if assignments %}
-            {% for assignment in assignments %}
-            <div class="assignment-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                    <div style="flex: 1;">
-                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
-                            {{ assignment.course.code }} - {{ assignment.course.title }}
-                        </div>
-                        <div style="color: var(--text-secondary); font-size: 12px; margin-bottom: 2px;">
-                            {{ assignment.course.credit_units }} Credit Units • {{ assignment.course.level.name }}
-                        </div>
-                        <div style="color: var(--ios-blue); font-size: 12px; font-weight: 600;">
-                            Assigned to: {{ assignment.lecturer.get_full_name }}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title fw-bold mb-0">Current Assignments ({{ assignments.count }})</h5>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-secondary btn-sm">
+                                <i class="bi bi-download me-1"></i>Export
+                            </button>
+                            <button class="btn btn-warning btn-sm" onclick="bulkReassign()">
+                                <i class="bi bi-arrow-repeat me-1"></i>Bulk Reassign
+                            </button>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 6px;">
-                        <button class="btn btn-danger unassign-course-btn" style="padding: 6px 12px;"
-                                data-assignment-id="{{ assignment.id }}" data-course-code="{{ assignment.course.code }}">
-                            Unassign
-                        </button>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
-                <p>No course assignments yet.</p>
-            </div>
-        {% endif %}
-    </div>
 
-    <!-- Unassigned Courses -->
-    {% if unassigned_courses %}
-    <div class="ios-card">
-        <h2 style="color: var(--text-primary); margin-bottom: 16px; font-size: 20px; font-weight: 700;">
-            Unassigned Courses ({{ unassigned_courses.count }})
-        </h2>
-        
-        {% for course in unassigned_courses %}
-        <div class="assignment-card unassigned-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                <div>
-                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
-                        {{ course.code }} - {{ course.title }}
+                    <!-- Filter -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <select class="form-select form-select-sm">
+                                <option>All Departments</option>
+                                {% for department in departments %}
+                                <option value="{{ department.id }}">{{ department.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select form-select-sm">
+                                <option>All Lecturers</option>
+                                {% for lecturer in lecturers %}
+                                <option value="{{ lecturer.id }}">{{ lecturer.get_full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select form-select-sm">
+                                <option>All Sessions</option>
+                                {% for session in sessions %}
+                                <option value="{{ session.id }}">{{ session.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" class="form-control form-control-sm" placeholder="Search course code...">
+                        </div>
                     </div>
-                    <div style="color: var(--text-secondary); font-size: 12px;">
-                        {{ course.credit_units }} Credit Units • {{ course.level.name }}
-                    </div>
-                </div>
-                <div style="color: var(--ios-orange); font-size: 12px; font-weight: 600;">
-                    Needs Assignment
+
+                    {% if assignments %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Course</th>
+                                        <th>Lecturer</th>
+                                        <th>Department</th>
+                                        <th>Session</th>
+                                        <th>Students</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for assignment in assignments %}
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold text-primary">{{ assignment.course.code }}</div>
+                                            <small class="text-muted">{{ assignment.course.title }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold">{{ assignment.lecturer.get_full_name }}</div>
+                                            <small class="text-muted">{{ assignment.lecturer.email }}</small>
+                                        </td>
+                                        <td>{{ assignment.lecturer.department.name }}</td>
+                                        <td>{{ assignment.session.name }}</td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ assignment.enrollments_count }}</span>
+                                        </td>
+                                        <td>
+                                            {% if assignment.is_active %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary btn-sm" onclick="viewAssignment({{ assignment.id }})">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="btn btn-outline-warning btn-sm" onclick="reassignCourse({{ assignment.id }})">
+                                                    <i class="bi bi-arrow-repeat"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger btn-sm" onclick="removeAssignment({{ assignment.id }})">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        {% if assignments.has_other_pages %}
+                        <nav aria-label="Assignments pagination" class="mt-3">
+                            <ul class="pagination justify-content-center">
+                                {% if assignments.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ assignments.previous_page_number }}">Previous</a>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for num in assignments.paginator.page_range %}
+                                    {% if assignments.number == num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if assignments.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ assignments.next_page_number }}">Next</a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-clipboard-check" style="font-size: 3rem; color: #ccc;"></i>
+                            <h5 class="mt-3 text-muted">No Course Assignments</h5>
+                            <p class="text-muted">Create your first course assignment using the form above.</p>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
-        {% endfor %}
     </div>
-    {% endif %}
 </div>
 
 <script>
-// Handle course assignment
-document.getElementById('assignCourseForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const submitButton = this.querySelector('button[type="submit"]');
-    
-    submitButton.disabled = true;
-    submitButton.textContent = 'Assigning...';
-    
-    fetch('{% url "faculty_dean_assign_course" %}', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            location.reload();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        alert('An error occurred. Please try again.');
-    })
-    .finally(() => {
-        submitButton.disabled = false;
-        submitButton.textContent = 'Assign Course';
-    });
-});
+function viewAssignment(assignmentId) {
+    alert('View assignment details - to be implemented');
+}
 
-// Handle course unassignment
-function unassignCourse(assignmentId, courseCode) {
-    if (confirm(`Are you sure you want to unassign ${courseCode}?`)) {
-        fetch(`{% url "faculty_dean_unassign_course" 0 %}`.replace('0', assignmentId), {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-                location.reload();
-            } else {
-                alert('Error: ' + data.message);
-            }
-        })
-        .catch(error => {
-            alert('An error occurred. Please try again.');
-        });
+function reassignCourse(assignmentId) {
+    if (confirm('Are you sure you want to reassign this course?')) {
+        alert('Course reassignment - to be implemented');
     }
 }
 
-// Add event listeners for unassign course buttons
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.unassign-course-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const assignmentId = this.getAttribute('data-assignment-id');
-            const courseCode = this.getAttribute('data-course-code');
-            unassignCourse(assignmentId, courseCode);
-        });
-    });
-});
+function removeAssignment(assignmentId) {
+    if (confirm('Are you sure you want to remove this assignment?')) {
+        alert('Assignment removal - to be implemented');
+    }
+}
+
+function bulkReassign() {
+    alert('Bulk reassignment - to be implemented');
+}
 </script>
+
 {% endblock %}

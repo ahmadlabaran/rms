@@ -10,7 +10,7 @@ from .models import (
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Serializer for User model with role information"""
+    """Serializer for User model with role info"""
     roles = serializers.SerializerMethodField()
 
     class Meta:
@@ -18,29 +18,37 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'first_name', 'last_name', 'roles']
 
     def get_roles(self, obj):
-        """Get all roles for the user"""
-        user_roles = UserRole.objects.filter(user=obj)
-        return [{
-            'id': role.id,
-            'role': role.role,
-            'faculty': role.faculty.name if role.faculty else None,
-            'department': role.department.name if role.department else None,
-            'is_primary': role.is_primary
-        } for role in user_roles]
+        """Gets all roles for the user"""
+        user_role_list = UserRole.objects.filter(user=obj)
+        role_data_list = []
+        for role in user_role_list:
+            role_data = {
+                'id': role.id,
+                'role': role.role,
+                'faculty': role.faculty.name if role.faculty else None,
+                'department': role.department.name if role.department else None,
+                'is_primary': role.is_primary
+            }
+            role_data_list.append(role_data)
+        return role_data_list
 
 
 class LoginSerializer(serializers.Serializer):
-    """Serializer for standard login"""
+    """Serializer for login"""
     username = serializers.CharField()
     password = serializers.CharField()
 
     def validate(self, data):
+        # Get username and password from data
         username = data.get('username')
         password = data.get('password')
 
+        # Check if both username and password are provided
         if username and password:
+            # Try to authenticate user
             user = authenticate(username=username, password=password)
             if user:
+                # Check if user account is active
                 if user.is_active:
                     data['user'] = user
                 else:
@@ -54,7 +62,7 @@ class LoginSerializer(serializers.Serializer):
 
 
 class AlternativeLoginSerializer(serializers.Serializer):
-    """Serializer for alternative login credentials"""
+    """Serializer for alternative login"""
     username = serializers.CharField()
     password = serializers.CharField()
 

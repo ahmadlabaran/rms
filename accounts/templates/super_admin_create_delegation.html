@@ -1,0 +1,611 @@
+{% extends 'base.html' %}
+{% load role_tags %}
+
+{% block title %}Create Permission Delegation - RMS{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --royal-blue: #1e3a8a;
+        --royal-blue-light: #3b82f6;
+        --royal-blue-ultra-light: rgba(30, 58, 138, 0.1);
+        --royal-blue-gradient: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        --ios-green: #3b82f6;
+        --ios-orange: #1e40af;
+        --ios-red: #dc2626;
+        --text-primary: #1D1D1F;
+        --text-secondary: #86868B;
+        --surface-primary: #FFFFFF;
+        --surface-secondary: #F2F2F7;
+        --border-light: #E5E5EA;
+    }
+
+    .delegation-form-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .form-section {
+        background: var(--surface-primary);
+        border: 1px solid var(--border-light);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .form-section h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 16px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--royal-blue);
+        box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.1);
+        outline: none;
+    }
+
+    .btn-primary {
+        background: var(--royal-blue);
+        border: none;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 20px rgba(30, 58, 138, 0.3);
+    }
+
+    .conflict-warning {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 12px;
+        padding: 16px;
+        margin: 16px 0;
+        color: #856404;
+    }
+
+    .validation-error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        border-radius: 12px;
+        padding: 16px;
+        margin: 16px 0;
+        color: #721c24;
+    }
+
+    .role-selection-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+    }
+
+    .role-option {
+        border: 2px solid var(--border-light);
+        border-radius: 12px;
+        padding: 16px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .role-option:hover {
+        border-color: var(--royal-blue);
+        background: var(--royal-blue-ultra-light);
+    }
+
+    .role-option.selected {
+        border-color: var(--royal-blue);
+        background: var(--royal-blue-ultra-light);
+    }
+
+    .role-option input[type="radio"] {
+        display: none;
+    }
+
+    .datetime-input {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    @media (max-width: 768px) {
+        .datetime-input {
+            grid-template-columns: 1fr;
+        }
+        
+        .role-selection-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="delegation-form-container">
+    <!-- Header -->
+    <div style="text-align: center; margin-bottom: 32px;">
+        <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin: 0 0 12px 0;">
+            Create Permission Delegation
+        </h1>
+        <p style="color: var(--text-secondary); font-size: 18px; margin: 0;">
+            Temporarily delegate role permissions to another user
+        </p>
+    </div>
+
+    <!-- Delegation Form -->
+    <form method="post" id="delegationForm">
+        {% csrf_token %}
+        
+        <!-- Faculty Filter -->
+        <div class="form-section">
+            <h3>
+                <i class="fas fa-building" style="color: var(--royal-blue);"></i>
+                Faculty Filter (Optional)
+            </h3>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                Filter roles by faculty. Super Admin can delegate across all faculties.
+            </p>
+
+            <div class="mb-3">
+                <label for="faculty_filter" class="form-label">Faculty</label>
+                <select class="form-control" id="faculty_filter" name="faculty_filter">
+                    <option value="">All Faculties</option>
+                    {% for faculty in faculties %}
+                    <option value="{{ faculty.id }}">{{ faculty.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Delegator Selection -->
+        <div class="form-section">
+            <h3>
+                <i class="fas fa-user-tie" style="color: var(--royal-blue);"></i>
+                Select Role to Delegate
+            </h3>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                Choose the specific role instance that you want to delegate
+            </p>
+
+            <div class="mb-3">
+                <label for="delegator_role" class="form-label">Available Roles</label>
+                <select class="form-control" id="delegator_role" name="delegator_role" required>
+                    <option value="">Select a role to delegate...</option>
+                    {% for role in delegatable_roles %}
+                    <option value="{{ role.id }}"
+                            data-role="{{ role.role }}"
+                            data-faculty="{{ role.faculty.id|default:'' }}"
+                            data-faculty-name="{{ role.faculty.name|default:'No Faculty' }}"
+                            data-user="{{ role.user.get_full_name }}"
+                            data-department="{{ role.department.name|default:'No Department' }}">
+                        {{ role.get_role_display }} - {{ role.user.get_full_name }}
+                        {% if role.faculty %} ({{ role.faculty.name }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <small class="form-text text-muted">
+                    Only roles that are not currently being delegated are shown.
+                </small>
+            </div>
+
+            <!-- Role Details Display -->
+            <div id="role-details" style="display: none;" class="alert alert-info">
+                <h6><i class="fas fa-info-circle"></i> Selected Role Details</h6>
+                <div id="role-details-content"></div>
+            </div>
+        </div>
+
+        <!-- Delegate Selection -->
+        <div class="form-section">
+            <h3>
+                <i class="fas fa-user-plus" style="color: var(--ios-green);"></i>
+                Select Delegate
+            </h3>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                Choose who will receive the temporary permissions. Only eligible users are shown.
+            </p>
+
+            <div class="mb-3">
+                <label for="delegate_user" class="form-label">Eligible Delegates</label>
+                <select class="form-control" id="delegate_user" name="delegate_user" required disabled>
+                    <option value="">Select a role first...</option>
+                </select>
+                <small class="form-text text-muted">
+                    Students and users with existing delegations are excluded.
+                </small>
+            </div>
+
+            <!-- Delegation Rules Info -->
+            <div class="alert alert-warning" style="margin-bottom: 16px;">
+                <h6><i class="fas fa-exclamation-triangle"></i> Delegation Rules</h6>
+                <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+                    <li>Each user can hold only ONE delegated role at a time</li>
+                    <li>Students cannot receive role delegations</li>
+                    <li>Cross-faculty delegation requires Super Admin privileges</li>
+                    <li>Users cannot be delegated roles they already possess</li>
+                </ul>
+            </div>
+
+            <!-- Conflict Detection Display -->
+            <div id="conflict-detection" style="display: none;"></div>
+
+            <!-- Faculty Compatibility Check -->
+            <div id="faculty-compatibility" style="display: none;"></div>
+        </div>
+
+        <!-- Time-based Delegation -->
+        <div class="form-section">
+            <h3>
+                <i class="fas fa-clock" style="color: var(--ios-orange);"></i>
+                Delegation Duration (Optional)
+            </h3>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                Set start and end dates for automatic delegation management
+            </p>
+            
+            <div class="mb-3">
+                <label class="form-check-label">
+                    <input type="checkbox" id="enable_time_based" name="enable_time_based" class="form-check-input">
+                    Enable time-based delegation
+                </label>
+            </div>
+            
+            <div id="time_based_fields" style="display: none;">
+                <div class="datetime-input">
+                    <div>
+                        <label for="start_date" class="form-label">Start Date & Time</label>
+                        <input type="datetime-local" class="form-control" id="start_date" name="start_date">
+                    </div>
+                    <div>
+                        <label for="end_date" class="form-label">End Date & Time</label>
+                        <input type="datetime-local" class="form-control" id="end_date" name="end_date">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reason -->
+        <div class="form-section">
+            <h3>
+                <i class="fas fa-comment-alt" style="color: var(--text-primary);"></i>
+                Delegation Reason
+            </h3>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                Provide a clear reason for this delegation
+            </p>
+            
+            <textarea class="form-control" id="reason" name="reason" rows="4" required 
+                      placeholder="e.g., HOD is on medical leave for 2 weeks..."></textarea>
+        </div>
+
+        <!-- Validation Summary -->
+        <div id="validation-summary" style="display: none;"></div>
+
+        <!-- Submit Buttons -->
+        <div style="display: flex; gap: 16px; justify-content: center; margin-top: 32px;">
+            <a href="{% url 'super_admin_permission_delegations' %}" class="btn btn-secondary">
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-primary" id="submit-btn">
+                <i class="fas fa-check" style="margin-right: 8px;"></i>
+                Create Delegation
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const facultyFilterSelect = document.getElementById('faculty_filter');
+    const delegatorRoleSelect = document.getElementById('delegator_role');
+    const delegateUserSelect = document.getElementById('delegate_user');
+    const enableTimeBasedCheckbox = document.getElementById('enable_time_based');
+    const timeBasedFields = document.getElementById('time_based_fields');
+    const conflictDetection = document.getElementById('conflict-detection');
+    const facultyCompatibility = document.getElementById('faculty-compatibility');
+    const roleDetails = document.getElementById('role-details');
+    const validationSummary = document.getElementById('validation-summary');
+    const submitBtn = document.getElementById('submit-btn');
+
+    // Handle faculty filter
+    facultyFilterSelect.addEventListener('change', function() {
+        filterRolesByFaculty();
+    });
+
+    // Handle role selection
+    delegatorRoleSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (this.value) {
+            showRoleDetails(selectedOption);
+            loadEligibleDelegates(this.value);
+        } else {
+            hideRoleDetails();
+            clearDelegateOptions();
+        }
+    });
+
+    // Handle delegate selection for conflict detection
+    delegateUserSelect.addEventListener('change', function() {
+        checkForConflicts();
+    });
+
+    // Handle time-based delegation toggle
+    enableTimeBasedCheckbox.addEventListener('change', function() {
+        timeBasedFields.style.display = this.checked ? 'block' : 'none';
+        
+        if (this.checked) {
+            // Set default start time to now
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('start_date').value = now.toISOString().slice(0, 16);
+            
+            // Set default end time to 7 days from now
+            const endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+            document.getElementById('end_date').value = endDate.toISOString().slice(0, 16);
+        }
+    });
+
+    // Form validation
+    document.getElementById('delegationForm').addEventListener('submit', function(e) {
+        if (!validateForm()) {
+            e.preventDefault();
+        }
+    });
+
+    function filterRolesByFaculty() {
+        const selectedFaculty = facultyFilterSelect.value;
+        const allOptions = delegatorRoleSelect.querySelectorAll('option[value!=""]');
+
+        allOptions.forEach(option => {
+            const optionFaculty = option.getAttribute('data-faculty');
+            if (!selectedFaculty || optionFaculty === selectedFaculty) {
+                option.style.display = 'block';
+            } else {
+                option.style.display = 'none';
+            }
+        });
+
+        // Reset selections if current selection is now hidden
+        const currentOption = delegatorRoleSelect.options[delegatorRoleSelect.selectedIndex];
+        if (currentOption && currentOption.style.display === 'none') {
+            delegatorRoleSelect.value = '';
+            hideRoleDetails();
+            clearDelegateOptions();
+        }
+    }
+
+    function showRoleDetails(selectedOption) {
+        const roleDisplay = selectedOption.textContent;
+        const faculty = selectedOption.getAttribute('data-faculty-name');
+        const department = selectedOption.getAttribute('data-department');
+        const user = selectedOption.getAttribute('data-user');
+
+        const detailsHtml = `
+            <div><strong>Role:</strong> ${roleDisplay}</div>
+            <div><strong>Current Holder:</strong> ${user}</div>
+            <div><strong>Faculty:</strong> ${faculty}</div>
+            <div><strong>Department:</strong> ${department}</div>
+        `;
+
+        document.getElementById('role-details-content').innerHTML = detailsHtml;
+        roleDetails.style.display = 'block';
+    }
+
+    function hideRoleDetails() {
+        roleDetails.style.display = 'none';
+    }
+
+    function clearDelegateOptions() {
+        delegateUserSelect.innerHTML = '<option value="">Select a role first...</option>';
+        delegateUserSelect.disabled = true;
+        conflictDetection.style.display = 'none';
+        facultyCompatibility.style.display = 'none';
+    }
+
+    function loadEligibleDelegates(delegatorRoleId) {
+        fetch(`/super-admin/get-eligible-delegates/?delegator_role=${delegatorRoleId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    delegateUserSelect.innerHTML = '<option value="">Error loading delegates</option>';
+                    return;
+                }
+
+                delegateUserSelect.innerHTML = '<option value="">Select a delegate...</option>';
+                data.users.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.user_id;
+                    option.textContent = `${user.name} (${user.primary_role})`;
+                    if (user.faculty) {
+                        option.textContent += ` - ${user.faculty}`;
+                    }
+                    delegateUserSelect.appendChild(option);
+                });
+
+                delegateUserSelect.disabled = false;
+
+                // Show faculty compatibility info
+                if (data.delegator_faculty) {
+                    showFacultyCompatibilityInfo(data.delegator_faculty, data.total_eligible);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading eligible delegates:', error);
+                delegateUserSelect.innerHTML = '<option value="">Error loading delegates</option>';
+            });
+    }
+
+    function showFacultyCompatibilityInfo(delegatorFaculty, totalEligible) {
+        const infoHtml = `
+            <div class="alert alert-info">
+                <h6><i class="fas fa-info-circle"></i> Faculty Compatibility</h6>
+                <p><strong>Delegator Faculty:</strong> ${delegatorFaculty}</p>
+                <p><strong>Eligible Delegates:</strong> ${totalEligible} users</p>
+                <small>As Super Admin, you can delegate across all faculties.</small>
+            </div>
+        `;
+        facultyCompatibility.innerHTML = infoHtml;
+        facultyCompatibility.style.display = 'block';
+    }
+
+    function checkForConflicts() {
+        const delegateUserId = delegateUserSelect.value;
+        const delegatorRoleId = delegatorRoleSelect.value;
+
+        if (!delegateUserId || !delegatorRoleId) {
+            conflictDetection.style.display = 'none';
+            return;
+        }
+
+        // Check for comprehensive conflicts and validation
+        fetch(`/super-admin/check-delegation-conflicts/?delegate=${delegateUserId}&delegator_role=${delegatorRoleId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showValidationErrors([data.error]);
+                    return;
+                }
+
+                const allIssues = [...(data.conflicts || []), ...(data.rule_errors || [])];
+
+                if (allIssues.length > 0) {
+                    showConflictWarning(allIssues, data);
+                } else if (data.is_valid) {
+                    showValidationSuccess(data);
+                } else {
+                    conflictDetection.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error checking conflicts:', error);
+                showValidationErrors(['Error checking delegation validity']);
+            });
+    }
+
+    function showConflictWarning(issues, data) {
+        let warningHtml = '<div class="conflict-warning">';
+        warningHtml += '<h6><i class="fas fa-exclamation-triangle"></i> Delegation Issues Detected</h6>';
+        warningHtml += '<ul>';
+        issues.forEach(issue => {
+            warningHtml += `<li>${issue}</li>`;
+        });
+        warningHtml += '</ul>';
+
+        // Show faculty information if available
+        if (data.delegate_faculty && data.delegator_faculty) {
+            warningHtml += '<div style="margin-top: 12px; padding: 8px; background: #f8f9fa; border-radius: 6px;">';
+            warningHtml += '<small>';
+            warningHtml += `<strong>Delegate Faculty:</strong> ${data.delegate_faculty}<br>`;
+            warningHtml += `<strong>Delegator Faculty:</strong> ${data.delegator_faculty}<br>`;
+            if (data.cross_faculty_allowed) {
+                warningHtml += `<span style="color: #28a745;"><i class="fas fa-check"></i> ${data.cross_faculty_reason}</span>`;
+            } else {
+                warningHtml += `<span style="color: #dc3545;"><i class="fas fa-times"></i> Cross-faculty delegation not allowed</span>`;
+            }
+            warningHtml += '</small>';
+            warningHtml += '</div>';
+        }
+
+        warningHtml += '<p style="margin-top: 12px;"><small>Please resolve these issues before proceeding.</small></p>';
+        warningHtml += '</div>';
+
+        conflictDetection.innerHTML = warningHtml;
+        conflictDetection.style.display = 'block';
+    }
+
+    function showValidationSuccess(data) {
+        let successHtml = '<div class="alert alert-success">';
+        successHtml += '<h6><i class="fas fa-check-circle"></i> Delegation Valid</h6>';
+        successHtml += '<p>This delegation meets all requirements and can be created.</p>';
+
+        if (data.delegate_faculty && data.delegator_faculty) {
+            successHtml += '<div style="margin-top: 8px;">';
+            successHtml += '<small>';
+            successHtml += `<strong>Delegate Faculty:</strong> ${data.delegate_faculty}<br>`;
+            successHtml += `<strong>Delegator Faculty:</strong> ${data.delegator_faculty}<br>`;
+            successHtml += `<span style="color: #28a745;"><i class="fas fa-check"></i> ${data.cross_faculty_reason}</span>`;
+            successHtml += '</small>';
+            successHtml += '</div>';
+        }
+
+        successHtml += '</div>';
+
+        conflictDetection.innerHTML = successHtml;
+        conflictDetection.style.display = 'block';
+    }
+
+    function validateForm() {
+        const errors = [];
+
+        // Check required fields
+        if (!delegatorRoleSelect.value) errors.push('Please select a role to delegate');
+        if (!delegateUserSelect.value) errors.push('Please select a delegate');
+        if (!document.getElementById('reason').value.trim()) errors.push('Please provide a reason for delegation');
+
+        // Check time-based validation
+        if (enableTimeBasedCheckbox.checked) {
+            const startDate = new Date(document.getElementById('start_date').value);
+            const endDate = new Date(document.getElementById('end_date').value);
+
+            if (endDate <= startDate) {
+                errors.push('End date must be after start date');
+            }
+
+            if (startDate < new Date()) {
+                errors.push('Start date cannot be in the past');
+            }
+        }
+
+        // Check for visible conflicts
+        const conflictDiv = document.querySelector('.conflict-warning');
+        if (conflictDiv && conflictDiv.style.display !== 'none') {
+            errors.push('Please resolve the delegation conflicts before proceeding');
+        }
+
+        if (errors.length > 0) {
+            showValidationErrors(errors);
+            return false;
+        }
+
+        validationSummary.style.display = 'none';
+        return true;
+    }
+
+    function showValidationErrors(errors) {
+        let errorHtml = '<div class="validation-error">';
+        errorHtml += '<h6><i class="fas fa-exclamation-circle"></i> Please fix the following errors:</h6>';
+        errorHtml += '<ul>';
+        errors.forEach(error => {
+            errorHtml += `<li>${error}</li>`;
+        });
+        errorHtml += '</ul>';
+        errorHtml += '</div>';
+        
+        validationSummary.innerHTML = errorHtml;
+        validationSummary.style.display = 'block';
+        
+        // Scroll to validation summary
+        validationSummary.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+});
+</script>
+{% endblock %}

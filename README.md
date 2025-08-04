@@ -68,9 +68,6 @@ pip install django djangorestframework django-cors-headers
 # Run migrations
 python manage.py migrate
 
-# Create test data
-python check_and_create_data.py
-
 # Start development server
 python manage.py runserver
 ```
@@ -115,7 +112,6 @@ RMS/
 │   ├── permissions.py     # Role-based permissions
 │   └── templates/         # Web interface templates
 ├── manage.py              # Django management script
-├── check_and_create_data.py  # Test data creation
 └── INTEGRATION_GUIDE.md   # Detailed API integration guide
 ```
 

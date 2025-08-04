@@ -327,18 +327,19 @@ class Notification(models.Model):
     class Meta:
         ordering = ['-created_at']
 
-    def mark_as_read(self):
-        """Mark notification as read"""
+    def mark_notification_as_read(self):
+        """Marks notification as read"""
         self.is_read = True
         self.save()
 
-    def send_email(self):
-        """Send email notification to user"""
+    def send_email_to_user(self):
+        """Sends email notification to user"""
         from django.core.mail import send_mail
         from django.conf import settings
         from django.utils import timezone
 
         try:
+            # Send the email
             send_mail(
                 subject=f"RMS Notification: {self.title}",
                 message=self.message,
@@ -346,6 +347,7 @@ class Notification(models.Model):
                 recipient_list=[self.user.email],
                 fail_silently=False,
             )
+            # Mark as sent
             self.email_sent = True
             self.email_sent_at = timezone.now()
             self.save()
@@ -465,6 +467,10 @@ class PermissionDelegation(models.Model):
     # Reason for delegation
     reason = models.TextField()
 
+    # Optional time-based delegation
+    start_date = models.DateTimeField(null=True, blank=True, help_text="When the delegation becomes active (optional)")
+    end_date = models.DateTimeField(null=True, blank=True, help_text="When the delegation expires (optional)")
+
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -478,7 +484,38 @@ class PermissionDelegation(models.Model):
 
     def is_active(self):
         """Check if delegation is currently active"""
-        return self.status == 'ACTIVE'
+        from django.utils import timezone
+        now = timezone.now()
+
+        # Check basic status
+        if self.status != 'ACTIVE':
+            return False
+
+        # Check start date if set
+        if self.start_date and now < self.start_date:
+            return False
+
+        # Check end date if set
+        if self.end_date and now > self.end_date:
+            return False
+
+        return True
+
+    def is_expired(self):
+        """Check if delegation has expired"""
+        from django.utils import timezone
+        if self.status == 'EXPIRED':
+            return True
+        if self.end_date and timezone.now() > self.end_date:
+            return True
+        return False
+
+    def check_and_update_expiry(self):
+        """Check if delegation should be expired and update status"""
+        if self.is_expired() and self.status == 'ACTIVE':
+            self.expire()
+            return True
+        return False
 
     def revoke(self, revoked_by, reason=""):
         """Revoke this delegation and remove temporary role"""
@@ -497,14 +534,201 @@ class PermissionDelegation(models.Model):
         )
 
     def expire(self):
-        """Mark delegation as expired"""
+        """Mark delegation as expired and remove temporary role"""
         self.status = 'EXPIRED'
         self.save()
 
-    def revoke(self):
-        """Revoke delegation"""
-        self.status = 'REVOKED'
-        self.save()
+        # Remove temporary role
+        UserRole.objects.filter(delegation=self, is_temporary=True).delete()
+
+        # Log the expiration
+        AuditLog.objects.create(
+            user=self.delegate,
+            action='DELEGATION_EXPIRED',
+            description=f'Delegation expired: {self.delegated_role.get_role_display()} from {self.delegator.get_full_name()}',
+            level='INFO'
+        )
+
+    def get_time_remaining(self):
+        """Get time remaining until expiration"""
+        if not self.end_date:
+            return None
+
+        from django.utils import timezone
+        now = timezone.now()
+
+        if now >= self.end_date:
+            return "Expired"
+
+        delta = self.end_date - now
+        days = delta.days
+        hours = delta.seconds // 3600
+
+        if days > 0:
+            return f"{days} day{'s' if days != 1 else ''}"
+        elif hours > 0:
+            return f"{hours} hour{'s' if hours != 1 else ''}"
+        else:
+            return "Less than 1 hour"
+
+    @classmethod
+    def check_if_delegation_is_allowed(cls, delegator_role, delegate_user, created_by):
+        """
+        Checks if delegation is allowed based on all rules
+        """
+        error_list = []
+
+        # Rule 1: Only Super Admin can create delegations
+        is_super_admin = cls.check_if_super_admin(created_by)
+        if not is_super_admin:
+            error_list.append("Only Super Admin users can create delegations")
+            return False, error_list
+
+        # Rule 2: Students cannot be delegated any roles
+        is_student = cls.check_if_student(delegate_user)
+        if is_student:
+            error_list.append("Students cannot be delegated any roles")
+
+        # Rule 3: Single delegation limit - each user can hold only ONE delegated role
+        existing_delegation_list = cls.objects.filter(
+            delegate=delegate_user,
+            status='ACTIVE'
+        ).exclude(delegated_role=delegator_role)
+
+        if existing_delegation_list.exists():
+            existing_role = existing_delegation_list.first().delegated_role.get_role_display()
+            error_list.append(f"User already has an active delegation ({existing_role}). Only one delegated role allowed per user.")
+
+        # Rule 4: Faculty-based restrictions (unless Super Admin is creating)
+        if not cls.check_if_super_admin(created_by):
+            # For non-Super Admin creators, enforce faculty restrictions
+            is_same_faculty = cls.check_same_faculty(delegator_role, delegate_user)
+            if not is_same_faculty:
+                error_list.append("Cross-faculty delegation is only allowed for Super Admin users")
+
+        # Rule 5: Prevent delegation to users who already have the same role
+        user_has_role = cls.check_if_user_has_role(delegate_user, delegator_role.role)
+        if user_has_role:
+            error_list.append(f"User already has {delegator_role.get_role_display()} role")
+
+        return len(error_list) == 0, error_list
+
+    @staticmethod
+    def check_if_super_admin(user):
+        """Check if user is Super Admin"""
+        has_super_admin_role = UserRole.objects.filter(
+            user=user,
+            role='SUPER_ADMIN',
+            is_temporary=False
+        ).exists()
+        return has_super_admin_role
+
+    @staticmethod
+    def check_if_student(user):
+        """Check if user is a student"""
+        from .models import Student
+        is_student = Student.objects.filter(user=user).exists()
+        return is_student
+
+    @staticmethod
+    def check_same_faculty(delegator_role, delegate_user):
+        """Check if delegator and delegate are in same faculty"""
+        # Get delegate's faculty from their primary role
+        delegate_role = UserRole.objects.filter(
+            user=delegate_user,
+            is_temporary=False,
+            is_primary=True
+        ).first()
+
+        if not delegate_role or not delegate_role.faculty:
+            return False
+
+        # Compare faculties
+        same_faculty = delegator_role.faculty == delegate_role.faculty
+        return same_faculty
+
+    @staticmethod
+    def check_if_user_has_role(user, role):
+        """Check if user already has the specified role"""
+        has_role = UserRole.objects.filter(
+            user=user,
+            role=role
+        ).exists()
+        return has_role
+
+    @classmethod
+    def find_eligible_users_for_delegation(cls, delegator_role, created_by):
+        """
+        Finds users who can receive delegation
+        """
+        from django.contrib.auth.models import User
+        from .models import Student
+
+        # Start with all active users
+        user_list = User.objects.filter(is_active=True)
+
+        # Remove students from the list
+        student_id_list = Student.objects.values_list('user_id', flat=True)
+        user_list = user_list.exclude(id__in=student_id_list)
+
+        # Remove users who already have this role
+        existing_role_id_list = UserRole.objects.filter(
+            role=delegator_role.role
+        ).values_list('user_id', flat=True)
+        user_list = user_list.exclude(id__in=existing_role_id_list)
+
+        # Remove users who already have an active delegation
+        active_delegation_id_list = cls.objects.filter(
+            status='ACTIVE'
+        ).values_list('delegate_id', flat=True)
+        user_list = user_list.exclude(id__in=active_delegation_id_list)
+
+        # If not Super Admin, restrict to same faculty
+        is_super_admin = cls.check_if_super_admin(created_by)
+        if not is_super_admin and delegator_role.faculty:
+            # Get users in the same faculty
+            same_faculty_id_list = UserRole.objects.filter(
+                faculty=delegator_role.faculty,
+                is_temporary=False
+            ).values_list('user_id', flat=True)
+            user_list = user_list.filter(id__in=same_faculty_id_list)
+
+        return user_list.distinct().order_by('first_name', 'last_name')
+
+    @classmethod
+    def get_delegatable_roles(cls, created_by, faculty=None):
+        """
+        Get list of roles that can be delegated by the creator
+
+        Args:
+            created_by: User creating the delegation
+            faculty: Optional faculty filter
+
+        Returns:
+            QuerySet of UserRole objects that can be delegated
+        """
+        # Only Super Admin can create delegations
+        if not cls._is_super_admin(created_by):
+            return UserRole.objects.none()
+
+        # Get all non-temporary, non-student roles
+        delegatable_roles = UserRole.objects.filter(
+            is_temporary=False
+        ).exclude(
+            role='STUDENT'  # Exclude student roles if they exist
+        ).select_related('user', 'faculty', 'department')
+
+        # Filter by faculty if specified
+        if faculty:
+            delegatable_roles = delegatable_roles.filter(faculty=faculty)
+
+        # Exclude roles that are already delegated
+        active_delegation_role_ids = cls.objects.filter(
+            status='ACTIVE'
+        ).values_list('delegated_role_id', flat=True)
+        delegatable_roles = delegatable_roles.exclude(id__in=active_delegation_role_ids)
+
+        return delegatable_roles.order_by('faculty__name', 'role', 'user__first_name')
 
 
 # Student Complaint System (Post-Publication)

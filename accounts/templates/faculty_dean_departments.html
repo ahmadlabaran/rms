@@ -1,601 +1,214 @@
 {% extends 'base.html' %}
 
-{% block title %}Manage Departments - RMS{% endblock %}
+{% block title %}Manage Departments - {{ faculty.name }}{% endblock %}
 
 {% block content %}
 <style>
-    :root {
-        --ios-red: #FF3B30;
-        --ios-blue: #007AFF;
-        --ios-green: #34C759;
-        --ios-orange: #FF9500;
-        --text-primary: #1D1D1F;
-        --text-secondary: #86868B;
-        --text-tertiary: #C7C7CC;
-        --surface-primary: #FFFFFF;
-        --surface-secondary: #F2F2F7;
-        --border-color: #D1D1D6;
-        --border-light: #E5E5EA;
-        --royal-blue-gradient: linear-gradient(135deg, #007AFF 0%, #FF3B30 100%);
-    }
-
-    /* Modal Styles */
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0,0,0,0.5);
-        backdrop-filter: blur(5px);
-    }
-
-    .modal-content {
-        background-color: white;
-        margin: 5% auto;
-        padding: 24px;
+    .card {
+        background: #FFFFFF;
+        border: 1px solid var(--border-light);
         border-radius: 16px;
-        width: 90%;
-        max-width: 500px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        animation: modalSlideIn 0.3s ease-out;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     }
 
-    @keyframes modalSlideIn {
-        from { opacity: 0; transform: translateY(-50px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        padding-bottom: 16px;
-        border-bottom: 1px solid var(--border-light);
-    }
-
-    .modal-title {
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin: 0;
-    }
-
-    .close {
-        background: none;
-        border: none;
-        font-size: 24px;
-        cursor: pointer;
-        color: var(--text-secondary);
-        padding: 4px;
-        border-radius: 4px;
-        transition: all 0.2s ease;
-    }
-
-    .close:hover {
-        background: var(--surface-secondary);
-        color: var(--text-primary);
-    }
-
-    .form-group {
-        margin-bottom: 16px;
-    }
-
-    .form-label {
-        display: block;
-        margin-bottom: 6px;
+    .btn {
+        border-radius: 12px;
         font-weight: 600;
-        color: var(--text-primary);
+        border: none;
         font-size: 14px;
     }
 
-    .form-input {
-        width: 100%;
-        padding: 12px 16px;
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        font-size: 16px;
-        background: #FFFFFF;
-        box-sizing: border-box;
-        transition: border-color 0.2s ease;
+    .btn-primary {
+        background: var(--ios-blue);
+        color: white;
     }
 
-    .form-input:focus {
-        outline: none;
-        border-color: var(--ios-blue);
-        box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+    .btn-secondary {
+        background: var(--ios-gray-light);
+        color: var(--text-primary);
     }
 
-    .form-textarea {
-        resize: vertical;
-        min-height: 80px;
+    .btn-success {
+        background: var(--ios-green);
+        color: white;
     }
 
-    .modal-buttons {
-        display: flex;
-        gap: 12px;
-        justify-content: flex-end;
-        margin-top: 24px;
+    .btn-warning {
+        background: var(--ios-orange);
+        color: white;
     }
 
-    /* Success/Error Messages */
-    .message {
-        padding: 12px 16px;
-        border-radius: 8px;
-        margin-bottom: 16px;
-        font-weight: 500;
-    }
-
-    .message-success {
-        background: rgba(52, 199, 89, 0.1);
-        color: var(--ios-green);
-        border: 1px solid rgba(52, 199, 89, 0.3);
-    }
-
-    .message-error {
-        background: rgba(255, 59, 48, 0.1);
-        color: var(--ios-red);
-        border: 1px solid rgba(255, 59, 48, 0.3);
+    .btn-danger {
+        background: var(--ios-red);
+        color: white;
     }
 </style>
 
-<!-- Page Header -->
-<div class="page-header">
-    <h1 class="page-title">Department Management</h1>
-    <p class="page-subtitle">Manage departments in {{ faculty.name }} Faculty</p>
-</div>
-
-<!-- Quick Actions -->
-<div class="ios-card" style="margin-bottom: 32px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 style="color: var(--text-primary); font-size: 20px; font-weight: 600; margin: 0;">Quick Actions</h2>
-    </div>
-    
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-        <a href="{% url 'faculty_dean_create_department' %}" class="btn btn-primary">Create Department with HOD</a>
-        <button class="btn btn-secondary">Bulk Import</button>
-        <button class="btn btn-secondary">Generate Reports</button>
-        <button class="btn btn-secondary">Export Data</button>
-    </div>
-</div>
-
-<!-- Department Statistics -->
-<div class="stats-grid" style="margin-bottom: 40px;">
-    <div class="stat-card">
-        <div class="stat-number">{{ stats.total_departments }}</div>
-        <div class="stat-label">Total Departments</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-number">{{ stats.total_students }}</div>
-        <div class="stat-label">Total Students</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-number">{{ stats.total_courses }}</div>
-        <div class="stat-label">Total Courses</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-number">{{ stats.departments_with_hod }}</div>
-        <div class="stat-label">Departments with HOD</div>
-    </div>
-</div>
-
-<!-- Departments List -->
-<div class="ios-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h2 style="color: var(--text-primary); font-size: 22px; font-weight: 600; margin: 0;">Faculty Departments</h2>
-        <div style="display: flex; gap: 12px; align-items: center;">
-            <input type="text" id="departmentSearch" placeholder="Search departments..." style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;" oninput="filterDepartments()">
-            <select id="departmentFilter" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;" onchange="filterDepartments()">
-                <option value="">All Departments</option>
-                <option value="with_hod">With HOD</option>
-                <option value="without_hod">Without HOD</option>
-            </select>
-        </div>
-    </div>
-
-    {% if departments %}
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background: var(--surface-secondary);">
-                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Department</th>
-                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Code</th>
-                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">HOD</th>
-                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Students</th>
-                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Courses</th>
-                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Status</th>
-                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for department in departments %}
-                    <tr style="border-bottom: 1px solid var(--border-light);">
-                        <td style="padding: 12px;">
-                            <div style="font-weight: 600; color: var(--text-primary);">{{ department.name }}</div>
-                            <div style="color: var(--text-secondary); font-size: 12px;">Created: {{ department.created_at|date:"M d, Y" }}</div>
-                        </td>
-                        <td style="padding: 12px; color: var(--text-secondary); font-family: monospace;">{{ department.code }}</td>
-                        <td style="padding: 12px;">
-                            {% if department.hod %}
-                                <div style="color: var(--text-primary); font-weight: 500;">{{ department.hod.get_full_name }}</div>
-                                <div style="color: var(--text-secondary); font-size: 12px;">{{ department.hod.email }}</div>
-                            {% else %}
-                                <span style="color: var(--ios-red); font-size: 14px;">No HOD Assigned</span>
-                            {% endif %}
-                        </td>
-                        <td style="padding: 12px; color: var(--text-secondary);">{{ department.students_count }}</td>
-                        <td style="padding: 12px; color: var(--text-secondary);">{{ department.courses_count }}</td>
-                        <td style="padding: 12px;">
-                            {% if department.hod %}
-                                <span class="badge badge-success">Active</span>
-                            {% else %}
-                                <span class="badge badge-warning">Needs HOD</span>
-                            {% endif %}
-                        </td>
-                        <td style="padding: 12px;">
-                            <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-secondary view-dept-btn" style="padding: 6px 12px; font-size: 12px;" data-dept-id="{{ department.id }}" data-dept-name="{{ department.name }}">View Details</button>
-                                {% if not department.hod %}
-                                    <button class="btn btn-primary assign-hod-btn" style="padding: 6px 12px; font-size: 12px;" data-dept-id="{{ department.id }}" data-dept-name="{{ department.name }}">Assign HOD</button>
-                                {% endif %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">{{ faculty.name }} Departments</h1>
+                            <p class="mb-0 opacity-75">Manage departments and assign HODs</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">
+                                <div class="h3 fw-bold mb-0">{{ stats.total_departments }}</div>
+                                <small class="opacity-75">Total Departments</small>
                             </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <div style="text-align: center; padding: 60px; color: var(--text-secondary);">
-            <div style="width: 80px; height: 80px; background: var(--ios-blue-ultra-light); border-radius: 20px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-                <div style="width: 40px; height: 40px; background: var(--ios-blue); border-radius: 10px; opacity: 0.6;"></div>
-            </div>
-            <h3 style="color: var(--text-primary); margin-bottom: 8px;">No Departments Found</h3>
-            <p style="margin-bottom: 20px;">Create your first department to get started</p>
-            <a href="{% url 'faculty_dean_create_department' %}" class="btn btn-primary">Create Department</a>
-        </div>
-    {% endif %}
-</div>
-
-<!-- Department Performance Overview -->
-{% if departments %}
-<div class="ios-card" style="margin-top: 32px;">
-    <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Department Performance Overview</h2>
-    
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-        {% for department in departments %}
-        <div style="background: var(--surface-secondary); padding: 20px; border-radius: 12px;">
-            <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 12px;">
-                <h3 style="color: var(--ios-blue); font-size: 16px; font-weight: 600; margin: 0;">{{ department.name }}</h3>
-                {% if department.hod %}
-                    <span class="badge badge-success">Active</span>
-                {% else %}
-                    <span class="badge badge-warning">No HOD</span>
-                {% endif %}
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-                <div style="text-align: center;">
-                    <div style="font-size: 20px; font-weight: 700; color: var(--ios-blue);">{{ department.students_count }}</div>
-                    <div style="font-size: 12px; color: var(--text-secondary);">Students</div>
-                </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 20px; font-weight: 700; color: var(--ios-blue);">{{ department.courses_count }}</div>
-                    <div style="font-size: 12px; color: var(--text-secondary);">Courses</div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            
-            <div style="display: flex; gap: 8px;">
-                <button class="btn btn-secondary btn-compact view-dept-btn" style="flex: 1; text-align: center;" data-dept-id="{{ department.id }}" data-dept-name="{{ department.name }}">View Details</button>
-                {% if not department.hod %}
-                    <button class="btn btn-primary btn-compact assign-hod-btn" style="flex: 1; text-align: center;" data-dept-id="{{ department.id }}" data-dept-name="{{ department.name }}">Assign HOD</button>
-                {% endif %}
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
-
-<script>
-    function filterDepartments() {
-        const searchTerm = document.getElementById('departmentSearch').value.toLowerCase();
-        const filterValue = document.getElementById('departmentFilter').value;
-        const departmentRows = document.querySelectorAll('tbody tr');
-
-        departmentRows.forEach(row => {
-            const departmentName = row.querySelector('td:first-child').textContent.toLowerCase();
-            const hodCell = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-
-            const matchesSearch = departmentName.includes(searchTerm);
-            let matchesFilter = true;
-
-            if (filterValue === 'with_hod') {
-                matchesFilter = !hodCell.includes('no hod assigned');
-            } else if (filterValue === 'without_hod') {
-                matchesFilter = hodCell.includes('no hod assigned');
-            }
-
-            if (matchesSearch && matchesFilter) {
-                row.style.display = 'table-row';
-            } else {
-                row.style.display = 'none';
-            }
-        });
-    }
-
-    // Add event listeners for department buttons
-    document.addEventListener('DOMContentLoaded', function() {
-        // View department details buttons
-        document.querySelectorAll('.view-dept-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const deptId = this.getAttribute('data-dept-id');
-                const deptName = this.getAttribute('data-dept-name');
-                viewDepartmentDetails(deptId, deptName);
-            });
-        });
-
-        // Assign HOD buttons
-        document.querySelectorAll('.assign-hod-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const deptId = this.getAttribute('data-dept-id');
-                const deptName = this.getAttribute('data-dept-name');
-                openAssignHODModal(deptId, deptName);
-            });
-        });
-    });
-</script>
-
-<!-- Create Department Modal -->
-<div id="createDepartmentModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 class="modal-title">Create New Department</h2>
-            <button class="close" onclick="closeCreateDepartmentModal()">&times;</button>
-        </div>
-
-        <div id="createDepartmentMessage"></div>
-
-        <form id="createDepartmentForm">
-            {% csrf_token %}
-            <div class="form-group">
-                <label class="form-label" for="departmentName">Department Name *</label>
-                <input type="text" id="departmentName" name="name" class="form-input" placeholder="e.g., Computer Science" required>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label" for="departmentCode">Department Code *</label>
-                <input type="text" id="departmentCode" name="code" class="form-input" placeholder="e.g., CSC" required style="text-transform: uppercase;">
-            </div>
-
-            <div class="form-group">
-                <label class="form-label" for="departmentDescription">Description</label>
-                <textarea id="departmentDescription" name="description" class="form-input form-textarea" placeholder="Brief description of the department (optional)"></textarea>
-            </div>
-
-            <div class="modal-buttons">
-                <button type="button" onclick="closeCreateDepartmentModal()" class="btn btn-secondary">Cancel</button>
-                <button type="submit" class="btn btn-primary">Create Department</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Assign HOD Modal -->
-<div id="assignHODModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 class="modal-title">Assign Head of Department</h2>
-            <button class="close" onclick="closeAssignHODModal()">&times;</button>
-        </div>
-
-        <div id="assignHODMessage"></div>
-
-        <div id="assignHODContent">
-            <p>Loading available lecturers...</p>
         </div>
     </div>
-</div>
 
-<!-- Department Details Modal -->
-<div id="departmentDetailsModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 class="modal-title">Department Details</h2>
-            <button class="close" onclick="closeDepartmentDetailsModal()">&times;</button>
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="h2 text-primary fw-bold">{{ stats.total_departments }}</div>
+                    <div class="text-muted">Total Departments</div>
+                </div>
+            </div>
         </div>
-
-        <div id="departmentDetailsContent">
-            <p>Loading department details...</p>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="h2 text-success fw-bold">{{ stats.departments_with_hod }}</div>
+                    <div class="text-muted">With HOD</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="h2 text-info fw-bold">{{ stats.total_students }}</div>
+                    <div class="text-muted">Total Students</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="h2 text-warning fw-bold">{{ stats.total_courses }}</div>
+                    <div class="text-muted">Total Courses</div>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<script>
-// Create Department Modal Functions
-function openCreateDepartmentModal() {
-    document.getElementById('createDepartmentModal').style.display = 'block';
-    document.getElementById('createDepartmentMessage').innerHTML = '';
-    document.getElementById('createDepartmentForm').reset();
-}
-
-function closeCreateDepartmentModal() {
-    document.getElementById('createDepartmentModal').style.display = 'none';
-}
-
-// Handle Create Department Form Submission
-document.getElementById('createDepartmentForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    const formData = new FormData(this);
-    const submitButton = this.querySelector('button[type="submit"]');
-    const messageDiv = document.getElementById('createDepartmentMessage');
-
-    // Disable submit button
-    submitButton.disabled = true;
-    submitButton.textContent = 'Creating...';
-
-    fetch('{% url "faculty_dean_create_department" %}', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            messageDiv.innerHTML = '<div class="message message-success">' + data.message + '</div>';
-            setTimeout(() => {
-                closeCreateDepartmentModal();
-                location.reload(); // Refresh the page to show the new department
-            }, 1500);
-        } else {
-            messageDiv.innerHTML = '<div class="message message-error">' + data.message + '</div>';
-        }
-    })
-    .catch(error => {
-        messageDiv.innerHTML = '<div class="message message-error">An error occurred. Please try again.</div>';
-    })
-    .finally(() => {
-        // Re-enable submit button
-        submitButton.disabled = false;
-        submitButton.textContent = 'Create Department';
-    });
-});
-
-// Assign HOD Modal Functions
-function openAssignHODModal(departmentId, departmentName) {
-    document.getElementById('assignHODModal').style.display = 'block';
-    document.getElementById('assignHODMessage').innerHTML = '';
-
-    // Load available lecturers
-    fetch(`{% url "faculty_dean_assign_hod" 0 %}`.replace('0', departmentId))
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            let content = `
-                <p style="margin-bottom: 16px;">Select a lecturer to assign as Head of Department for <strong>${departmentName}</strong>:</p>
-                <form id="assignHODForm">
-                    <input type="hidden" name="department_id" value="${departmentId}">
-                    <div class="form-group">
-                        <label class="form-label">Available Lecturers</label>
-                        <select name="lecturer_id" class="form-input" required>
-                            <option value="">Select a lecturer...</option>
-            `;
-
-            data.lecturers.forEach(lecturer => {
-                content += `<option value="${lecturer.id}">${lecturer.name} (${lecturer.department})</option>`;
-            });
-
-            content += `
-                        </select>
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3">Quick Actions</h5>
+                    <div class="row">
+                        <div class="col-lg-3 col-md-6 mb-2">
+                            <a href="{% url 'faculty_dean_create_department' %}" class="btn btn-primary w-100">Create Department</a>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-2">
+                            <button class="btn btn-secondary w-100">Bulk Import</button>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-2">
+                            <button class="btn btn-secondary w-100">Generate Reports</button>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-2">
+                            <button class="btn btn-secondary w-100">Export Data</button>
+                        </div>
                     </div>
-                    <div class="modal-buttons">
-                        <button type="button" onclick="closeAssignHODModal()" class="btn btn-secondary">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Assign HOD</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Departments List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title fw-bold mb-0">Departments ({{ departments.count }})</h5>
+                        <a href="{% url 'faculty_dean_create_department' %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-plus-circle me-1"></i>Add Department
+                        </a>
                     </div>
-                </form>
-            `;
 
-            document.getElementById('assignHODContent').innerHTML = content;
+                    {% if departments %}
+                        <div class="row">
+                            {% for department in departments %}
+                            <div class="col-lg-6 col-xl-4 mb-3">
+                                <div class="card border">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                                <h6 class="card-title fw-bold text-primary mb-1">{{ department.name }}</h6>
+                                                <small class="text-muted">{{ department.code }}</small>
+                                            </div>
+                                            {% if department.hod %}
+                                                <span class="badge bg-success">HOD Assigned</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">No HOD</span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        {% if department.hod %}
+                                            <div class="mb-2">
+                                                <small class="text-muted">HOD:</small>
+                                                <div class="fw-bold">{{ department.hod.get_full_name }}</div>
+                                            </div>
+                                        {% endif %}
 
-            // Add form submission handler
-            document.getElementById('assignHODForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                assignHOD(departmentId);
-            });
-        } else {
-            document.getElementById('assignHODContent').innerHTML = '<div class="message message-error">' + data.message + '</div>';
-        }
-    })
-    .catch(error => {
-        document.getElementById('assignHODContent').innerHTML = '<div class="message message-error">Failed to load lecturers.</div>';
-    });
-}
+                                        <div class="row text-center mb-3">
+                                            <div class="col-6">
+                                                <div class="fw-bold text-primary">{{ department.students_count }}</div>
+                                                <small class="text-muted">Students</small>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="fw-bold text-success">{{ department.courses_count }}</div>
+                                                <small class="text-muted">Courses</small>
+                                            </div>
+                                        </div>
 
-function closeAssignHODModal() {
-    document.getElementById('assignHODModal').style.display = 'none';
-}
-
-function assignHOD(departmentId) {
-    const form = document.getElementById('assignHODForm');
-    const formData = new FormData(form);
-    const submitButton = form.querySelector('button[type="submit"]');
-    const messageDiv = document.getElementById('assignHODMessage');
-
-    submitButton.disabled = true;
-    submitButton.textContent = 'Assigning...';
-
-    fetch(`{% url "faculty_dean_assign_hod" 0 %}`.replace('0', departmentId), {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            messageDiv.innerHTML = '<div class="message message-success">' + data.message + '</div>';
-            setTimeout(() => {
-                closeAssignHODModal();
-                location.reload();
-            }, 1500);
-        } else {
-            messageDiv.innerHTML = '<div class="message message-error">' + data.message + '</div>';
-        }
-    })
-    .catch(error => {
-        messageDiv.innerHTML = '<div class="message message-error">An error occurred. Please try again.</div>';
-    })
-    .finally(() => {
-        submitButton.disabled = false;
-        submitButton.textContent = 'Assign HOD';
-    });
-}
-
-// Department Details Modal Functions
-function viewDepartmentDetails(departmentId, departmentName) {
-    document.getElementById('departmentDetailsModal').style.display = 'block';
-
-    // For now, show basic info. You can expand this later
-    const content = `
-        <div style="margin-bottom: 20px;">
-            <h3 style="color: var(--text-primary); margin-bottom: 12px;">${departmentName}</h3>
-            <p style="color: var(--text-secondary);">Department ID: ${departmentId}</p>
+                                        <div class="d-grid gap-2">
+                                            <a href="{% url 'faculty_dean_department_details' department.id %}" class="btn btn-outline-primary btn-sm">
+                                                View Details
+                                            </a>
+                                            {% if not department.hod %}
+                                                <a href="{% url 'faculty_dean_assign_hod_single' department.id %}" class="btn btn-primary btn-sm">
+                                                    Assign HOD
+                                                </a>
+                                            {% else %}
+                                                <a href="{% url 'faculty_dean_change_hod' department.id %}" class="btn btn-warning btn-sm">
+                                                    Change HOD
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-building" style="font-size: 3rem; color: #ccc;"></i>
+                            <h5 class="mt-3 text-muted">No Departments Found</h5>
+                            <p class="text-muted">Create your first department to get started.</p>
+                            <a href="{% url 'faculty_dean_create_department' %}" class="btn btn-primary">
+                                Create Department
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
-        <div class="modal-buttons">
-            <button onclick="closeDepartmentDetailsModal()" class="btn btn-primary">Close</button>
-        </div>
-    `;
-
-    document.getElementById('departmentDetailsContent').innerHTML = content;
-}
-
-function closeDepartmentDetailsModal() {
-    document.getElementById('departmentDetailsModal').style.display = 'none';
-}
-
-// Close modals when clicking outside
-window.onclick = function(event) {
-    const createModal = document.getElementById('createDepartmentModal');
-    const assignModal = document.getElementById('assignHODModal');
-    const detailsModal = document.getElementById('departmentDetailsModal');
-
-    if (event.target === createModal) {
-        closeCreateDepartmentModal();
-    }
-    if (event.target === assignModal) {
-        closeAssignHODModal();
-    }
-    if (event.target === detailsModal) {
-        closeDepartmentDetailsModal();
-    }
-}
-</script>
+    </div>
+</div>
 
 {% endblock %}

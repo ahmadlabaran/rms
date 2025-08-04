@@ -4,280 +4,274 @@
 
 {% block content %}
 <style>
-    :root {
-        --ios-red: #FF3B30;
-        --ios-blue: #007AFF;
-        --ios-green: #34C759;
-        --ios-orange: #FF9500;
-        --text-primary: #1D1D1F;
-        --text-secondary: #86868B;
-        --text-tertiary: #C7C7CC;
-        --surface-primary: #FFFFFF;
-        --surface-secondary: #F2F2F7;
-        --border-color: #D1D1D6;
-        --border-light: #E5E5EA;
-        --royal-blue-gradient: linear-gradient(135deg, #007AFF 0%, #1e40af 100%);
+    .card {
+        background: #FFFFFF;
+        border: 1px solid var(--border-light);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     }
 
-    /* Mobile Responsive Styles */
-    @media (max-width: 768px) {
-        .mobile-container {
-            max-width: 100% !important;
-            margin: 0 8px !important;
-            padding: 12px !important;
-        }
-
-        .mobile-card {
-            padding: 16px !important;
-            margin-bottom: 16px !important;
-            border-radius: 12px !important;
-        }
-
-        .mobile-grid {
-            grid-template-columns: 1fr !important;
-            gap: 12px !important;
-        }
-
-        .mobile-button {
-            padding: 10px 12px !important;
-            font-size: 13px !important;
-            white-space: nowrap !important;
-            overflow: hidden !important;
-            text-overflow: ellipsis !important;
-            max-width: 100% !important;
-            box-sizing: border-box !important;
-        }
-
-        .mobile-text-small {
-            font-size: 14px !important;
-        }
-
-        .mobile-text-xs {
-            font-size: 12px !important;
-        }
-
-        h1 {
-            font-size: 22px !important;
-        }
-
-        h2 {
-            font-size: 18px !important;
-        }
-
-        .mobile-stat-card {
-            padding: 16px !important;
-            margin-bottom: 12px !important;
-        }
-
-        .mobile-stat-number {
-            font-size: 24px !important;
-        }
-
-        .mobile-flex-wrap {
-            flex-direction: column !important;
-            gap: 8px !important;
-        }
-
-        .mobile-student-card {
-            padding: 12px !important;
-            margin-bottom: 12px !important;
-        }
-
-        .mobile-student-buttons {
-            flex-direction: column !important;
-            gap: 6px !important;
-        }
-
-        .mobile-student-buttons button {
-            font-size: 11px !important;
-            padding: 6px 8px !important;
-        }
+    .btn {
+        border-radius: 12px;
+        font-weight: 600;
+        border: none;
+        font-size: 14px;
     }
 
-    @media (max-width: 480px) {
-        .mobile-container {
-            margin: 0 4px !important;
-            padding: 8px !important;
-        }
+    .btn-primary {
+        background: var(--ios-blue);
+        color: white;
+    }
 
-        .mobile-card {
-            padding: 12px !important;
-        }
+    .btn-secondary {
+        background: var(--ios-gray-light);
+        color: var(--text-primary);
+    }
 
-        .mobile-button {
-            padding: 8px 10px !important;
-            font-size: 12px !important;
-        }
+    .btn-success {
+        background: var(--ios-green);
+        color: white;
+    }
 
-        h1 {
-            font-size: 18px !important;
-        }
+    .btn-warning {
+        background: var(--ios-orange);
+        color: white;
+    }
 
-        .mobile-hide-small {
-            display: none !important;
-        }
+    .btn-danger {
+        background: var(--ios-red);
+        color: white;
     }
 </style>
 
-<div>
-    <div class="mobile-container" style="max-width: 1400px; margin: 0 auto; padding: 16px;">
-        <!-- Header -->
-        <div class="mobile-card" style="background: rgba(255,255,255,0.95); border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
-            <div class="mobile-flex-wrap" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-                <div style="flex: 1; min-width: 200px;">
-                    <h1 style="font-size: 28px; font-weight: 700; color: var(--text-primary); margin: 0 0 6px 0; letter-spacing: -0.5px;">
-                        {{ faculty.name }} Students
-                    </h1>
-                    <p class="mobile-text-small" style="color: var(--text-secondary); margin: 0; font-size: 16px; font-weight: 500;">
-                        Faculty Dean Dashboard - Student Management
-                    </p>
-                </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <a href="{% url 'faculty_dean_dashboard' %}" class="mobile-button"
-                       style="background: #FFFFFF; color: var(--text-primary); padding: 12px 16px; border-radius: 12px; text-decoration: none; font-weight: 600; border: 1px solid var(--border-color); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 10px rgba(0,0,0,0.05); white-space: nowrap;">
-                        ← Back to Dashboard
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Statistics Cards -->
-        <div class="mobile-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
-            <div class="mobile-stat-card" style="background: var(--royal-blue-gradient); color: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 20px rgba(30, 58, 138, 0.3);">
-                <div class="mobile-stat-number" style="font-size: 28px; font-weight: 700; margin-bottom: 6px;">{{ stats.total_students }}</div>
-                <div style="font-size: 12px; opacity: 0.9;">Total Students</div>
-            </div>
-
-            <div class="mobile-stat-card" style="background: var(--ios-green); color: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 20px rgba(52, 199, 89, 0.3);">
-                <div class="mobile-stat-number" style="font-size: 28px; font-weight: 700; margin-bottom: 6px;">{{ stats.by_level.100 }}</div>
-                <div style="font-size: 12px; opacity: 0.9;">100 Level</div>
-            </div>
-
-            <div class="mobile-stat-card" style="background: var(--ios-orange); color: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 20px rgba(255, 149, 0, 0.3);">
-                <div class="mobile-stat-number" style="font-size: 28px; font-weight: 700; margin-bottom: 6px;">{{ stats.by_level.200 }}</div>
-                <div style="font-size: 12px; opacity: 0.9;">200 Level</div>
-            </div>
-
-            <div class="mobile-stat-card" style="background: var(--ios-red); color: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 20px rgba(255, 59, 48, 0.3);">
-                <div class="mobile-stat-number" style="font-size: 28px; font-weight: 700; margin-bottom: 6px;">{{ stats.by_level.300 }}</div>
-                <div style="font-size: 12px; opacity: 0.9;">300 Level</div>
-            </div>
-
-            <div class="mobile-stat-card mobile-hide-small" style="background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 100%); color: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);">
-                <div class="mobile-stat-number" style="font-size: 28px; font-weight: 700; margin-bottom: 6px;">{{ stats.by_level.400 }}</div>
-                <div style="font-size: 12px; opacity: 0.9;">400 Level</div>
-            </div>
-        </div>
-
-        <!-- Search and Filters -->
-        <div class="mobile-card" style="background: rgba(255,255,255,0.95); border: 1px solid var(--border-light); border-radius: 24px; padding: 20px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
-            <form method="get" class="mobile-grid" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 12px; align-items: end;">
-                <div>
-                    <label class="mobile-text-xs" style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-primary); font-size: 12px;">Search Students</label>
-                    <input type="text" name="search" value="{{ search_query }}" placeholder="Search by name or matric..."
-                           class="mobile-button" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background: #FFFFFF; box-sizing: border-box;">
-                </div>
-
-                <div>
-                    <label class="mobile-text-xs" style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-primary); font-size: 12px;">Department</label>
-                    <select name="department" class="mobile-button" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background: #FFFFFF; box-sizing: border-box;">
-                        <option value="">All Departments</option>
-                        {% for dept in departments %}
-                        <option value="{{ dept.id }}" {% if department_filter == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div>
-                    <label class="mobile-text-xs" style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-primary); font-size: 12px;">Level</label>
-                    <select name="level" class="mobile-button" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background: #FFFFFF; box-sizing: border-box;">
-                        <option value="">All Levels</option>
-                        <option value="100" {% if level_filter == "100" %}selected{% endif %}>100 Level</option>
-                        <option value="200" {% if level_filter == "200" %}selected{% endif %}>200 Level</option>
-                        <option value="300" {% if level_filter == "300" %}selected{% endif %}>300 Level</option>
-                        <option value="400" {% if level_filter == "400" %}selected{% endif %}>400 Level</option>
-                    </select>
-                </div>
-
-                <button type="submit" class="mobile-button" style="background: var(--royal-blue-gradient); color: white; padding: 10px 16px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; height: fit-content; white-space: nowrap;">
-                    Filter
-                </button>
-            </form>
-        </div>
-
-        <!-- Students List -->
-        <div class="mobile-card" style="background: rgba(255,255,255,0.95); border: 1px solid var(--border-light); border-radius: 24px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
-            <h2 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin: 0 0 20px 0;">Students ({{ students.paginator.count }})</h2>
-
-            {% if students %}
-                <div class="mobile-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
-                    {% for student in students %}
-                    <div class="mobile-student-card" style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 12px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); transition: all 0.3s ease;">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-                            <div style="flex: 1; min-width: 150px;">
-                                <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 4px 0;">
-                                    {{ student.user.get_full_name }}
-                                </h3>
-                                <p class="mobile-text-xs" style="color: var(--text-secondary); margin: 0; font-size: 12px;">
-                                    {{ student.matric_number }}
-                                </p>
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">{{ faculty.name }} Students</h1>
+                            <p class="mb-0 opacity-75">Manage and monitor student records</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">
+                                <div class="h3 fw-bold mb-0">{{ students.count }}</div>
+                                <small class="opacity-75">Total Students</small>
                             </div>
-                            <span style="background: var(--ios-blue); color: white; padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; white-space: nowrap;">
-                                {{ student.current_level.name }}L
-                            </span>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                        <div style="margin-bottom: 12px;">
-                            <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Department:</div>
-                            <div class="mobile-text-xs" style="font-size: 12px; color: var(--text-primary); word-wrap: break-word;">{{ student.department.name }}</div>
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="h2 text-primary fw-bold">{{ stats.total_students }}</div>
+                    <div class="text-muted">Total Students</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="h2 text-success fw-bold">{{ stats.active_students }}</div>
+                    <div class="text-muted">Active Students</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="h2 text-info fw-bold">{{ stats.new_students }}</div>
+                    <div class="text-muted">New This Session</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="h2 text-warning fw-bold">{{ stats.graduating_students }}</div>
+                    <div class="text-muted">Graduating</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter and Search -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3">Filter Students</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <select class="form-select form-select-sm">
+                                <option>All Departments</option>
+                                {% for department in departments %}
+                                <option value="{{ department.id }}">{{ department.name }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
-
-                        <div style="margin-bottom: 12px;">
-                            <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Email:</div>
-                            <div class="mobile-text-xs" style="font-size: 12px; color: var(--text-primary); word-wrap: break-word; overflow-wrap: break-word;">{{ student.user.email }}</div>
+                        <div class="col-md-3 mb-2">
+                            <select class="form-select form-select-sm">
+                                <option>All Levels</option>
+                                <option value="100">100 Level</option>
+                                <option value="200">200 Level</option>
+                                <option value="300">300 Level</option>
+                                <option value="400">400 Level</option>
+                            </select>
                         </div>
+                        <div class="col-md-3 mb-2">
+                            <select class="form-select form-select-sm">
+                                <option>All Sessions</option>
+                                {% for session in sessions %}
+                                <option value="{{ session.id }}">{{ session.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <input type="text" class="form-control form-control-sm" placeholder="Search matric number...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                        <div class="mobile-student-buttons" style="display: flex; gap: 6px; margin-top: 12px;">
-                            <button class="mobile-button" style="background: var(--ios-blue); color: white; padding: 6px 10px; border-radius: 6px; border: none; font-size: 11px; font-weight: 600; cursor: pointer; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                View Details
+    <!-- Students List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title fw-bold mb-0">Students ({{ students.count }})</h5>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-secondary btn-sm">
+                                <i class="bi bi-download me-1"></i>Export
                             </button>
-                            <button class="mobile-button" style="background: var(--ios-green); color: white; padding: 6px 10px; border-radius: 6px; border: none; font-size: 11px; font-weight: 600; cursor: pointer; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                View Results
+                            <button class="btn btn-primary btn-sm">
+                                <i class="bi bi-plus-circle me-1"></i>Add Student
                             </button>
                         </div>
                     </div>
-                    {% endfor %}
-                </div>
 
-                <!-- Pagination -->
-                {% if students.has_other_pages %}
-                <div style="display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 32px;">
-                    {% if students.has_previous %}
-                        <a href="?page={{ students.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if department_filter %}&department={{ department_filter }}{% endif %}{% if level_filter %}&level={{ level_filter }}{% endif %}"
-                           style="background: var(--ios-blue); color: white; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-                            Previous
-                        </a>
-                    {% endif %}
-                    
-                    <span style="color: var(--text-secondary); font-weight: 600;">
-                        Page {{ students.number }} of {{ students.paginator.num_pages }}
-                    </span>
-                    
-                    {% if students.has_next %}
-                        <a href="?page={{ students.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if department_filter %}&department={{ department_filter }}{% endif %}{% if level_filter %}&level={{ level_filter }}{% endif %}"
-                           style="background: var(--ios-blue); color: white; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-                            Next
-                        </a>
+                    {% if students %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Matric Number</th>
+                                        <th>Name</th>
+                                        <th>Department</th>
+                                        <th>Level</th>
+                                        <th>Session</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for student in students %}
+                                    <tr>
+                                        <td>
+                                            <span class="fw-bold text-primary">{{ student.matric_number }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold">{{ student.get_full_name }}</div>
+                                            <small class="text-muted">{{ student.email }}</small>
+                                        </td>
+                                        <td>{{ student.department.name }}</td>
+                                        <td>
+                                            <span class="badge bg-info">{{ student.level }} Level</span>
+                                        </td>
+                                        <td>{{ student.session.name }}</td>
+                                        <td>
+                                            {% if student.is_active %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary btn-sm" onclick="viewStudent({{ student.id }})">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="editStudent({{ student.id }})">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-outline-info btn-sm" onclick="viewResults({{ student.id }})">
+                                                    <i class="bi bi-file-text"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        {% if students.has_other_pages %}
+                        <nav aria-label="Students pagination" class="mt-3">
+                            <ul class="pagination justify-content-center">
+                                {% if students.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ students.previous_page_number }}">Previous</a>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for num in students.paginator.page_range %}
+                                    {% if students.number == num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if students.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ students.next_page_number }}">Next</a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-people" style="font-size: 3rem; color: #ccc;"></i>
+                            <h5 class="mt-3 text-muted">No Students Found</h5>
+                            <p class="text-muted">No students are currently enrolled in this faculty.</p>
+                        </div>
                     {% endif %}
                 </div>
-                {% endif %}
-            {% else %}
-                <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
-                    <div style="font-size: 18px; margin-bottom: 8px;">No students found</div>
-                    <div style="font-size: 14px;">Try adjusting your search criteria.</div>
-                </div>
-            {% endif %}
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+function viewStudent(studentId) {
+    alert('View student details - to be implemented');
+}
+
+function editStudent(studentId) {
+    alert('Edit student - to be implemented');
+}
+
+function viewResults(studentId) {
+    alert('View student results - to be implemented');
+}
+</script>
+
 {% endblock %}

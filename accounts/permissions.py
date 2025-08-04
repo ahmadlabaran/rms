@@ -1,22 +1,85 @@
 from rest_framework import permissions
-from .models import UserRole
+from .models import UserRole, PermissionDelegation
+from django.db.models import Q
 
 
 class BaseRolePermission(permissions.BasePermission):
-    """Base permission class for role-based access control"""
+    """Base permission class for role checking with delegation support"""
 
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
         return True
 
-    def get_user_roles(self, user):
-        """Get all roles for a user"""
-        return UserRole.objects.filter(user=user).values_list('role', flat=True)
+    def get_all_user_roles(self, user):
+        """Gets all roles for user including delegated ones"""
+        # Get direct roles
+        direct_role_list = UserRole.objects.filter(user=user).values_list('role', flat=True)
 
-    def has_role(self, user, role):
-        """Check if user has a specific role"""
-        return role in self.get_user_roles(user)
+        # Get delegated roles (temporary roles from active delegations)
+        delegated_role_list = UserRole.objects.filter(
+            user=user,
+            is_temporary=True,
+            delegation__status='ACTIVE'
+        ).values_list('role', flat=True)
+
+        # Combine and remove duplicates
+        all_role_list = list(direct_role_list) + list(delegated_role_list)
+        return list(set(all_role_list))
+
+    def get_user_roles_with_details(self, user):
+        """Gets all roles for user with delegation details"""
+        role_info_list = []
+
+        # Get direct roles
+        direct_role_list = UserRole.objects.filter(user=user).select_related('faculty', 'department')
+        for role in direct_role_list:
+            role_info_list.append({
+                'role': role.role,
+                'is_delegated': False,
+                'is_temporary': role.is_temporary,
+                'faculty': role.faculty,
+                'department': role.department,
+                'delegation': None
+            })
+
+        # Get delegated roles
+        delegated_role_list = UserRole.objects.filter(
+            user=user,
+            is_temporary=True,
+            delegation__status='ACTIVE'
+        ).select_related('faculty', 'department', 'delegation__delegator')
+
+        for role in delegated_role_list:
+            role_info_list.append({
+                'role': role.role,
+                'is_delegated': True,
+                'is_temporary': True,
+                'faculty': role.faculty,
+                'department': role.department,
+                'delegation': role.delegation,
+                'delegated_from': role.delegation.delegator if role.delegation else None
+            })
+
+        return role_info_list
+
+    def check_if_user_has_role(self, user, role):
+        """Check if user has specific role (including delegated)"""
+        return role in self.get_all_user_roles(user)
+
+    def check_if_user_has_direct_role(self, user, role):
+        """Check if user has role directly (not delegated)"""
+        direct_role_list = UserRole.objects.filter(user=user, is_temporary=False).values_list('role', flat=True)
+        return role in direct_role_list
+
+    def check_if_user_has_delegated_role(self, user, role):
+        """Check if user has role through delegation"""
+        delegated_role_list = UserRole.objects.filter(
+            user=user,
+            is_temporary=True,
+            delegation__status='ACTIVE'
+        ).values_list('role', flat=True)
+        return role in delegated_role_list
 
 
 class IsStudent(BaseRolePermission):
@@ -25,7 +88,7 @@ class IsStudent(BaseRolePermission):
     def has_permission(self, request, view):
         if not super().has_permission(request, view):
             return False
-        return self.has_role(request.user, 'STUDENT')
+        return self.check_if_user_has_role(request.user, 'STUDENT')
 
 
 class IsLecturer(BaseRolePermission):
@@ -34,7 +97,7 @@ class IsLecturer(BaseRolePermission):
     def has_permission(self, request, view):
         if not super().has_permission(request, view):
             return False
-        return self.has_role(request.user, 'LECTURER')
+        return self.check_if_user_has_role(request.user, 'LECTURER')
 
 
 class IsAdmissionOfficer(BaseRolePermission):
@@ -43,7 +106,7 @@ class IsAdmissionOfficer(BaseRolePermission):
     def has_permission(self, request, view):
         if not super().has_permission(request, view):
             return False
-        return self.has_role(request.user, 'ADMISSION_OFFICER')
+        return self.check_if_user_has_role(request.user, 'ADMISSION_OFFICER')
 
 
 class IsExamOfficer(BaseRolePermission):
@@ -52,7 +115,7 @@ class IsExamOfficer(BaseRolePermission):
     def has_permission(self, request, view):
         if not super().has_permission(request, view):
             return False
-        return self.has_role(request.user, 'EXAM_OFFICER')
+        return self.check_if_user_has_role(request.user, 'EXAM_OFFICER')
 
 
 class IsHOD(BaseRolePermission):
@@ -61,7 +124,7 @@ class IsHOD(BaseRolePermission):
     def has_permission(self, request, view):
         if not super().has_permission(request, view):
             return False
-        return self.has_role(request.user, 'HOD')
+        return self.check_if_user_has_role(request.user, 'HOD')
 
 
 class IsFacultyDean(BaseRolePermission):
@@ -70,7 +133,7 @@ class IsFacultyDean(BaseRolePermission):
     def has_permission(self, request, view):
         if not super().has_permission(request, view):
             return False
-        return self.has_role(request.user, 'FACULTY_DEAN')
+        return self.check_if_user_has_role(request.user, 'FACULTY_DEAN')
 
 
 class IsDAAA(BaseRolePermission):
@@ -79,7 +142,7 @@ class IsDAAA(BaseRolePermission):
     def has_permission(self, request, view):
         if not super().has_permission(request, view):
             return False
-        return self.has_role(request.user, 'DAAA')
+        return self.check_if_user_has_role(request.user, 'DAAA')
 
 
 class IsSenate(BaseRolePermission):
@@ -88,7 +151,7 @@ class IsSenate(BaseRolePermission):
     def has_permission(self, request, view):
         if not super().has_permission(request, view):
             return False
-        return self.has_role(request.user, 'SENATE')
+        return self.check_if_user_has_role(request.user, 'SENATE')
 
 
 class IsSuperAdmin(BaseRolePermission):
@@ -97,7 +160,7 @@ class IsSuperAdmin(BaseRolePermission):
     def has_permission(self, request, view):
         if not super().has_permission(request, view):
             return False
-        return self.has_role(request.user, 'SUPER_ADMIN')
+        return self.check_if_user_has_role(request.user, 'SUPER_ADMIN')
 
 
 class IsLecturerOrAbove(BaseRolePermission):
@@ -108,7 +171,7 @@ class IsLecturerOrAbove(BaseRolePermission):
             return False
 
         allowed_roles = ['LECTURER', 'EXAM_OFFICER', 'HOD', 'FACULTY_DEAN', 'DAAA', 'SENATE', 'SUPER_ADMIN']
-        user_roles = self.get_user_roles(request.user)
+        user_roles = self.get_all_user_roles(request.user)
         return any(role in allowed_roles for role in user_roles)
 
 
@@ -120,7 +183,7 @@ class IsExamOfficerOrAbove(BaseRolePermission):
             return False
 
         allowed_roles = ['EXAM_OFFICER', 'HOD', 'FACULTY_DEAN', 'DAAA', 'SENATE', 'SUPER_ADMIN']
-        user_roles = self.get_user_roles(request.user)
+        user_roles = self.get_all_user_roles(request.user)
         return any(role in allowed_roles for role in user_roles)
 
 
@@ -132,7 +195,7 @@ class IsAdmissionOfficerOrAbove(BaseRolePermission):
             return False
 
         allowed_roles = ['ADMISSION_OFFICER', 'EXAM_OFFICER', 'FACULTY_DEAN', 'SENATE', 'SUPER_ADMIN']
-        user_roles = self.get_user_roles(request.user)
+        user_roles = self.get_all_user_roles(request.user)
         return any(role in allowed_roles for role in user_roles)
 
 
@@ -144,7 +207,7 @@ class IsHODOrAbove(BaseRolePermission):
             return False
 
         allowed_roles = ['HOD', 'FACULTY_DEAN', 'DAAA', 'SENATE', 'SUPER_ADMIN']
-        user_roles = self.get_user_roles(request.user)
+        user_roles = self.get_all_user_roles(request.user)
         return any(role in allowed_roles for role in user_roles)
 
 
@@ -156,7 +219,7 @@ class IsFacultyDeanOrAbove(BaseRolePermission):
             return False
 
         allowed_roles = ['FACULTY_DEAN', 'DAAA', 'SENATE', 'SUPER_ADMIN']
-        user_roles = self.get_user_roles(request.user)
+        user_roles = self.get_all_user_roles(request.user)
         return any(role in allowed_roles for role in user_roles)
 
 
@@ -168,7 +231,7 @@ class IsDAAAAOrAbove(BaseRolePermission):
             return False
 
         allowed_roles = ['DAAA', 'SENATE', 'SUPER_ADMIN']
-        user_roles = self.get_user_roles(request.user)
+        user_roles = self.get_all_user_roles(request.user)
         return any(role in allowed_roles for role in user_roles)
 
 
@@ -181,7 +244,7 @@ class CanManageResults(BaseRolePermission):
 
         # All roles except students can manage results in some capacity
         allowed_roles = ['LECTURER', 'EXAM_OFFICER', 'HOD', 'FACULTY_DEAN', 'DAAA', 'SENATE', 'SUPER_ADMIN']
-        user_roles = self.get_user_roles(request.user)
+        user_roles = self.get_all_user_roles(request.user)
         return any(role in allowed_roles for role in user_roles)
 
 
@@ -194,7 +257,7 @@ class CanViewTranscripts(BaseRolePermission):
 
         # Only DAAA, Senate, and Faculty Deans can view transcripts
         allowed_roles = ['FACULTY_DEAN', 'DAAA', 'SENATE', 'SUPER_ADMIN']
-        user_roles = self.get_user_roles(request.user)
+        user_roles = self.get_all_user_roles(request.user)
         return any(role in allowed_roles for role in user_roles)
 
 
@@ -206,4 +269,59 @@ class CanCreateAlternativeLogins(BaseRolePermission):
             return False
 
         # Only super admin can create alternative logins
-        return self.has_role(request.user, 'SUPER_ADMIN')
+        return self.check_if_user_has_role(request.user, 'SUPER_ADMIN')
+
+
+# Utility functions for role checking in views
+def get_user_roles_with_delegation(user):
+    """
+    Gets all user roles including delegated ones
+    """
+    permission_checker = BaseRolePermission()
+    return permission_checker.get_all_user_roles(user)
+
+
+def get_user_roles_with_details(user):
+    """
+    Gets detailed role information with delegation context
+    """
+    permission_checker = BaseRolePermission()
+    return permission_checker.get_user_roles_with_details(user)
+
+
+def user_has_role(user, role):
+    """
+    Checks if user has specific role (including delegated)
+    """
+    permission_checker = BaseRolePermission()
+    return permission_checker.check_if_user_has_role(user, role)
+
+
+def user_has_any_role(user, role_list):
+    """
+    Checks if user has any of the specified roles
+    """
+    user_role_list = get_user_roles_with_delegation(user)
+    return any(role in user_role_list for role in role_list)
+
+
+def get_active_delegations_for_user(user):
+    """
+    Gets all active delegations where user is the delegate
+    """
+    delegation_list = PermissionDelegation.objects.filter(
+        delegate=user,
+        status='ACTIVE'
+    ).select_related('delegator', 'delegated_role__user', 'delegated_role__faculty', 'delegated_role__department')
+    return delegation_list
+
+
+def get_delegations_by_user(user):
+    """
+    Gets all delegations created by the user
+    """
+    delegation_list = PermissionDelegation.objects.filter(
+        delegator=user,
+        status='ACTIVE'
+    ).select_related('delegate', 'delegated_role__user', 'delegated_role__faculty', 'delegated_role__department')
+    return delegation_list

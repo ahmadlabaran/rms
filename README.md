@@ -1,6 +1,6 @@
 # RMS - Result Management System
 
-This is a student project for managing academic results in a university setting. It's built with Django and includes a web interface for different types of users to manage student grades and academic records.
+This is a project for managing academic results in a university setting. It's built with Django and includes a web interface for different types of users to manage student grades and academic records.
 
 ## What This Project Does
 

@@ -4687,13 +4687,20 @@ def consolidated_students_view(request):
     for role_info in user_roles:
         role = role_info['role']
         if role in ['FACULTY_DEAN', 'HOD', 'ADMISSION_OFFICER', 'EXAM_OFFICER']:
+            # Correct URL mapping for students
+            url_mapping = {
+                'FACULTY_DEAN': 'faculty_dean_students',
+                'HOD': 'hod_lecturer_list',  # HOD manages lecturers, not students directly
+                'ADMISSION_OFFICER': 'admission_all_students',
+                'EXAM_OFFICER': 'exam_officer_dashboard'  # Exam officers don't have direct student management
+            }
             context = {
                 'role': role,
                 'role_display': get_role_display_name(role),
                 'department': role_info.get('department'),
                 'faculty': role_info.get('faculty'),
                 'is_delegated': role_info.get('is_delegated', False),
-                'url_name': f'{role.lower()}_students' if role != 'ADMISSION_OFFICER' else 'admission_all_students'
+                'url_name': url_mapping.get(role)
             }
             available_contexts.append(context)
 
@@ -4721,13 +4728,18 @@ def consolidated_lecturers_view(request):
     for role_info in user_roles:
         role = role_info['role']
         if role in ['FACULTY_DEAN', 'HOD']:
+            # I think this mapping will fix the URL name issues
+            url_mapping = {
+                'FACULTY_DEAN': 'faculty_dean_lecturers',
+                'HOD': 'hod_lecturer_list'
+            }
             context = {
                 'role': role,
                 'role_display': get_role_display_name(role),
                 'department': role_info.get('department'),
                 'faculty': role_info.get('faculty'),
                 'is_delegated': role_info.get('is_delegated', False),
-                'url_name': f'{role.lower()}_lecturers'
+                'url_name': url_mapping.get(role)
             }
             available_contexts.append(context)
 
@@ -4754,13 +4766,18 @@ def consolidated_courses_view(request):
     for role_info in user_roles:
         role = role_info['role']
         if role in ['FACULTY_DEAN', 'HOD']:
+            # Correct URL mapping for courses
+            url_mapping = {
+                'FACULTY_DEAN': 'faculty_dean_courses',
+                'HOD': 'hod_manage_courses'
+            }
             context = {
                 'role': role,
                 'role_display': get_role_display_name(role),
                 'department': role_info.get('department'),
                 'faculty': role_info.get('faculty'),
                 'is_delegated': role_info.get('is_delegated', False),
-                'url_name': f'{role.lower()}_courses' if role == 'FACULTY_DEAN' else 'hod_manage_courses'
+                'url_name': url_mapping.get(role)
             }
             available_contexts.append(context)
 
@@ -4787,13 +4804,21 @@ def consolidated_results_view(request):
     for role_info in user_roles:
         role = role_info['role']
         if role in ['FACULTY_DEAN', 'HOD', 'EXAM_OFFICER', 'DAAA', 'SENATE']:
+            # Correct URL mapping for results
+            url_mapping = {
+                'FACULTY_DEAN': 'faculty_dean_pending_results',
+                'HOD': 'hod_pending_results',
+                'EXAM_OFFICER': 'exam_officer_dashboard',
+                'DAAA': 'daaa_pending_results',
+                'SENATE': 'senate_pending_results'
+            }
             context = {
                 'role': role,
                 'role_display': get_role_display_name(role),
                 'department': role_info.get('department'),
                 'faculty': role_info.get('faculty'),
                 'is_delegated': role_info.get('is_delegated', False),
-                'url_name': f'{role.lower()}_pending_results'
+                'url_name': url_mapping.get(role)
             }
             available_contexts.append(context)
 
@@ -4820,13 +4845,20 @@ def consolidated_reports_view(request):
     for role_info in user_roles:
         role = role_info['role']
         if role in ['FACULTY_DEAN', 'HOD', 'DAAA', 'SENATE']:
+            # Correct URL mapping for reports
+            url_mapping = {
+                'FACULTY_DEAN': 'faculty_dean_reports',
+                'HOD': 'hod_course_reports',
+                'DAAA': 'daaa_reports',
+                'SENATE': 'senate_dashboard'  # Senate doesn't have specific reports URL
+            }
             context = {
                 'role': role,
                 'role_display': get_role_display_name(role),
                 'department': role_info.get('department'),
                 'faculty': role_info.get('faculty'),
                 'is_delegated': role_info.get('is_delegated', False),
-                'url_name': f'{role.lower()}_reports'
+                'url_name': url_mapping.get(role)
             }
             available_contexts.append(context)
 

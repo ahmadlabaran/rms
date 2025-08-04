@@ -150,6 +150,10 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# X-Frame-Options Configuration
+# Allow same-origin iframe embedding for consolidated navigation
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
 # Django REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [

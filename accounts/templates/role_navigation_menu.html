@@ -2,147 +2,142 @@
 
 <!-- Enhanced Role-Based Navigation Menu with Royal Blue Theme -->
 <div class="role-navigation-container">
-    {% if navigation_items %}
+    {% if user_roles %}
     <nav class="navbar navbar-expand-lg" style="background: var(--royal-blue-gradient); border-radius: 16px; margin-bottom: 24px; box-shadow: var(--shadow-medium);">
         <div class="container-fluid" style="padding: 16px 24px;">
             <div class="navbar-nav d-flex flex-wrap gap-3 w-100 justify-content-start">
 
-                <!-- Context-Aware Navigation Items -->
-                {% for nav_item in navigation_items %}
+                <!-- Student Dashboard -->
+                {% if 'STUDENT' in user_roles %}
+                <a href="{% url 'student_dashboard' %}"
+                   class="btn btn-nav-role"
+                   role="button"
+                   aria-label="Access Student Dashboard">
+                    <i class="fas fa-graduation-cap" aria-hidden="true"></i>
+                    <span class="nav-text">Student Portal</span>
+                    {% if user|has_delegated_role:'STUDENT' %}
+                    <span class="badge badge-delegated">Delegated</span>
+                    {% endif %}
+                </a>
+                {% endif %}
 
-                    <!-- Student Dashboard -->
-                    {% if nav_item.role == 'STUDENT' %}
-                    <a href="{% url 'student_dashboard' %}"
-                       class="btn btn-nav-role"
-                       role="button"
-                       aria-label="Access Student Dashboard{{ nav_item.context_suffix }}">
-                        <i class="fas fa-graduation-cap" aria-hidden="true"></i>
-                        <span class="nav-text">Student Portal{{ nav_item.context_suffix }}</span>
-                        {% if nav_item.delegation_status == 'delegated' %}
-                        <span class="badge badge-delegated">Delegated</span>
-                        {% endif %}
-                    </a>
+                <!-- Lecturer Dashboard -->
+                {% if 'LECTURER' in user_roles %}
+                <a href="{% url 'lecturer_dashboard' %}"
+                   class="btn btn-nav-role"
+                   role="button"
+                   aria-label="Access Lecturer Dashboard">
+                    <i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>
+                    <span class="nav-text">Lecturer Dashboard</span>
+                    {% if user|has_delegated_role:'LECTURER' %}
+                    <span class="badge badge-delegated">Delegated</span>
                     {% endif %}
+                </a>
+                {% endif %}
 
-                    <!-- Lecturer Dashboard -->
-                    {% if nav_item.role == 'LECTURER' %}
-                    <a href="{% url 'lecturer_dashboard' %}"
-                       class="btn btn-nav-role"
-                       role="button"
-                       aria-label="Access Lecturer Dashboard{{ nav_item.context_suffix }}">
-                        <i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>
-                        <span class="nav-text">Lecturer Dashboard{{ nav_item.context_suffix }}</span>
-                        {% if nav_item.delegation_status == 'delegated' %}
-                        <span class="badge badge-delegated">Delegated</span>
-                        {% endif %}
-                    </a>
+                <!-- Exam Officer Dashboard -->
+                {% if 'EXAM_OFFICER' in user_roles %}
+                <a href="{% url 'exam_officer_dashboard' %}"
+                   class="btn btn-nav-role"
+                   role="button"
+                   aria-label="Access Exam Officer Dashboard">
+                    <i class="fas fa-clipboard-list" aria-hidden="true"></i>
+                    <span class="nav-text">Exam Officer</span>
+                    {% if user|has_delegated_role:'EXAM_OFFICER' %}
+                    <span class="badge badge-delegated">Delegated</span>
                     {% endif %}
+                </a>
+                {% endif %}
 
-                    <!-- Exam Officer Dashboard -->
-                    {% if nav_item.role == 'EXAM_OFFICER' %}
-                    <a href="{% url 'exam_officer_dashboard' %}"
-                       class="btn btn-nav-role"
-                       role="button"
-                       aria-label="Access Exam Officer Dashboard{{ nav_item.context_suffix }}">
-                        <i class="fas fa-clipboard-list" aria-hidden="true"></i>
-                        <span class="nav-text">Exam Officer{{ nav_item.context_suffix }}</span>
-                        {% if nav_item.delegation_status == 'delegated' %}
-                        <span class="badge badge-delegated">Delegated</span>
-                        {% endif %}
-                    </a>
+                <!-- HOD Dashboard -->
+                {% if 'HOD' in user_roles %}
+                <a href="{% url 'hod_dashboard' %}"
+                   class="btn btn-nav-role"
+                   role="button"
+                   aria-label="Access HOD Dashboard">
+                    <i class="fas fa-user-tie" aria-hidden="true"></i>
+                    <span class="nav-text">HOD Dashboard</span>
+                    {% if user|has_delegated_role:'HOD' %}
+                    <span class="badge badge-delegated">Delegated</span>
                     {% endif %}
-                
-                    <!-- HOD Dashboard -->
-                    {% if nav_item.role == 'HOD' %}
-                    <a href="{% url 'hod_dashboard' %}"
-                       class="btn btn-nav-role"
-                       role="button"
-                       aria-label="Access HOD Dashboard{{ nav_item.context_suffix }}">
-                        <i class="fas fa-user-tie" aria-hidden="true"></i>
-                        <span class="nav-text">HOD Dashboard{{ nav_item.context_suffix }}</span>
-                        {% if nav_item.delegation_status == 'delegated' %}
-                        <span class="badge badge-delegated">Delegated</span>
-                        {% endif %}
-                    </a>
-                    {% endif %}
-                
-                    <!-- Faculty Dean Dashboard -->
-                    {% if nav_item.role == 'FACULTY_DEAN' %}
-                    <a href="{% url 'faculty_dean_dashboard' %}"
-                       class="btn btn-nav-role"
-                       role="button"
-                       aria-label="Access Faculty Dean Dashboard{{ nav_item.context_suffix }}">
-                        <i class="fas fa-university" aria-hidden="true"></i>
-                        <span class="nav-text">Faculty Dean{{ nav_item.context_suffix }}</span>
-                        {% if nav_item.delegation_status == 'delegated' %}
-                        <span class="badge badge-delegated">Delegated</span>
-                        {% endif %}
-                    </a>
-                    {% endif %}
+                </a>
+                {% endif %}
 
-                    <!-- DAAA Dashboard -->
-                    {% if nav_item.role == 'DAAA' %}
-                    <a href="{% url 'daaa_dashboard' %}"
-                       class="btn btn-nav-role"
-                       role="button"
-                       aria-label="Access DAAA Dashboard{{ nav_item.context_suffix }}">
-                        <i class="fas fa-cogs" aria-hidden="true"></i>
-                        <span class="nav-text">DAAA Dashboard{{ nav_item.context_suffix }}</span>
-                        {% if nav_item.delegation_status == 'delegated' %}
-                        <span class="badge badge-delegated">Delegated</span>
-                        {% endif %}
-                    </a>
+                <!-- Faculty Dean Dashboard -->
+                {% if 'FACULTY_DEAN' in user_roles %}
+                <a href="{% url 'faculty_dean_dashboard' %}"
+                   class="btn btn-nav-role"
+                   role="button"
+                   aria-label="Access Faculty Dean Dashboard">
+                    <i class="fas fa-university" aria-hidden="true"></i>
+                    <span class="nav-text">Faculty Dean</span>
+                    {% if user|has_delegated_role:'FACULTY_DEAN' %}
+                    <span class="badge badge-delegated">Delegated</span>
                     {% endif %}
+                </a>
+                {% endif %}
 
-                    <!-- Senate Dashboard -->
-                    {% if nav_item.role == 'SENATE' %}
-                    <a href="{% url 'senate_dashboard' %}"
-                       class="btn btn-nav-role"
-                       role="button"
-                       aria-label="Access Senate Dashboard{{ nav_item.context_suffix }}">
-                        <i class="fas fa-gavel" aria-hidden="true"></i>
-                        <span class="nav-text">Senate Dashboard{{ nav_item.context_suffix }}</span>
-                        {% if nav_item.delegation_status == 'delegated' %}
-                        <span class="badge badge-delegated">Delegated</span>
-                        {% endif %}
-                    </a>
+                <!-- DAAA Dashboard -->
+                {% if 'DAAA' in user_roles %}
+                <a href="{% url 'daaa_dashboard' %}"
+                   class="btn btn-nav-role"
+                   role="button"
+                   aria-label="Access DAAA Dashboard">
+                    <i class="fas fa-cogs" aria-hidden="true"></i>
+                    <span class="nav-text">DAAA Dashboard</span>
+                    {% if user|has_delegated_role:'DAAA' %}
+                    <span class="badge badge-delegated">Delegated</span>
                     {% endif %}
+                </a>
+                {% endif %}
 
-                    <!-- Super Admin Dashboard -->
-                    {% if nav_item.role == 'SUPER_ADMIN' %}
-                    <a href="{% url 'super_admin_dashboard' %}"
-                       class="btn btn-nav-role"
-                       role="button"
-                       aria-label="Access Super Admin Dashboard{{ nav_item.context_suffix }}">
-                        <i class="fas fa-crown" aria-hidden="true"></i>
-                        <span class="nav-text">Super Admin{{ nav_item.context_suffix }}</span>
-                        {% if nav_item.delegation_status == 'delegated' %}
-                        <span class="badge badge-delegated">Delegated</span>
-                        {% endif %}
-                    </a>
+                <!-- Senate Dashboard -->
+                {% if 'SENATE' in user_roles %}
+                <a href="{% url 'senate_dashboard' %}"
+                   class="btn btn-nav-role"
+                   role="button"
+                   aria-label="Access Senate Dashboard">
+                    <i class="fas fa-gavel" aria-hidden="true"></i>
+                    <span class="nav-text">Senate Dashboard</span>
+                    {% if user|has_delegated_role:'SENATE' %}
+                    <span class="badge badge-delegated">Delegated</span>
                     {% endif %}
+                </a>
+                {% endif %}
 
-                    <!-- Admission Officer Dashboard -->
-                    {% if nav_item.role == 'ADMISSION_OFFICER' %}
-                    <a href="{% url 'admission_officer_dashboard' %}"
-                       class="btn btn-nav-role"
-                       role="button"
-                       aria-label="Access Admission Officer Dashboard{{ nav_item.context_suffix }}">
-                        <i class="fas fa-user-plus" aria-hidden="true"></i>
-                        <span class="nav-text">Admission Officer{{ nav_item.context_suffix }}</span>
-                        {% if nav_item.delegation_status == 'delegated' %}
-                        <span class="badge badge-delegated">Delegated</span>
-                        {% endif %}
-                    </a>
+                <!-- Super Admin Dashboard -->
+                {% if 'SUPER_ADMIN' in user_roles %}
+                <a href="{% url 'super_admin_dashboard' %}"
+                   class="btn btn-nav-role"
+                   role="button"
+                   aria-label="Access Super Admin Dashboard">
+                    <i class="fas fa-crown" aria-hidden="true"></i>
+                    <span class="nav-text">Super Admin</span>
+                    {% if user|has_delegated_role:'SUPER_ADMIN' %}
+                    <span class="badge badge-delegated">Delegated</span>
                     {% endif %}
+                </a>
+                {% endif %}
 
-                {% endfor %}
+                <!-- Admission Officer Dashboard -->
+                {% if 'ADMISSION_OFFICER' in user_roles %}
+                <a href="{% url 'admission_officer_dashboard' %}"
+                   class="btn btn-nav-role"
+                   role="button"
+                   aria-label="Access Admission Officer Dashboard">
+                    <i class="fas fa-user-plus" aria-hidden="true"></i>
+                    <span class="nav-text">Admission Officer</span>
+                    {% if user|has_delegated_role:'ADMISSION_OFFICER' %}
+                    <span class="badge badge-delegated">Delegated</span>
+                    {% endif %}
+                </a>
+                {% endif %}
             </div>
 
             <!-- Role Summary Badge -->
             <div class="ms-auto">
                 <span class="badge bg-light text-dark" style="font-size: 11px; padding: 6px 12px; border-radius: 8px;">
-                    {{ navigation_items|length }} Role{{ navigation_items|length|pluralize }}
+                    {{ user_roles|length }} Role{{ user_roles|length|pluralize }}
                 </span>
             </div>
         </div>

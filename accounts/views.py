@@ -4668,6 +4668,180 @@ def super_admin_export_delegation_report(request):
     return response
 
 
+# ============================================================================
+# CONSOLIDATED NAVIGATION VIEWS (Smart Multi-Role Access)
+# ============================================================================
+
+from .permissions import get_user_roles_with_details, get_role_display_name
+
+@login_required
+def consolidated_students_view(request):
+    """
+    Consolidated students view with role context switching.
+    Shows students based on user's available roles with context switching buttons.
+    """
+    user_roles = get_user_roles_with_details(request.user)
+    available_contexts = []
+
+    # I think this approach will let users switch between different role contexts
+    for role_info in user_roles:
+        role = role_info['role']
+        if role in ['FACULTY_DEAN', 'HOD', 'ADMISSION_OFFICER', 'EXAM_OFFICER']:
+            context = {
+                'role': role,
+                'role_display': get_role_display_name(role),
+                'department': role_info.get('department'),
+                'faculty': role_info.get('faculty'),
+                'is_delegated': role_info.get('is_delegated', False),
+                'url_name': f'{role.lower()}_students' if role != 'ADMISSION_OFFICER' else 'admission_all_students'
+            }
+            available_contexts.append(context)
+
+    # Default to first available context
+    selected_context = request.GET.get('context', available_contexts[0]['role'] if available_contexts else None)
+
+    context = {
+        'page_title': 'Students Management',
+        'available_contexts': available_contexts,
+        'selected_context': selected_context,
+        'user_roles': [r['role'] for r in user_roles]
+    }
+
+    return render(request, 'consolidated/students.html', context)
+
+
+@login_required
+def consolidated_lecturers_view(request):
+    """
+    Consolidated lecturers view with role context switching.
+    """
+    user_roles = get_user_roles_with_details(request.user)
+    available_contexts = []
+
+    for role_info in user_roles:
+        role = role_info['role']
+        if role in ['FACULTY_DEAN', 'HOD']:
+            context = {
+                'role': role,
+                'role_display': get_role_display_name(role),
+                'department': role_info.get('department'),
+                'faculty': role_info.get('faculty'),
+                'is_delegated': role_info.get('is_delegated', False),
+                'url_name': f'{role.lower()}_lecturers'
+            }
+            available_contexts.append(context)
+
+    selected_context = request.GET.get('context', available_contexts[0]['role'] if available_contexts else None)
+
+    context = {
+        'page_title': 'Lecturers Management',
+        'available_contexts': available_contexts,
+        'selected_context': selected_context,
+        'user_roles': [r['role'] for r in user_roles]
+    }
+
+    return render(request, 'consolidated/lecturers.html', context)
+
+
+@login_required
+def consolidated_courses_view(request):
+    """
+    Consolidated courses view with role context switching.
+    """
+    user_roles = get_user_roles_with_details(request.user)
+    available_contexts = []
+
+    for role_info in user_roles:
+        role = role_info['role']
+        if role in ['FACULTY_DEAN', 'HOD']:
+            context = {
+                'role': role,
+                'role_display': get_role_display_name(role),
+                'department': role_info.get('department'),
+                'faculty': role_info.get('faculty'),
+                'is_delegated': role_info.get('is_delegated', False),
+                'url_name': f'{role.lower()}_courses' if role == 'FACULTY_DEAN' else 'hod_manage_courses'
+            }
+            available_contexts.append(context)
+
+    selected_context = request.GET.get('context', available_contexts[0]['role'] if available_contexts else None)
+
+    context = {
+        'page_title': 'Courses Management',
+        'available_contexts': available_contexts,
+        'selected_context': selected_context,
+        'user_roles': [r['role'] for r in user_roles]
+    }
+
+    return render(request, 'consolidated/courses.html', context)
+
+
+@login_required
+def consolidated_results_view(request):
+    """
+    Consolidated results view with role context switching.
+    """
+    user_roles = get_user_roles_with_details(request.user)
+    available_contexts = []
+
+    for role_info in user_roles:
+        role = role_info['role']
+        if role in ['FACULTY_DEAN', 'HOD', 'EXAM_OFFICER', 'DAAA', 'SENATE']:
+            context = {
+                'role': role,
+                'role_display': get_role_display_name(role),
+                'department': role_info.get('department'),
+                'faculty': role_info.get('faculty'),
+                'is_delegated': role_info.get('is_delegated', False),
+                'url_name': f'{role.lower()}_pending_results'
+            }
+            available_contexts.append(context)
+
+    selected_context = request.GET.get('context', available_contexts[0]['role'] if available_contexts else None)
+
+    context = {
+        'page_title': 'Results Management',
+        'available_contexts': available_contexts,
+        'selected_context': selected_context,
+        'user_roles': [r['role'] for r in user_roles]
+    }
+
+    return render(request, 'consolidated/results.html', context)
+
+
+@login_required
+def consolidated_reports_view(request):
+    """
+    Consolidated reports view with role context switching.
+    """
+    user_roles = get_user_roles_with_details(request.user)
+    available_contexts = []
+
+    for role_info in user_roles:
+        role = role_info['role']
+        if role in ['FACULTY_DEAN', 'HOD', 'DAAA', 'SENATE']:
+            context = {
+                'role': role,
+                'role_display': get_role_display_name(role),
+                'department': role_info.get('department'),
+                'faculty': role_info.get('faculty'),
+                'is_delegated': role_info.get('is_delegated', False),
+                'url_name': f'{role.lower()}_reports'
+            }
+            available_contexts.append(context)
+
+    selected_context = request.GET.get('context', available_contexts[0]['role'] if available_contexts else None)
+
+    context = {
+        'page_title': 'Reports & Analytics',
+        'available_contexts': available_contexts,
+        'selected_context': selected_context,
+        'user_roles': [r['role'] for r in user_roles]
+    }
+
+    return render(request, 'consolidated/reports.html', context)
+
+
 @login_required
 def faculty_dean_students(request):
     """Faculty Dean Students Management"""

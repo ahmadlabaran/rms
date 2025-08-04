@@ -348,6 +348,13 @@ urlpatterns = [
     path('hod/reject-results/', views.hod_reject_results, name='hod_reject_results'),
     path('hod/submit-to-dean/', views.hod_submit_to_dean, name='hod_submit_to_dean'),
     path('hod/result-status/', views.hod_result_status, name='hod_result_status'),
+
+    # Consolidated Navigation URLs (Smart Multi-Role Access)
+    path('consolidated/students/', views.consolidated_students_view, name='consolidated_students'),
+    path('consolidated/lecturers/', views.consolidated_lecturers_view, name='consolidated_lecturers'),
+    path('consolidated/courses/', views.consolidated_courses_view, name='consolidated_courses'),
+    path('consolidated/results/', views.consolidated_results_view, name='consolidated_results'),
+    path('consolidated/reports/', views.consolidated_reports_view, name='consolidated_reports'),
     path('hod/department-summary/', views.hod_department_summary, name='hod_department_summary'),
     path('hod/export-results/', views.hod_export_results, name='hod_export_results'),
     path('hod/result/<int:result_id>/review/', views.hod_review_single_result, name='hod_review_single_result'),

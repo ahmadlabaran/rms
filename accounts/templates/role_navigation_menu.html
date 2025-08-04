@@ -1,12 +1,12 @@
 {% load role_tags %}
 
-<!-- Clean Role-Based Navigation Menu -->
+<!-- Smart Consolidated Navigation Menu -->
 <div class="role-navigation-container">
     {% if user_roles %}
     <nav class="navbar navbar-expand-lg" style="background: var(--royal-blue-gradient); border-radius: 12px; margin-bottom: 16px; box-shadow: var(--shadow-medium);">
         <div class="container-fluid" style="padding: 12px 20px;">
 
-            <!-- Compact Role Navigation - One Link Per Role Type -->
+            <!-- Dashboard Links (Role-Specific) -->
             <div class="navbar-nav d-flex flex-wrap gap-2 w-100 justify-content-start">
 
                 <!-- Student Portal -->
@@ -20,7 +20,7 @@
                 </a>
                 {% endif %}
 
-                <!-- Lecturer -->
+                <!-- Lecturer Dashboard (Role-Specific) -->
                 {% if 'LECTURER' in user_roles %}
                 <a href="{% url 'lecturer_dashboard' %}" class="btn btn-nav-role">
                     <i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>
@@ -31,62 +31,7 @@
                 </a>
                 {% endif %}
 
-                <!-- Exam Officer -->
-                {% if 'EXAM_OFFICER' in user_roles %}
-                <a href="{% url 'exam_officer_dashboard' %}" class="btn btn-nav-role">
-                    <i class="fas fa-clipboard-list" aria-hidden="true"></i>
-                    <span class="nav-text">Exam Officer</span>
-                    {% if user|has_delegated_role:'EXAM_OFFICER' %}
-                    <span class="badge badge-delegated">Delegated</span>
-                    {% endif %}
-                </a>
-                {% endif %}
-
-                <!-- HOD -->
-                {% if 'HOD' in user_roles %}
-                <a href="{% url 'hod_dashboard' %}" class="btn btn-nav-role">
-                    <i class="fas fa-user-tie" aria-hidden="true"></i>
-                    <span class="nav-text">HOD</span>
-                    {% if user|has_delegated_role:'HOD' %}
-                    <span class="badge badge-delegated">Delegated</span>
-                    {% endif %}
-                </a>
-                {% endif %}
-
-                <!-- Faculty Dean -->
-                {% if 'FACULTY_DEAN' in user_roles %}
-                <a href="{% url 'faculty_dean_dashboard' %}" class="btn btn-nav-role">
-                    <i class="fas fa-university" aria-hidden="true"></i>
-                    <span class="nav-text">Dean</span>
-                    {% if user|has_delegated_role:'FACULTY_DEAN' %}
-                    <span class="badge badge-delegated">Delegated</span>
-                    {% endif %}
-                </a>
-                {% endif %}
-
-                <!-- DAAA -->
-                {% if 'DAAA' in user_roles %}
-                <a href="{% url 'daaa_dashboard' %}" class="btn btn-nav-role">
-                    <i class="fas fa-cogs" aria-hidden="true"></i>
-                    <span class="nav-text">DAAA</span>
-                    {% if user|has_delegated_role:'DAAA' %}
-                    <span class="badge badge-delegated">Delegated</span>
-                    {% endif %}
-                </a>
-                {% endif %}
-
-                <!-- Senate -->
-                {% if 'SENATE' in user_roles %}
-                <a href="{% url 'senate_dashboard' %}" class="btn btn-nav-role">
-                    <i class="fas fa-gavel" aria-hidden="true"></i>
-                    <span class="nav-text">Senate</span>
-                    {% if user|has_delegated_role:'SENATE' %}
-                    <span class="badge badge-delegated">Delegated</span>
-                    {% endif %}
-                </a>
-                {% endif %}
-
-                <!-- Super Admin -->
+                <!-- Admin Dashboards (Role-Specific) -->
                 {% if 'SUPER_ADMIN' in user_roles %}
                 <a href="{% url 'super_admin_dashboard' %}" class="btn btn-nav-role">
                     <i class="fas fa-crown" aria-hidden="true"></i>
@@ -97,7 +42,6 @@
                 </a>
                 {% endif %}
 
-                <!-- Admission Officer -->
                 {% if 'ADMISSION_OFFICER' in user_roles %}
                 <a href="{% url 'admission_officer_dashboard' %}" class="btn btn-nav-role">
                     <i class="fas fa-user-plus" aria-hidden="true"></i>
@@ -105,6 +49,47 @@
                     {% if user|has_delegated_role:'ADMISSION_OFFICER' %}
                     <span class="badge badge-delegated">Delegated</span>
                     {% endif %}
+                </a>
+                {% endif %}
+
+                <!-- Consolidated Functional Navigation -->
+                <!-- Students Management (Multiple Roles Access) -->
+                {% if 'FACULTY_DEAN' in user_roles or 'HOD' in user_roles or 'ADMISSION_OFFICER' in user_roles or 'EXAM_OFFICER' in user_roles %}
+                <a href="{% url 'consolidated_students' %}" class="btn btn-nav-role">
+                    <i class="fas fa-users" aria-hidden="true"></i>
+                    <span class="nav-text">Students</span>
+                </a>
+                {% endif %}
+
+                <!-- Lecturers Management (Multiple Roles Access) -->
+                {% if 'FACULTY_DEAN' in user_roles or 'HOD' in user_roles %}
+                <a href="{% url 'consolidated_lecturers' %}" class="btn btn-nav-role">
+                    <i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>
+                    <span class="nav-text">Lecturers</span>
+                </a>
+                {% endif %}
+
+                <!-- Courses Management (Multiple Roles Access) -->
+                {% if 'FACULTY_DEAN' in user_roles or 'HOD' in user_roles %}
+                <a href="{% url 'consolidated_courses' %}" class="btn btn-nav-role">
+                    <i class="fas fa-book" aria-hidden="true"></i>
+                    <span class="nav-text">Courses</span>
+                </a>
+                {% endif %}
+
+                <!-- Results Management (Multiple Roles Access) -->
+                {% if 'FACULTY_DEAN' in user_roles or 'HOD' in user_roles or 'EXAM_OFFICER' in user_roles or 'DAAA' in user_roles or 'SENATE' in user_roles %}
+                <a href="{% url 'consolidated_results' %}" class="btn btn-nav-role">
+                    <i class="fas fa-chart-line" aria-hidden="true"></i>
+                    <span class="nav-text">Results</span>
+                </a>
+                {% endif %}
+
+                <!-- Reports (Multiple Roles Access) -->
+                {% if 'FACULTY_DEAN' in user_roles or 'HOD' in user_roles or 'DAAA' in user_roles or 'SENATE' in user_roles %}
+                <a href="{% url 'consolidated_reports' %}" class="btn btn-nav-role">
+                    <i class="fas fa-file-alt" aria-hidden="true"></i>
+                    <span class="nav-text">Reports</span>
                 </a>
                 {% endif %}
             </div>

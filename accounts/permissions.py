@@ -325,3 +325,20 @@ def get_delegations_by_user(user):
         status='ACTIVE'
     ).select_related('delegate', 'delegated_role__user', 'delegated_role__faculty', 'delegated_role__department')
     return delegation_list
+
+
+def get_user_roles_context(user):
+    """
+    Gets user roles with full context for templates
+    """
+    return get_user_roles_with_details(user)
+
+
+def count_active_delegations(user):
+    """
+    Count active delegations for a user
+    """
+    return PermissionDelegation.objects.filter(
+        delegate=user,
+        status='ACTIVE'
+    ).count()

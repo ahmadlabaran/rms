@@ -81,105 +81,122 @@
     <div class="ios-card">
         <h2 style="color: var(--text-primary); margin-bottom: 32px; font-size: 24px; font-weight: 600;">Quick Actions</h2>
 
-        {% for role in user_roles %}
-            {% if role.role == 'SUPER_ADMIN' %}
-            <div style="margin-bottom: 40px;">
-                <h3 style="color: var(--ios-blue); margin-bottom: 20px; font-size: 18px; font-weight: 600;">System Administration</h3>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
-                    <a href="{% url 'manage_users' %}" class="btn btn-primary">Manage Users</a>
-                    <a href="{% url 'manage_faculties' %}" class="btn btn-primary">Manage Faculties</a>
-                    <a href="{% url 'manage_departments' %}" class="btn btn-primary">Manage Departments</a>
-                    <a href="{% url 'system_settings' %}" class="btn btn-secondary">System Settings</a>
-                </div>
+        {% if 'SUPER_ADMIN' in user_roles %}
+        <div style="margin-bottom: 40px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 20px; font-size: 18px; font-weight: 600;">System Administration</h3>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                <a href="{% url 'manage_users' %}" class="btn btn-primary">Manage Users</a>
+                <a href="{% url 'manage_faculties' %}" class="btn btn-primary">Manage Faculties</a>
+                <a href="{% url 'manage_departments' %}" class="btn btn-primary">Manage Departments</a>
+                <a href="{% url 'system_settings' %}" class="btn btn-secondary">System Settings</a>
             </div>
-            {% endif %}
+        </div>
+        {% endif %}
 
-            {% if role.role == 'DAAA' %}
-            <div style="margin-bottom: 40px;">
-                <h3 style="color: var(--ios-blue); margin-bottom: 20px; font-size: 18px; font-weight: 600;">Academic Affairs</h3>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
-                    <a href="{% url 'manage_sessions' %}" class="btn btn-primary">Manage Sessions</a>
-                    <a href="{% url 'approve_results' %}" class="btn btn-primary">Approve Results</a>
-                    <a href="{% url 'publish_results' %}" class="btn btn-primary">Publish Results</a>
-                </div>
+        {% if 'DAAA' in user_roles %}
+        <div style="margin-bottom: 40px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 20px; font-size: 18px; font-weight: 600;">Academic Affairs</h3>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                <a href="{% url 'manage_sessions' %}" class="btn btn-primary">Manage Sessions</a>
+                <a href="{% url 'approve_results' %}" class="btn btn-primary">Approve Results</a>
+                <a href="{% url 'publish_results' %}" class="btn btn-primary">Publish Results</a>
             </div>
-            {% endif %}
+        </div>
+        {% endif %}
 
-                {% if role.role == 'FACULTY_DEAN' %}
-                <div style="margin-bottom: 24px;">
-                    <h3 style="color: var(--ios-blue); margin-bottom: 12px;">Faculty Dean Actions</h3>
-                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                        <a href="{% url 'faculty_dean_dashboard' %}" class="btn btn-primary">Faculty Dean Dashboard</a>
-                        <a href="{% url 'approve_results' %}" class="btn btn-primary">Approve Results</a>
-                        <a href="{% url 'manage_departments' %}" class="btn btn-secondary">Manage Departments</a>
-                    </div>
-                </div>
-                {% endif %}
-
-                {% if role.role == 'HOD' %}
-                <div style="margin-bottom: 24px;">
-                    <h3 style="color: var(--ios-blue); margin-bottom: 12px;">HOD Actions</h3>
-                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                        <a href="{% url 'results' %}" class="btn btn-primary">Department Results</a>
-                        <a href="{% url 'approve_results' %}" class="btn btn-primary">Approve Results</a>
-                        <a href="{% url 'courses' %}" class="btn btn-secondary">Manage Courses</a>
-                    </div>
-                </div>
-                {% endif %}
-
-                {% if role.role == 'EXAM_OFFICER' %}
-                <div style="margin-bottom: 24px;">
-                    <h3 style="color: var(--ios-blue); margin-bottom: 12px;">Exam Officer Actions</h3>
-                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                        <a href="{% url 'results' %}" class="btn btn-primary">Verify Results</a>
-                        <a href="{% url 'approve_results' %}" class="btn btn-primary">Approve Results</a>
-                    </div>
-                </div>
-                {% endif %}
-
-            {% if role.role == 'LECTURER' %}
-            <div style="margin-bottom: 40px;">
-                <h3 style="color: var(--ios-blue); margin-bottom: 20px; font-size: 18px; font-weight: 600;">Teaching & Results</h3>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
-                    <a href="{% url 'results' %}" class="btn btn-primary">Enter Results</a>
-                    <a href="{% url 'courses' %}" class="btn btn-secondary">My Courses</a>
-                    <a href="{% url 'students' %}" class="btn btn-secondary">My Students</a>
-                </div>
+        {% if 'FACULTY_DEAN' in user_roles %}
+        <div style="margin-bottom: 24px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 12px;">Faculty Dean Actions</h3>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <a href="{% url 'faculty_dean_dashboard' %}" class="btn btn-primary">Faculty Dean Dashboard</a>
+                <a href="{% url 'approve_results' %}" class="btn btn-primary">Approve Results</a>
+                <a href="{% url 'manage_departments' %}" class="btn btn-secondary">Manage Departments</a>
             </div>
-            {% endif %}
+        </div>
+        {% endif %}
 
-                {% if role.role == 'STUDENT' %}
-                <div style="margin-bottom: 24px;">
-                    <h3 style="color: var(--ios-blue); margin-bottom: 12px;">Student Actions</h3>
-                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                        <a href="{% url 'results' %}" class="btn btn-primary">View Results</a>
-                        <a href="{% url 'courses' %}" class="btn btn-secondary">My Courses</a>
-                        <a href="{% url 'contact_admin' %}" class="btn btn-secondary">Profile</a>
-                    </div>
-                </div>
-                {% endif %}
-            {% endfor %}
+        {% if 'HOD' in user_roles %}
+        <div style="margin-bottom: 24px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 12px;">HOD Actions</h3>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <a href="{% url 'results' %}" class="btn btn-primary">Department Results</a>
+                <a href="{% url 'approve_results' %}" class="btn btn-primary">Approve Results</a>
+                <a href="{% url 'courses' %}" class="btn btn-secondary">Manage Courses</a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if 'EXAM_OFFICER' in user_roles %}
+        <div style="margin-bottom: 24px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 12px;">Exam Officer Actions</h3>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <a href="{% url 'results' %}" class="btn btn-primary">Verify Results</a>
+                <a href="{% url 'approve_results' %}" class="btn btn-primary">Approve Results</a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if 'LECTURER' in user_roles %}
+        <div style="margin-bottom: 40px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 20px; font-size: 18px; font-weight: 600;">Teaching & Results</h3>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                <a href="{% url 'results' %}" class="btn btn-primary">Enter Results</a>
+                <a href="{% url 'courses' %}" class="btn btn-secondary">My Courses</a>
+                <a href="{% url 'students' %}" class="btn btn-secondary">My Students</a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if 'STUDENT' in user_roles %}
+        <div style="margin-bottom: 24px;">
+            <h3 style="color: var(--ios-blue); margin-bottom: 12px;">Student Actions</h3>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <a href="{% url 'results' %}" class="btn btn-primary">View Results</a>
+                <a href="{% url 'courses' %}" class="btn btn-secondary">My Courses</a>
+                <a href="{% url 'contact_admin' %}" class="btn btn-secondary">Profile</a>
+            </div>
+        </div>
+        {% endif %}
         </div>
     </div>
 
     <div class="ios-card">
         <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 20px; font-weight: 600;">Your Roles</h2>
-        {% for role in user_roles %}
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 16px; background: var(--surface-secondary); border-radius: 12px; border: 1px solid var(--border-light);">
-            <div>
-                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">{{ role.get_role_display }}</div>
-                {% if role.faculty %}
-                    <div style="color: var(--text-secondary); font-size: 14px;">{{ role.faculty.name }}</div>
-                {% endif %}
-                {% if role.department %}
-                    <div style="color: var(--text-secondary); font-size: 14px;">{{ role.department.name }}</div>
-                {% endif %}
+        {% if roles_with_details %}
+            {% for role_info in roles_with_details %}
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 16px; background: var(--surface-secondary); border-radius: 12px; border: 1px solid var(--border-light);">
+                <div>
+                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                        {% get_role_display_name role_info.role %}
+                        {% if role_info.is_delegated %}
+                            <span class="badge bg-warning text-dark ms-2" style="font-size: 10px;">Delegated</span>
+                        {% endif %}
+                    </div>
+                    {% if role_info.faculty %}
+                        <div style="color: var(--text-secondary); font-size: 14px;">{{ role_info.faculty.name }}</div>
+                    {% endif %}
+                    {% if role_info.department %}
+                        <div style="color: var(--text-secondary); font-size: 14px;">{{ role_info.department.name }}</div>
+                    {% endif %}
+                    {% if role_info.is_delegated and role_info.delegated_from %}
+                        <div style="color: var(--text-tertiary); font-size: 12px;">Delegated from: {{ role_info.delegated_from.get_full_name }}</div>
+                    {% endif %}
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    {% if not role_info.is_delegated and not role_info.is_temporary %}
+                        <span style="background: var(--ios-blue); color: white; padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;">Primary</span>
+                    {% endif %}
+                    {% if role_info.is_temporary %}
+                        <span style="background: var(--ios-orange); color: white; padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;">Temporary</span>
+                    {% endif %}
+                </div>
             </div>
-            {% if role.is_primary %}
-                <span style="background: var(--ios-blue); color: white; padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;">Primary</span>
-            {% endif %}
-        </div>
-        {% endfor %}
+            {% endfor %}
+        {% else %}
+            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                <p>No roles assigned</p>
+            </div>
+        {% endif %}
         </div>
 
         <div class="ios-card">

@@ -81,31 +81,59 @@ def show_role_navigation(user):
     """Show navigation menu based on user roles including delegated ones"""
     roles_info = get_user_roles_with_details(user)
 
-    # Create a dictionary to avoid duplicates and track delegation status
-    # I think this should work to prevent duplicate navigation links
-    unique_roles = {}
+    # Create navigation items with context-aware naming
+    # I think this approach will help prevent duplicates and show proper context
+    navigation_items = []
+    processed_roles = set()
+
     for role_info in roles_info:
         role_name = role_info['role']
-        if role_name not in unique_roles:
-            unique_roles[role_name] = {
-                'role': role_name,
-                'has_direct': False,
-                'has_delegated': False,
-                'delegation_info': None
-            }
 
+        # Create unique identifier for this specific role context
+        context_key = f"{role_name}"
+        if role_info['department']:
+            context_key += f"_{role_info['department'].id}"
+        elif role_info['faculty']:
+            context_key += f"_{role_info['faculty'].id}"
+
+        # Skip if we already processed this exact role context
+        if context_key in processed_roles:
+            continue
+
+        processed_roles.add(context_key)
+
+        # Build context-aware display name
+        display_name = get_role_display_name(role_name)
+        context_suffix = ""
+
+        if role_info['department']:
+            context_suffix = f" - {role_info['department'].name}"
+        elif role_info['faculty']:
+            context_suffix = f" - {role_info['faculty'].name}"
+
+        # Determine delegation status for this specific context
+        delegation_status = "none"
         if role_info['is_delegated']:
-            unique_roles[role_name]['has_delegated'] = True
-            unique_roles[role_name]['delegation_info'] = role_info
-        else:
-            unique_roles[role_name]['has_direct'] = True
+            delegation_status = "delegated"
 
-    # Convert back to list format for template
-    all_roles = list(unique_roles.keys())
+        navigation_items.append({
+            'role': role_name,
+            'display_name': display_name,
+            'context_suffix': context_suffix,
+            'full_display_name': display_name + context_suffix,
+            'delegation_status': delegation_status,
+            'department': role_info['department'],
+            'faculty': role_info['faculty'],
+            'is_delegated': role_info['is_delegated']
+        })
+
+    # Also create simple role list for backward compatibility
+    all_roles = list(set([item['role'] for item in navigation_items]))
+
     return {
         'user_roles': all_roles,
+        'navigation_items': navigation_items,
         'roles_info': roles_info,
-        'unique_roles': unique_roles,
         'user': user
     }
 

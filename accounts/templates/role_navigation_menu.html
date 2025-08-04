@@ -1,225 +1,280 @@
 {% load role_tags %}
 
-<!-- Enhanced Role-Based Navigation Menu -->
+<!-- Enhanced Role-Based Navigation Menu with Royal Blue Theme -->
 <div class="role-navigation-container">
-    <!-- Primary Navigation based on all available roles -->
-    <nav class="navbar navbar-expand-lg" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); border-radius: 12px; margin-bottom: 20px;">
-        <div class="container-fluid" style="padding: 12px 20px;">
-            <div class="navbar-nav d-flex flex-wrap gap-2 w-100">
-                
-                <!-- Dashboard Links for Each Role -->
-                {% if 'STUDENT' in user_roles %}
-                <a class="nav-link text-white" href="{% url 'student_dashboard' %}" 
-                   style="padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease;"
-                   onmouseover="this.style.background='rgba(255,255,255,0.2)'"
-                   onmouseout="this.style.background='transparent'">
-                    <i class="fas fa-graduation-cap" style="margin-right: 6px;"></i>
-                    Student Dashboard
-                </a>
-                {% endif %}
-                
-                {% if 'LECTURER' in user_roles %}
-                <a class="nav-link text-white" href="{% url 'lecturer_dashboard' %}"
-                   style="padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease;"
-                   onmouseover="this.style.background='rgba(255,255,255,0.2)'"
-                   onmouseout="this.style.background='transparent'">
-                    <i class="fas fa-chalkboard-teacher" style="margin-right: 6px;"></i>
-                    Lecturer Dashboard
-                    {% if unique_roles.LECTURER.has_delegated and not unique_roles.LECTURER.has_direct %}
-                    <span class="badge bg-warning text-dark ms-1" style="font-size: 9px;">Delegated</span>
-                    {% elif unique_roles.LECTURER.has_delegated and unique_roles.LECTURER.has_direct %}
-                    <span class="badge bg-info text-white ms-1" style="font-size: 9px;">Direct + Delegated</span>
-                    {% endif %}
-                </a>
-                {% endif %}
-                
-                {% if 'EXAM_OFFICER' in user_roles %}
-                <a class="nav-link text-white" href="{% url 'exam_officer_dashboard' %}"
-                   style="padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease;"
-                   onmouseover="this.style.background='rgba(255,255,255,0.2)'"
-                   onmouseout="this.style.background='transparent'">
-                    <i class="fas fa-clipboard-list" style="margin-right: 6px;"></i>
-                    Exam Officer
-                    {% if unique_roles.EXAM_OFFICER.has_delegated and not unique_roles.EXAM_OFFICER.has_direct %}
-                    <span class="badge bg-warning text-dark ms-1" style="font-size: 9px;">Delegated</span>
-                    {% elif unique_roles.EXAM_OFFICER.has_delegated and unique_roles.EXAM_OFFICER.has_direct %}
-                    <span class="badge bg-info text-white ms-1" style="font-size: 9px;">Direct + Delegated</span>
-                    {% endif %}
-                </a>
-                {% endif %}
-                
-                {% if 'HOD' in user_roles %}
-                <a class="nav-link text-white" href="{% url 'hod_dashboard' %}"
-                   style="padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease;"
-                   onmouseover="this.style.background='rgba(255,255,255,0.2)'"
-                   onmouseout="this.style.background='transparent'">
-                    <i class="fas fa-user-tie" style="margin-right: 6px;"></i>
-                    HOD Dashboard
-                    {% if unique_roles.HOD.has_delegated and not unique_roles.HOD.has_direct %}
-                    <span class="badge bg-warning text-dark ms-1" style="font-size: 9px;">Delegated</span>
-                    {% elif unique_roles.HOD.has_delegated and unique_roles.HOD.has_direct %}
-                    <span class="badge bg-info text-white ms-1" style="font-size: 9px;">Direct + Delegated</span>
-                    {% endif %}
-                </a>
-                {% endif %}
-                
-                {% if 'FACULTY_DEAN' in user_roles %}
-                <a class="nav-link text-white" href="{% url 'faculty_dean_dashboard' %}"
-                   style="padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease;"
-                   onmouseover="this.style.background='rgba(255,255,255,0.2)'"
-                   onmouseout="this.style.background='transparent'">
-                    <i class="fas fa-university" style="margin-right: 6px;"></i>
-                    Faculty Dean
-                    {% if unique_roles.FACULTY_DEAN.has_delegated and not unique_roles.FACULTY_DEAN.has_direct %}
-                    <span class="badge bg-warning text-dark ms-1" style="font-size: 9px;">Delegated</span>
-                    {% elif unique_roles.FACULTY_DEAN.has_delegated and unique_roles.FACULTY_DEAN.has_direct %}
-                    <span class="badge bg-info text-white ms-1" style="font-size: 9px;">Direct + Delegated</span>
-                    {% endif %}
-                </a>
-                {% endif %}
+    {% if navigation_items %}
+    <nav class="navbar navbar-expand-lg" style="background: var(--royal-blue-gradient); border-radius: 16px; margin-bottom: 24px; box-shadow: var(--shadow-medium);">
+        <div class="container-fluid" style="padding: 16px 24px;">
+            <div class="navbar-nav d-flex flex-wrap gap-3 w-100 justify-content-start">
 
-                {% if 'DAAA' in user_roles %}
-                <a class="nav-link text-white" href="{% url 'daaa_dashboard' %}"
-                   style="padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease;"
-                   onmouseover="this.style.background='rgba(255,255,255,0.2)'"
-                   onmouseout="this.style.background='transparent'">
-                    <i class="fas fa-cogs" style="margin-right: 6px;"></i>
-                    DAAA Dashboard
-                    {% if unique_roles.DAAA.has_delegated and not unique_roles.DAAA.has_direct %}
-                    <span class="badge bg-warning text-dark ms-1" style="font-size: 9px;">Delegated</span>
-                    {% elif unique_roles.DAAA.has_delegated and unique_roles.DAAA.has_direct %}
-                    <span class="badge bg-info text-white ms-1" style="font-size: 9px;">Direct + Delegated</span>
-                    {% endif %}
-                </a>
-                {% endif %}
-                
-                {% if 'SENATE' in user_roles %}
-                <a class="nav-link text-white" href="{% url 'senate_dashboard' %}"
-                   style="padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease;"
-                   onmouseover="this.style.background='rgba(255,255,255,0.2)'"
-                   onmouseout="this.style.background='transparent'">
-                    <i class="fas fa-gavel" style="margin-right: 6px;"></i>
-                    Senate Dashboard
-                    {% if unique_roles.SENATE.has_delegated and not unique_roles.SENATE.has_direct %}
-                    <span class="badge bg-warning text-dark ms-1" style="font-size: 9px;">Delegated</span>
-                    {% elif unique_roles.SENATE.has_delegated and unique_roles.SENATE.has_direct %}
-                    <span class="badge bg-info text-white ms-1" style="font-size: 9px;">Direct + Delegated</span>
-                    {% endif %}
-                </a>
-                {% endif %}
+                <!-- Context-Aware Navigation Items -->
+                {% for nav_item in navigation_items %}
 
-                {% if 'SUPER_ADMIN' in user_roles %}
-                <a class="nav-link text-white" href="{% url 'super_admin_dashboard' %}"
-                   style="padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease;"
-                   onmouseover="this.style.background='rgba(255,255,255,0.2)'"
-                   onmouseout="this.style.background='transparent'">
-                    <i class="fas fa-crown" style="margin-right: 6px;"></i>
-                    Super Admin
-                    {% if unique_roles.SUPER_ADMIN.has_delegated and not unique_roles.SUPER_ADMIN.has_direct %}
-                    <span class="badge bg-warning text-dark ms-1" style="font-size: 9px;">Delegated</span>
-                    {% elif unique_roles.SUPER_ADMIN.has_delegated and unique_roles.SUPER_ADMIN.has_direct %}
-                    <span class="badge bg-info text-white ms-1" style="font-size: 9px;">Direct + Delegated</span>
+                    <!-- Student Dashboard -->
+                    {% if nav_item.role == 'STUDENT' %}
+                    <a href="{% url 'student_dashboard' %}"
+                       class="btn btn-nav-role"
+                       role="button"
+                       aria-label="Access Student Dashboard{{ nav_item.context_suffix }}">
+                        <i class="fas fa-graduation-cap" aria-hidden="true"></i>
+                        <span class="nav-text">Student Portal{{ nav_item.context_suffix }}</span>
+                        {% if nav_item.delegation_status == 'delegated' %}
+                        <span class="badge badge-delegated">Delegated</span>
+                        {% endif %}
+                    </a>
                     {% endif %}
-                </a>
-                {% endif %}
+
+                    <!-- Lecturer Dashboard -->
+                    {% if nav_item.role == 'LECTURER' %}
+                    <a href="{% url 'lecturer_dashboard' %}"
+                       class="btn btn-nav-role"
+                       role="button"
+                       aria-label="Access Lecturer Dashboard{{ nav_item.context_suffix }}">
+                        <i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>
+                        <span class="nav-text">Lecturer Dashboard{{ nav_item.context_suffix }}</span>
+                        {% if nav_item.delegation_status == 'delegated' %}
+                        <span class="badge badge-delegated">Delegated</span>
+                        {% endif %}
+                    </a>
+                    {% endif %}
+
+                    <!-- Exam Officer Dashboard -->
+                    {% if nav_item.role == 'EXAM_OFFICER' %}
+                    <a href="{% url 'exam_officer_dashboard' %}"
+                       class="btn btn-nav-role"
+                       role="button"
+                       aria-label="Access Exam Officer Dashboard{{ nav_item.context_suffix }}">
+                        <i class="fas fa-clipboard-list" aria-hidden="true"></i>
+                        <span class="nav-text">Exam Officer{{ nav_item.context_suffix }}</span>
+                        {% if nav_item.delegation_status == 'delegated' %}
+                        <span class="badge badge-delegated">Delegated</span>
+                        {% endif %}
+                    </a>
+                    {% endif %}
                 
-                {% if 'ADMISSION_OFFICER' in user_roles %}
-                <a class="nav-link text-white" href="{% url 'admission_officer_dashboard' %}"
-                   style="padding: 8px 16px; border-radius: 8px; transition: all 0.2s ease;"
-                   onmouseover="this.style.background='rgba(255,255,255,0.2)'"
-                   onmouseout="this.style.background='transparent'">
-                    <i class="fas fa-user-plus" style="margin-right: 6px;"></i>
-                    Admission Officer
-                    {% if unique_roles.ADMISSION_OFFICER.has_delegated and not unique_roles.ADMISSION_OFFICER.has_direct %}
-                    <span class="badge bg-warning text-dark ms-1" style="font-size: 9px;">Delegated</span>
-                    {% elif unique_roles.ADMISSION_OFFICER.has_delegated and unique_roles.ADMISSION_OFFICER.has_direct %}
-                    <span class="badge bg-info text-white ms-1" style="font-size: 9px;">Direct + Delegated</span>
+                    <!-- HOD Dashboard -->
+                    {% if nav_item.role == 'HOD' %}
+                    <a href="{% url 'hod_dashboard' %}"
+                       class="btn btn-nav-role"
+                       role="button"
+                       aria-label="Access HOD Dashboard{{ nav_item.context_suffix }}">
+                        <i class="fas fa-user-tie" aria-hidden="true"></i>
+                        <span class="nav-text">HOD Dashboard{{ nav_item.context_suffix }}</span>
+                        {% if nav_item.delegation_status == 'delegated' %}
+                        <span class="badge badge-delegated">Delegated</span>
+                        {% endif %}
+                    </a>
                     {% endif %}
-                </a>
-                {% endif %}
+                
+                    <!-- Faculty Dean Dashboard -->
+                    {% if nav_item.role == 'FACULTY_DEAN' %}
+                    <a href="{% url 'faculty_dean_dashboard' %}"
+                       class="btn btn-nav-role"
+                       role="button"
+                       aria-label="Access Faculty Dean Dashboard{{ nav_item.context_suffix }}">
+                        <i class="fas fa-university" aria-hidden="true"></i>
+                        <span class="nav-text">Faculty Dean{{ nav_item.context_suffix }}</span>
+                        {% if nav_item.delegation_status == 'delegated' %}
+                        <span class="badge badge-delegated">Delegated</span>
+                        {% endif %}
+                    </a>
+                    {% endif %}
+
+                    <!-- DAAA Dashboard -->
+                    {% if nav_item.role == 'DAAA' %}
+                    <a href="{% url 'daaa_dashboard' %}"
+                       class="btn btn-nav-role"
+                       role="button"
+                       aria-label="Access DAAA Dashboard{{ nav_item.context_suffix }}">
+                        <i class="fas fa-cogs" aria-hidden="true"></i>
+                        <span class="nav-text">DAAA Dashboard{{ nav_item.context_suffix }}</span>
+                        {% if nav_item.delegation_status == 'delegated' %}
+                        <span class="badge badge-delegated">Delegated</span>
+                        {% endif %}
+                    </a>
+                    {% endif %}
+
+                    <!-- Senate Dashboard -->
+                    {% if nav_item.role == 'SENATE' %}
+                    <a href="{% url 'senate_dashboard' %}"
+                       class="btn btn-nav-role"
+                       role="button"
+                       aria-label="Access Senate Dashboard{{ nav_item.context_suffix }}">
+                        <i class="fas fa-gavel" aria-hidden="true"></i>
+                        <span class="nav-text">Senate Dashboard{{ nav_item.context_suffix }}</span>
+                        {% if nav_item.delegation_status == 'delegated' %}
+                        <span class="badge badge-delegated">Delegated</span>
+                        {% endif %}
+                    </a>
+                    {% endif %}
+
+                    <!-- Super Admin Dashboard -->
+                    {% if nav_item.role == 'SUPER_ADMIN' %}
+                    <a href="{% url 'super_admin_dashboard' %}"
+                       class="btn btn-nav-role"
+                       role="button"
+                       aria-label="Access Super Admin Dashboard{{ nav_item.context_suffix }}">
+                        <i class="fas fa-crown" aria-hidden="true"></i>
+                        <span class="nav-text">Super Admin{{ nav_item.context_suffix }}</span>
+                        {% if nav_item.delegation_status == 'delegated' %}
+                        <span class="badge badge-delegated">Delegated</span>
+                        {% endif %}
+                    </a>
+                    {% endif %}
+
+                    <!-- Admission Officer Dashboard -->
+                    {% if nav_item.role == 'ADMISSION_OFFICER' %}
+                    <a href="{% url 'admission_officer_dashboard' %}"
+                       class="btn btn-nav-role"
+                       role="button"
+                       aria-label="Access Admission Officer Dashboard{{ nav_item.context_suffix }}">
+                        <i class="fas fa-user-plus" aria-hidden="true"></i>
+                        <span class="nav-text">Admission Officer{{ nav_item.context_suffix }}</span>
+                        {% if nav_item.delegation_status == 'delegated' %}
+                        <span class="badge badge-delegated">Delegated</span>
+                        {% endif %}
+                    </a>
+                    {% endif %}
+
+                {% endfor %}
             </div>
-            
+
             <!-- Role Summary Badge -->
             <div class="ms-auto">
-                <span class="badge bg-light text-dark" style="font-size: 11px; padding: 6px 12px;">
-                    {{ user_roles|length }} Role{{ user_roles|length|pluralize }}
+                <span class="badge bg-light text-dark" style="font-size: 11px; padding: 6px 12px; border-radius: 8px;">
+                    {{ navigation_items|length }} Role{{ navigation_items|length|pluralize }}
                 </span>
             </div>
         </div>
     </nav>
-    
-    <!-- Quick Actions based on highest role -->
-    {% if user_roles %}
-    <div class="quick-actions-container" style="margin-bottom: 20px;">
-        <div class="row g-3">
-            <!-- HOD Quick Actions -->
-            {% if 'HOD' in user_roles %}
-            <div class="col-md-6 col-lg-3">
-                <div class="card border-0 shadow-sm" style="border-radius: 12px;">
-                    <div class="card-body text-center" style="padding: 16px;">
-                        <i class="fas fa-users text-primary" style="font-size: 24px; margin-bottom: 8px;"></i>
-                        <h6 class="card-title" style="margin-bottom: 8px; font-size: 14px;">HOD Actions</h6>
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'hod_manage_courses' %}" class="btn btn-outline-primary btn-sm">Manage Courses</a>
-                            <a href="{% url 'hod_assign_lecturers' %}" class="btn btn-outline-primary btn-sm">Assign Lecturers</a>
-                        </div>
-                        {% if user|has_delegated_role:'HOD' %}
-                        <div class="mt-2">
-                            <span class="badge bg-warning text-dark" style="font-size: 9px;">Delegated Access</span>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-            
-            <!-- Faculty Dean Quick Actions -->
-            {% if 'FACULTY_DEAN' in user_roles %}
-            <div class="col-md-6 col-lg-3">
-                <div class="card border-0 shadow-sm" style="border-radius: 12px;">
-                    <div class="card-body text-center" style="padding: 16px;">
-                        <i class="fas fa-university text-success" style="font-size: 24px; margin-bottom: 8px;"></i>
-                        <h6 class="card-title" style="margin-bottom: 8px; font-size: 14px;">Dean Actions</h6>
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'faculty_dean_departments' %}" class="btn btn-outline-success btn-sm">Departments</a>
-                            <a href="{% url 'faculty_dean_pending_results' %}" class="btn btn-outline-success btn-sm">Pending Results</a>
-                        </div>
-                        {% if user|has_delegated_role:'FACULTY_DEAN' %}
-                        <div class="mt-2">
-                            <span class="badge bg-warning text-dark" style="font-size: 9px;">Delegated Access</span>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-    </div>
     {% endif %}
+
 </div>
 
+<!-- Navigation Button Styles with Royal Blue Theme -->
 <style>
-.role-navigation-container .nav-link:hover {
-    transform: translateY(-1px);
+/* Navigation Role Button Styling */
+.btn-nav-role {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white !important;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    overflow: hidden;
+    min-height: 48px;
+    /* I think this ensures good accessibility with proper touch targets */
 }
 
-.quick-actions-container .card {
-    transition: all 0.2s ease;
-}
-
-.quick-actions-container .card:hover {
+.btn-nav-role:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: white !important;
     transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
-@media (max-width: 768px) {
+.btn-nav-role:focus {
+    outline: 2px solid rgba(255, 255, 255, 0.8);
+    outline-offset: 2px;
+    color: white !important;
+}
+
+.btn-nav-role:active {
+    transform: translateY(0);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* Navigation Text Styling */
+.nav-text {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    /* Based on the documentation, this should improve readability */
+}
+
+/* Delegation Badge Styling */
+.badge-delegated {
+    background: rgba(255, 193, 7, 0.9) !important;
+    color: #000 !important;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-left: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Icon Styling */
+.btn-nav-role i {
+    font-size: 16px;
+    opacity: 0.9;
+    flex-shrink: 0;
+}
+
+/* Mobile Responsive Design */
+@media (max-width: 991.98px) {
     .role-navigation-container .navbar-nav {
         flex-direction: column;
-        gap: 8px;
+        gap: 12px;
+        width: 100%;
     }
-    
-    .role-navigation-container .nav-link {
-        text-align: center;
+
+    .btn-nav-role {
+        width: 100%;
+        justify-content: flex-start;
+        padding: 16px 20px;
+        font-size: 16px;
+    }
+
+    .btn-nav-role i {
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 576px) {
+    .role-navigation-container {
+        margin: 0 -15px;
+    }
+
+    .role-navigation-container .navbar {
+        border-radius: 0;
+        margin-bottom: 16px;
+    }
+
+    .btn-nav-role {
+        border-radius: 8px;
+        padding: 14px 16px;
+    }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    .btn-nav-role {
+        border-width: 2px;
+        border-color: white;
+    }
+
+    .btn-nav-role:hover {
+        background: white;
+        color: var(--royal-blue) !important;
+    }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    .btn-nav-role {
+        transition: none;
+    }
+
+    .btn-nav-role:hover {
+        transform: none;
     }
 }
 </style>

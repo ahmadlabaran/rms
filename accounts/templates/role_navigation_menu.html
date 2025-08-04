@@ -52,46 +52,7 @@
                 </a>
                 {% endif %}
 
-                <!-- Consolidated Functional Navigation -->
-                <!-- Students Management (Multiple Roles Access) -->
-                {% if 'FACULTY_DEAN' in user_roles or 'HOD' in user_roles or 'ADMISSION_OFFICER' in user_roles or 'EXAM_OFFICER' in user_roles %}
-                <a href="{% url 'consolidated_students' %}" class="btn btn-nav-role">
-                    <i class="fas fa-users" aria-hidden="true"></i>
-                    <span class="nav-text">Students</span>
-                </a>
-                {% endif %}
 
-                <!-- Lecturers Management (Multiple Roles Access) -->
-                {% if 'FACULTY_DEAN' in user_roles or 'HOD' in user_roles %}
-                <a href="{% url 'consolidated_lecturers' %}" class="btn btn-nav-role">
-                    <i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>
-                    <span class="nav-text">Lecturers</span>
-                </a>
-                {% endif %}
-
-                <!-- Courses Management (Multiple Roles Access) -->
-                {% if 'FACULTY_DEAN' in user_roles or 'HOD' in user_roles %}
-                <a href="{% url 'consolidated_courses' %}" class="btn btn-nav-role">
-                    <i class="fas fa-book" aria-hidden="true"></i>
-                    <span class="nav-text">Courses</span>
-                </a>
-                {% endif %}
-
-                <!-- Results Management (Multiple Roles Access) -->
-                {% if 'FACULTY_DEAN' in user_roles or 'HOD' in user_roles or 'EXAM_OFFICER' in user_roles or 'DAAA' in user_roles or 'SENATE' in user_roles %}
-                <a href="{% url 'consolidated_results' %}" class="btn btn-nav-role">
-                    <i class="fas fa-chart-line" aria-hidden="true"></i>
-                    <span class="nav-text">Results</span>
-                </a>
-                {% endif %}
-
-                <!-- Reports (Multiple Roles Access) -->
-                {% if 'FACULTY_DEAN' in user_roles or 'HOD' in user_roles or 'DAAA' in user_roles or 'SENATE' in user_roles %}
-                <a href="{% url 'consolidated_reports' %}" class="btn btn-nav-role">
-                    <i class="fas fa-file-alt" aria-hidden="true"></i>
-                    <span class="nav-text">Reports</span>
-                </a>
-                {% endif %}
             </div>
 
             <!-- Compact Role Summary Badge -->

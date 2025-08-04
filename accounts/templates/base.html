@@ -714,7 +714,7 @@
                     </li>
                     {% endif %}
 
-                    <!-- Faculty Dean Navigation -->
+                    <!-- Faculty Dean Navigation (Unique Items Only) -->
                     {% if is_faculty_dean %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'departments' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'faculty_dean_departments' %}">
@@ -722,58 +722,18 @@
                             <span>Departments</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'lecturers' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'faculty_dean_lecturers' %}">
-                            <i class="bi bi-person-badge"></i>
-                            <span>Lecturers</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'courses' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'faculty_dean_courses' %}">
-                            <i class="bi bi-book-fill"></i>
-                            <span>Courses</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'pending' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'faculty_dean_pending_results' %}">
-                            <i class="bi bi-clipboard-check"></i>
-                            <span>Pending Results</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'reports' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'faculty_dean_reports' %}">
-                            <i class="bi bi-graph-up"></i>
-                            <span>Reports</span>
-                        </a>
-                    </li>
+                    <!-- Note: Lecturers, Courses, Results, Reports are now in consolidated navigation -->
                     {% endif %}
 
-                    <!-- HOD Navigation -->
+                    <!-- HOD Navigation (Unique Items Only) -->
                     {% if is_hod %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'pending' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_pending_results' %}">
-                            <i class="bi bi-clock"></i>
-                            <span>Pending Results</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'courses' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_manage_courses' %}">
-                            <i class="bi bi-book-fill"></i>
-                            <span>Courses</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'lecturer' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_lecturer_list' %}">
-                            <i class="bi bi-person-badge"></i>
-                            <span>Lecturers</span>
-                        </a>
-                    </li>
                     <li class="nav-item">
                         <a class="nav-link {% if 'department' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_department_summary' %}">
                             <i class="bi bi-graph-up"></i>
-                            <span>Reports</span>
+                            <span>Department Summary</span>
                         </a>
                     </li>
+                    <!-- Note: Lecturers, Courses, Results, Reports are now in consolidated navigation -->
                     {% endif %}
 
                     <!-- Lecturer Navigation -->
@@ -820,14 +780,8 @@
                     </li>
                     {% endif %}
 
-                    <!-- DAAA Navigation -->
+                    <!-- DAAA Navigation (Unique Items Only) -->
                     {% if is_daaa %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'pending' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'daaa_pending_results' %}">
-                            <i class="bi bi-clock"></i>
-                            <span>Pending Results</span>
-                        </a>
-                    </li>
                     <li class="nav-item">
                         <a class="nav-link {% if 'sessions' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'daaa_manage_sessions' %}">
                             <i class="bi bi-calendar3"></i>
@@ -840,12 +794,7 @@
                             <span>Publish Results</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'reports' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'daaa_reports' %}">
-                            <i class="bi bi-graph-up"></i>
-                            <span>Reports</span>
-                        </a>
-                    </li>
+                    <!-- Note: Results and Reports are now in consolidated navigation -->
                     {% endif %}
 
                     <!-- Notifications (for all users) -->

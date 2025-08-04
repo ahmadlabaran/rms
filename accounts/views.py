@@ -4682,11 +4682,18 @@ def consolidated_students_view(request):
     """
     user_roles = get_user_roles_with_details(request.user)
     available_contexts = []
+    processed_roles = set()  # Prevent duplicate contexts
 
     # I think this approach will let users switch between different role contexts
     for role_info in user_roles:
         role = role_info['role']
         if role in ['FACULTY_DEAN', 'HOD', 'ADMISSION_OFFICER', 'EXAM_OFFICER']:
+            # Skip if we already processed this role type
+            if role in processed_roles:
+                continue
+
+            processed_roles.add(role)
+
             # Correct URL mapping for students
             url_mapping = {
                 'FACULTY_DEAN': 'faculty_dean_students',
@@ -4694,9 +4701,18 @@ def consolidated_students_view(request):
                 'ADMISSION_OFFICER': 'admission_all_students',
                 'EXAM_OFFICER': 'exam_officer_dashboard'  # Exam officers don't have direct student management
             }
+
+            # Build context display with delegation info
+            context_suffix = ""
+            if role_info.get('department'):
+                context_suffix = f" - {role_info['department'].name}"
+            elif role_info.get('faculty'):
+                context_suffix = f" - {role_info['faculty'].name}"
+
             context = {
                 'role': role,
                 'role_display': get_role_display_name(role),
+                'context_suffix': context_suffix,
                 'department': role_info.get('department'),
                 'faculty': role_info.get('faculty'),
                 'is_delegated': role_info.get('is_delegated', False),
@@ -4724,18 +4740,34 @@ def consolidated_lecturers_view(request):
     """
     user_roles = get_user_roles_with_details(request.user)
     available_contexts = []
+    processed_roles = set()  # I think this will prevent duplicate contexts
 
     for role_info in user_roles:
         role = role_info['role']
         if role in ['FACULTY_DEAN', 'HOD']:
-            # I think this mapping will fix the URL name issues
+            # Skip if we already processed this role type
+            if role in processed_roles:
+                continue
+
+            processed_roles.add(role)
+
+            # URL mapping for lecturers management
             url_mapping = {
                 'FACULTY_DEAN': 'faculty_dean_lecturers',
                 'HOD': 'hod_lecturer_list'
             }
+
+            # Build context display with delegation info
+            context_suffix = ""
+            if role_info.get('department'):
+                context_suffix = f" - {role_info['department'].name}"
+            elif role_info.get('faculty'):
+                context_suffix = f" - {role_info['faculty'].name}"
+
             context = {
                 'role': role,
                 'role_display': get_role_display_name(role),
+                'context_suffix': context_suffix,
                 'department': role_info.get('department'),
                 'faculty': role_info.get('faculty'),
                 'is_delegated': role_info.get('is_delegated', False),
@@ -4762,18 +4794,34 @@ def consolidated_courses_view(request):
     """
     user_roles = get_user_roles_with_details(request.user)
     available_contexts = []
+    processed_roles = set()  # Prevent duplicate contexts
 
     for role_info in user_roles:
         role = role_info['role']
         if role in ['FACULTY_DEAN', 'HOD']:
+            # Skip if we already processed this role type
+            if role in processed_roles:
+                continue
+
+            processed_roles.add(role)
+
             # Correct URL mapping for courses
             url_mapping = {
                 'FACULTY_DEAN': 'faculty_dean_courses',
                 'HOD': 'hod_manage_courses'
             }
+
+            # Build context display with delegation info
+            context_suffix = ""
+            if role_info.get('department'):
+                context_suffix = f" - {role_info['department'].name}"
+            elif role_info.get('faculty'):
+                context_suffix = f" - {role_info['faculty'].name}"
+
             context = {
                 'role': role,
                 'role_display': get_role_display_name(role),
+                'context_suffix': context_suffix,
                 'department': role_info.get('department'),
                 'faculty': role_info.get('faculty'),
                 'is_delegated': role_info.get('is_delegated', False),
@@ -6760,44 +6808,7 @@ def faculty_dean_courses(request):
 
     return render(request, 'faculty_dean_courses.html', context)
 
-@login_required
-def faculty_dean_lecturers(request):
-    """Faculty Dean Lecturers Management"""
-    # Check if user has Faculty Dean role
-    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
-    if not faculty_dean_roles.exists():
-        messages.error(request, 'Access denied. Faculty Dean role required.')
-        return redirect('dashboard')
 
-    # Get the faculty for this dean
-    faculty_role = faculty_dean_roles.first()
-    faculty = faculty_role.faculty
-
-    # Get all lecturers in this faculty
-    lecturers = User.objects.filter(
-        rms_roles__role='LECTURER',
-        rms_roles__faculty=faculty
-    ).distinct().order_by('first_name', 'last_name')
-
-    # Get departments in this faculty
-    departments = Department.objects.filter(faculty=faculty).order_by('name')
-
-    # Calculate statistics
-    stats = {
-        'total_lecturers': lecturers.count(),
-        'hods': User.objects.filter(userrole__role='HOD', userrole__faculty=faculty).distinct().count(),
-        'active_lecturers': lecturers.filter(is_active=True).count(),
-        'course_assignments': CourseAssignment.objects.filter(lecturer__in=lecturers).count(),
-    }
-
-    context = {
-        'faculty': faculty,
-        'lecturers': lecturers,
-        'departments': departments,
-        'stats': stats,
-    }
-
-    return render(request, 'faculty_dean_lecturers.html', context)
 
 @login_required
 def faculty_dean_create_lecturer(request):

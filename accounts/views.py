@@ -4736,7 +4736,7 @@ def consolidated_students_view(request):
 @login_required
 def consolidated_lecturers_view(request):
     """
-    Consolidated lecturers view with role context switching.
+    Consolidated lecturers view with role context switching and actual data filtering.
     """
     user_roles = get_user_roles_with_details(request.user)
     available_contexts = []
@@ -4751,12 +4751,6 @@ def consolidated_lecturers_view(request):
 
             processed_roles.add(role)
 
-            # URL mapping for lecturers management
-            url_mapping = {
-                'FACULTY_DEAN': 'faculty_dean_lecturers',
-                'HOD': 'hod_lecturer_list'
-            }
-
             # Build context display with delegation info
             context_suffix = ""
             if role_info.get('department'):
@@ -4770,17 +4764,72 @@ def consolidated_lecturers_view(request):
                 'context_suffix': context_suffix,
                 'department': role_info.get('department'),
                 'faculty': role_info.get('faculty'),
-                'is_delegated': role_info.get('is_delegated', False),
-                'url_name': url_mapping.get(role)
+                'is_delegated': role_info.get('is_delegated', False)
             }
             available_contexts.append(context)
 
+    # Get selected context
     selected_context = request.GET.get('context', available_contexts[0]['role'] if available_contexts else None)
+
+    # Find the selected context details
+    current_context = None
+    for ctx in available_contexts:
+        if ctx['role'] == selected_context:
+            current_context = ctx
+            break
+
+    # Get lecturers based on selected context
+    lecturer_roles = []
+    departments = []
+    stats = {}
+
+    if current_context:
+        if current_context['role'] == 'FACULTY_DEAN':
+            # Faculty Dean sees all lecturers in their faculty
+            faculty = current_context['faculty']
+            if faculty:
+                lecturer_roles = UserRole.objects.filter(
+                    role='LECTURER',
+                    faculty=faculty
+                ).select_related('user', 'department').order_by('user__first_name', 'user__last_name')
+
+                departments = Department.objects.filter(faculty=faculty).order_by('name')
+
+                stats = {
+                    'total_lecturers': lecturer_roles.count(),
+                    'total_hods': UserRole.objects.filter(role='HOD', faculty=faculty).count(),
+                    'departments_count': departments.count(),
+                    'lecturers_by_dept': {
+                        dept.name: lecturer_roles.filter(department=dept).count()
+                        for dept in departments
+                    }
+                }
+
+        elif current_context['role'] == 'HOD':
+            # HOD sees lecturers in their department
+            department = current_context['department']
+            if department:
+                lecturer_roles = UserRole.objects.filter(
+                    role='LECTURER',
+                    department=department
+                ).select_related('user', 'department').order_by('user__first_name', 'user__last_name')
+
+                departments = [department]
+
+                stats = {
+                    'total_lecturers': lecturer_roles.count(),
+                    'department_name': department.name,
+                    'faculty_name': department.faculty.name if department.faculty else 'N/A'
+                }
 
     context = {
         'page_title': 'Lecturers Management',
         'available_contexts': available_contexts,
         'selected_context': selected_context,
+        'current_context': current_context,
+        'lecturer_roles': lecturer_roles,
+        'departments': departments,
+        'stats': stats,
         'user_roles': [r['role'] for r in user_roles]
     }
 

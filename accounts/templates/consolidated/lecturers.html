@@ -91,20 +91,133 @@
         </div>
     </div>
 
-    <!-- Lecturers Content (Iframe to Role-Specific Page) -->
+    <!-- Lecturers Content (Actual Data) -->
+    <div class="row">
+        <!-- Statistics Cards -->
+        <div class="col-md-3 mb-4">
+            <div class="card text-center" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <h3 class="fw-bold">{{ stats.total_lecturers|default:0 }}</h3>
+                    <p class="mb-0">Total Lecturers</p>
+                </div>
+            </div>
+        </div>
+
+        {% if current_context.role == 'FACULTY_DEAN' %}
+        <div class="col-md-3 mb-4">
+            <div class="card text-center bg-success text-white">
+                <div class="card-body">
+                    <h3 class="fw-bold">{{ stats.total_hods|default:0 }}</h3>
+                    <p class="mb-0">HODs</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card text-center bg-info text-white">
+                <div class="card-body">
+                    <h3 class="fw-bold">{{ stats.departments_count|default:0 }}</h3>
+                    <p class="mb-0">Departments</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if current_context.role == 'HOD' %}
+        <div class="col-md-6 mb-4">
+            <div class="card text-center bg-info text-white">
+                <div class="card-body">
+                    <h5 class="fw-bold">{{ stats.department_name|default:"N/A" }}</h5>
+                    <p class="mb-0">Department</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Lecturers List -->
     <div class="row">
         <div class="col-12">
             <div class="card">
-                <div class="card-body p-0">
-                    {% for context in available_contexts %}
-                        {% if context.role == selected_context %}
-                        <iframe 
-                            src="{% url context.url_name %}" 
-                            style="width: 100%; height: 800px; border: none; border-radius: 8px;"
-                            title="Lecturers Management - {{ context.role_display }}">
-                        </iframe>
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chalkboard-teacher me-2"></i>
+                        Lecturers List
+                        {% if current_context %}
+                        <span class="badge bg-primary ms-2">{{ current_context.role_display }}{{ current_context.context_suffix }}</span>
                         {% endif %}
-                    {% endfor %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if lecturer_roles %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Department</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lecturer_role in lecturer_roles %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                                                {{ lecturer_role.user.first_name|first }}{{ lecturer_role.user.last_name|first }}
+                                            </div>
+                                            <div>
+                                                <strong>{{ lecturer_role.user.get_full_name }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ lecturer_role.user.username }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ lecturer_role.user.email }}</td>
+                                    <td>
+                                        {% if lecturer_role.department %}
+                                        <span class="badge bg-secondary">{{ lecturer_role.department.name }}</span>
+                                        {% else %}
+                                        <span class="text-muted">No Department</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if lecturer_role.user.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary" title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-outline-secondary" title="View Courses">
+                                                <i class="fas fa-book"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-chalkboard-teacher fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Lecturers Found</h5>
+                        <p class="text-muted">
+                            {% if current_context.role == 'HOD' %}
+                            No lecturers are assigned to your department yet.
+                            {% else %}
+                            No lecturers are available in this faculty.
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -136,29 +249,56 @@
     margin-top: 2px;
 }
 
-/* Responsive iframe */
+/* Avatar styling */
+.avatar-sm {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Table responsive styling */
+.table-responsive {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Responsive design */
 @media (max-width: 768px) {
     .context-switch-btn {
         min-width: 100%;
         text-align: center;
     }
-    
-    iframe {
-        height: 600px !important;
+
+    .table-responsive {
+        font-size: 14px;
+    }
+
+    .avatar-sm {
+        width: 35px;
+        height: 35px;
+        font-size: 12px;
     }
 }
 </style>
 
 <script>
-// Handle iframe loading and responsiveness
+// Handle lecturers management functionality
 document.addEventListener('DOMContentLoaded', function() {
-    const iframe = document.querySelector('iframe');
-    if (iframe) {
-        iframe.onload = function() {
-            // Add any iframe-specific handling here
-            console.log('Lecturers management loaded for context:', '{{ selected_context }}');
-        };
-    }
+    console.log('Lecturers management loaded for context:', '{{ selected_context }}');
+
+    // Add any additional functionality here
+    // For example: search, filtering, etc.
 });
 </script>
 

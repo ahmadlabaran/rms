@@ -1,70 +1,161 @@
 {% load role_tags %}
 
-<!-- Smart Consolidated Navigation Menu -->
-<div class="role-navigation-container">
+<!-- Role Navigation and Delegation Switching -->
+<div class="role-navigation-container mb-4">
+    {% get_user_roles_with_delegation user as user_roles %}
+
     {% if user_roles %}
-    <nav class="navbar navbar-expand-lg" style="background: var(--royal-blue-gradient); border-radius: 12px; margin-bottom: 16px; box-shadow: var(--shadow-medium);">
-        <div class="container-fluid" style="padding: 12px 20px;">
 
-            <!-- Dashboard Links (Role-Specific) -->
-            <div class="navbar-nav d-flex flex-wrap gap-2 w-100 justify-content-start">
-
-                <!-- Student Portal -->
-                {% if 'STUDENT' in user_roles %}
-                <a href="{% url 'student_dashboard' %}" class="btn btn-nav-role">
-                    <i class="fas fa-graduation-cap" aria-hidden="true"></i>
-                    <span class="nav-text">Student</span>
-                    {% if user|has_delegated_role:'STUDENT' %}
-                    <span class="badge badge-delegated">Delegated</span>
+    <!-- Primary Role Dashboard Access -->
+    <div class="card border-success mb-3">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-user" aria-hidden="true"></i>
+                Your Primary Role Dashboard
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for role_info in user_roles %}
+                    {% if not role_info.is_delegated %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="role-card">
+                            {% if role_info.role == 'SUPER_ADMIN' %}
+                            <a href="{% url 'super_admin_dashboard' %}" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-crown mb-2" aria-hidden="true"></i>
+                                <br><span class="nav-text">Super Admin Dashboard</span>
+                            </a>
+                            {% elif role_info.role == 'FACULTY_DEAN' %}
+                            <a href="{% url 'faculty_dean_dashboard' %}" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-university mb-2" aria-hidden="true"></i>
+                                <br><span class="nav-text">Faculty Dean Dashboard</span>
+                                {% if role_info.faculty %}
+                                <br><small class="text-light">{{ role_info.faculty.name }}</small>
+                                {% endif %}
+                            </a>
+                            {% elif role_info.role == 'HOD' %}
+                            <a href="{% url 'hod_dashboard' %}" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-user-tie mb-2" aria-hidden="true"></i>
+                                <br><span class="nav-text">HOD Dashboard</span>
+                                {% if role_info.department %}
+                                <br><small class="text-light">{{ role_info.department.name }}</small>
+                                {% endif %}
+                            </a>
+                            {% elif role_info.role == 'LECTURER' %}
+                            <a href="{% url 'lecturer_dashboard' %}" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-chalkboard-teacher mb-2" aria-hidden="true"></i>
+                                <br><span class="nav-text">Lecturer Dashboard</span>
+                            </a>
+                            {% elif role_info.role == 'STUDENT' %}
+                            <a href="{% url 'student_dashboard' %}" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-graduation-cap mb-2" aria-hidden="true"></i>
+                                <br><span class="nav-text">Student Dashboard</span>
+                            </a>
+                            {% elif role_info.role == 'ADMISSION_OFFICER' %}
+                            <a href="{% url 'admission_officer_dashboard' %}" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-user-plus mb-2" aria-hidden="true"></i>
+                                <br><span class="nav-text">Admission Officer Dashboard</span>
+                            </a>
+                            {% elif role_info.role == 'EXAM_OFFICER' %}
+                            <a href="{% url 'exam_officer_dashboard' %}" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-clipboard-list mb-2" aria-hidden="true"></i>
+                                <br><span class="nav-text">Exam Officer Dashboard</span>
+                            </a>
+                            {% elif role_info.role == 'DAAA' %}
+                            <a href="{% url 'daaa_dashboard' %}" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-cogs mb-2" aria-hidden="true"></i>
+                                <br><span class="nav-text">DAAA Dashboard</span>
+                            </a>
+                            {% elif role_info.role == 'SENATE' %}
+                            <a href="{% url 'senate_dashboard' %}" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-balance-scale mb-2" aria-hidden="true"></i>
+                                <br><span class="nav-text">Senate Dashboard</span>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
                     {% endif %}
-                </a>
-                {% endif %}
-
-                <!-- Lecturer Dashboard (Role-Specific) -->
-                {% if 'LECTURER' in user_roles %}
-                <a href="{% url 'lecturer_dashboard' %}" class="btn btn-nav-role">
-                    <i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>
-                    <span class="nav-text">Lecturer</span>
-                    {% if user|has_delegated_role:'LECTURER' %}
-                    <span class="badge badge-delegated">Delegated</span>
-                    {% endif %}
-                </a>
-                {% endif %}
-
-                <!-- Admin Dashboards (Role-Specific) -->
-                {% if 'SUPER_ADMIN' in user_roles %}
-                <a href="{% url 'super_admin_dashboard' %}" class="btn btn-nav-role">
-                    <i class="fas fa-crown" aria-hidden="true"></i>
-                    <span class="nav-text">Admin</span>
-                    {% if user|has_delegated_role:'SUPER_ADMIN' %}
-                    <span class="badge badge-delegated">Delegated</span>
-                    {% endif %}
-                </a>
-                {% endif %}
-
-                {% if 'ADMISSION_OFFICER' in user_roles %}
-                <a href="{% url 'admission_officer_dashboard' %}" class="btn btn-nav-role">
-                    <i class="fas fa-user-plus" aria-hidden="true"></i>
-                    <span class="nav-text">Admissions</span>
-                    {% if user|has_delegated_role:'ADMISSION_OFFICER' %}
-                    <span class="badge badge-delegated">Delegated</span>
-                    {% endif %}
-                </a>
-                {% endif %}
-
-
-            </div>
-
-            <!-- Compact Role Summary Badge -->
-            <div class="ms-auto">
-                <span class="badge bg-light text-dark" style="font-size: 10px; padding: 4px 8px; border-radius: 6px;">
-                    {{ user_roles|length }} Role{{ user_roles|length|pluralize }}
-                </span>
+                {% endfor %}
             </div>
         </div>
-    </nav>
-    {% endif %}
+    </div>
 
+    <!-- Delegated Role Dashboard Access -->
+    {% for role_info in user_roles %}
+        {% if role_info.is_delegated %}
+            {% if forloop.first %}
+            <div class="card border-warning mb-3">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-hand-point-right" aria-hidden="true"></i>
+                        Delegated Role Access
+                        <span class="badge bg-dark ms-2">Temporary Permissions</span>
+                    </h5>
+                    <p class="mb-0 mt-2">
+                        <small>You have been granted temporary permissions to act in the following roles:</small>
+                    </p>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+            {% endif %}
+
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="role-card">
+                    {% if role_info.role == 'FACULTY_DEAN' %}
+                    <a href="{% url 'faculty_dean_dashboard' %}" class="btn btn-warning btn-lg w-100 text-dark">
+                        <i class="fas fa-university mb-2" aria-hidden="true"></i>
+                        <br><span class="nav-text">Switch to Faculty Dean</span>
+                        {% if role_info.faculty %}
+                        <br><small>{{ role_info.faculty.name }}</small>
+                        {% endif %}
+                        <br><span class="badge bg-dark mt-1">Delegated Access</span>
+                    </a>
+                    {% elif role_info.role == 'HOD' %}
+                    <a href="{% url 'hod_dashboard' %}" class="btn btn-warning btn-lg w-100 text-dark">
+                        <i class="fas fa-user-tie mb-2" aria-hidden="true"></i>
+                        <br><span class="nav-text">Switch to HOD</span>
+                        {% if role_info.department %}
+                        <br><small>{{ role_info.department.name }}</small>
+                        {% endif %}
+                        <br><span class="badge bg-dark mt-1">Delegated Access</span>
+                    </a>
+                    {% elif role_info.role == 'LECTURER' %}
+                    <a href="{% url 'lecturer_dashboard' %}" class="btn btn-warning btn-lg w-100 text-dark">
+                        <i class="fas fa-chalkboard-teacher mb-2" aria-hidden="true"></i>
+                        <br><span class="nav-text">Switch to Lecturer</span>
+                        <br><span class="badge bg-dark mt-1">Delegated Access</span>
+                    </a>
+                    {% elif role_info.role == 'DAAA' %}
+                    <a href="{% url 'daaa_dashboard' %}" class="btn btn-warning btn-lg w-100 text-dark">
+                        <i class="fas fa-cogs mb-2" aria-hidden="true"></i>
+                        <br><span class="nav-text">Switch to DAAA</span>
+                        <br><span class="badge bg-dark mt-1">Delegated Access</span>
+                    </a>
+                    {% elif role_info.role == 'EXAM_OFFICER' %}
+                    <a href="{% url 'exam_officer_dashboard' %}" class="btn btn-warning btn-lg w-100 text-dark">
+                        <i class="fas fa-clipboard-list mb-2" aria-hidden="true"></i>
+                        <br><span class="nav-text">Switch to Exam Officer</span>
+                        <br><span class="badge bg-dark mt-1">Delegated Access</span>
+                    </a>
+                    {% elif role_info.role == 'SENATE' %}
+                    <a href="{% url 'senate_dashboard' %}" class="btn btn-warning btn-lg w-100 text-dark">
+                        <i class="fas fa-balance-scale mb-2" aria-hidden="true"></i>
+                        <br><span class="nav-text">Switch to Senate</span>
+                        <br><span class="badge bg-dark mt-1">Delegated Access</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if forloop.last %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+
+    {% endif %}
 </div>
 
 <!-- Navigation Button Styles with Royal Blue Theme -->

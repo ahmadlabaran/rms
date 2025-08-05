@@ -722,6 +722,12 @@
                     <!-- Faculty Dean Navigation (Only on Faculty Dean pages) -->
                     {% if 'faculty_dean' in request.resolver_match.url_name %}
                     <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'faculty_dean_dashboard' %}active{% endif %}" href="{% url 'faculty_dean_dashboard' %}">
+                            <i class="bi bi-house-fill"></i>
+                            <span>Dean Home</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if 'departments' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'faculty_dean_departments' %}">
                             <i class="bi bi-building"></i>
                             <span>Departments</span>
@@ -739,22 +745,16 @@
                             <span>Courses</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'pending' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'faculty_dean_pending_results' %}">
-                            <i class="bi bi-clipboard-check"></i>
-                            <span>Results</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'reports' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'faculty_dean_reports' %}">
-                            <i class="bi bi-graph-up"></i>
-                            <span>Reports</span>
-                        </a>
-                    </li>
                     {% endif %}
 
                     <!-- HOD Navigation (Only on HOD pages) -->
                     {% if 'hod' in request.resolver_match.url_name %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'hod_dashboard' %}active{% endif %}" href="{% url 'hod_dashboard' %}">
+                            <i class="bi bi-house-fill"></i>
+                            <span>HOD Home</span>
+                        </a>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link {% if 'pending' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_pending_results' %}">
                             <i class="bi bi-clock"></i>
@@ -773,38 +773,26 @@
                             <span>Lecturers</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'department' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_department_summary' %}">
-                            <i class="bi bi-graph-up"></i>
-                            <span>Department Summary</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'reports' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_course_reports' %}">
-                            <i class="bi bi-file-text"></i>
-                            <span>Reports</span>
-                        </a>
-                    </li>
                     {% endif %}
 
                     <!-- Lecturer Navigation (Only on Lecturer pages) -->
                     {% if 'lecturer' in request.resolver_match.url_name %}
                     <li class="nav-item">
-                        <a class="nav-link {% if 'courses' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'lecturer_courses' %}">
-                            <i class="bi bi-book-fill"></i>
-                            <span>My Courses</span>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'lecturer_dashboard' %}active{% endif %}" href="{% url 'lecturer_dashboard' %}">
+                            <i class="bi bi-house-fill"></i>
+                            <span>Lecturer Home</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if 'results' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'lecturer_enter_results' %}">
-                            <i class="bi bi-clipboard-data-fill"></i>
-                            <span>Enter Results</span>
+                        <a class="nav-link" href="{% url 'lecturer_enroll_students' %}">
+                            <i class="bi bi-person-plus"></i>
+                            <span>Enroll Students</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if 'student' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'lecturer_student_list' %}">
+                        <a class="nav-link" href="{% url 'lecturer_bulk_enroll' %}">
                             <i class="bi bi-people-fill"></i>
-                            <span>Students</span>
+                            <span>Bulk Enroll</span>
                         </a>
                     </li>
                     {% endif %}
@@ -834,6 +822,12 @@
                     <!-- DAAA Navigation (Only on DAAA pages) -->
                     {% if 'daaa' in request.resolver_match.url_name %}
                     <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'daaa_dashboard' %}active{% endif %}" href="{% url 'daaa_dashboard' %}">
+                            <i class="bi bi-house-fill"></i>
+                            <span>DAAA Home</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if 'pending' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'daaa_pending_results' %}">
                             <i class="bi bi-clock"></i>
                             <span>Results</span>
@@ -851,52 +845,50 @@
                             <span>Publish Results</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'reports' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'daaa_reports' %}">
-                            <i class="bi bi-graph-up"></i>
-                            <span>Reports</span>
-                        </a>
-                    </li>
                     {% endif %}
 
-                    <!-- Delegation Switching Buttons -->
+                    <!-- Delegation Switching Logic -->
                     {% load role_tags %}
                     {% get_user_roles_with_delegation user as user_roles_details %}
-                    {% for role_detail in user_roles_details %}
-                        {% if role_detail.is_delegated %}
-                            {% if role_detail.role == 'FACULTY_DEAN' %}
-                            <li class="nav-item">
-                                <a class="nav-link text-warning" href="{% url 'faculty_dean_dashboard' %}">
-                                    <i class="bi bi-arrow-right-circle"></i>
-                                    <span>Switch to Dean</span>
-                                </a>
-                            </li>
-                            {% elif role_detail.role == 'HOD' %}
-                            <li class="nav-item">
-                                <a class="nav-link text-warning" href="{% url 'hod_dashboard' %}">
-                                    <i class="bi bi-arrow-right-circle"></i>
-                                    <span>Switch to HOD</span>
-                                </a>
-                            </li>
-                            {% elif role_detail.role == 'DAAA' %}
-                            <li class="nav-item">
-                                <a class="nav-link text-warning" href="{% url 'daaa_dashboard' %}">
-                                    <i class="bi bi-arrow-right-circle"></i>
-                                    <span>Switch to DAAA</span>
-                                </a>
-                            </li>
-                            {% elif role_detail.role == 'LECTURER' %}
-                            <li class="nav-item">
-                                <a class="nav-link text-warning" href="{% url 'lecturer_dashboard' %}">
-                                    <i class="bi bi-arrow-right-circle"></i>
-                                    <span>Switch to Lecturer</span>
-                                </a>
-                            </li>
-                            {% endif %}
-                        {% endif %}
-                    {% endfor %}
 
-                    <!-- Return to Main Dashboard Button (only on delegated role pages) -->
+                    <!-- Show "Switch to [Role]" buttons ONLY on main dashboard -->
+                    {% if request.resolver_match.url_name == 'dashboard' %}
+                        {% for role_detail in user_roles_details %}
+                            {% if role_detail.is_delegated %}
+                                {% if role_detail.role == 'FACULTY_DEAN' %}
+                                <li class="nav-item">
+                                    <a class="nav-link text-warning" href="{% url 'faculty_dean_dashboard' %}">
+                                        <i class="bi bi-arrow-right-circle"></i>
+                                        <span>Switch to Dean</span>
+                                    </a>
+                                </li>
+                                {% elif role_detail.role == 'HOD' %}
+                                <li class="nav-item">
+                                    <a class="nav-link text-warning" href="{% url 'hod_dashboard' %}">
+                                        <i class="bi bi-arrow-right-circle"></i>
+                                        <span>Switch to HOD</span>
+                                    </a>
+                                </li>
+                                {% elif role_detail.role == 'DAAA' %}
+                                <li class="nav-item">
+                                    <a class="nav-link text-warning" href="{% url 'daaa_dashboard' %}">
+                                        <i class="bi bi-arrow-right-circle"></i>
+                                        <span>Switch to DAAA</span>
+                                    </a>
+                                </li>
+                                {% elif role_detail.role == 'LECTURER' %}
+                                <li class="nav-item">
+                                    <a class="nav-link text-warning" href="{% url 'lecturer_dashboard' %}">
+                                        <i class="bi bi-arrow-right-circle"></i>
+                                        <span>Switch to Lecturer</span>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Show "Return to Main" button ONLY on delegated role pages -->
                     {% if 'faculty_dean' in request.resolver_match.url_name or 'hod' in request.resolver_match.url_name or 'daaa' in request.resolver_match.url_name or 'lecturer' in request.resolver_match.url_name %}
                         {% if request.resolver_match.url_name != 'dashboard' %}
                         <li class="nav-item">

@@ -27,8 +27,7 @@
 {% show_delegation_badges user %}
 
 <!-- Delegation Notifications and Role Switching -->
-{% load accounts_tags %}
-{% get_user_roles_with_details user as user_roles_details %}
+{% get_user_roles_with_delegation user as user_roles_details %}
 
 {% if user_roles_details %}
 <div class="row mb-4">

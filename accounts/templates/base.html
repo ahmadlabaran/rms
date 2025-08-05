@@ -720,13 +720,7 @@
                     {% endif %}
 
                     <!-- Faculty Dean Navigation (Only on Faculty Dean pages) -->
-                    {% if 'faculty_dean' in request.resolver_match.url_name %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'faculty_dean_dashboard' %}active{% endif %}" href="{% url 'faculty_dean_dashboard' %}">
-                            <i class="bi bi-house-fill"></i>
-                            <span>Dean Home</span>
-                        </a>
-                    </li>
+                    {% if request.resolver_match.url_name|slice:":13" == 'faculty_dean_' %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'departments' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'faculty_dean_departments' %}">
                             <i class="bi bi-building"></i>
@@ -748,13 +742,7 @@
                     {% endif %}
 
                     <!-- HOD Navigation (Only on HOD pages) -->
-                    {% if 'hod' in request.resolver_match.url_name %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'hod_dashboard' %}active{% endif %}" href="{% url 'hod_dashboard' %}">
-                            <i class="bi bi-house-fill"></i>
-                            <span>HOD Home</span>
-                        </a>
-                    </li>
+                    {% if request.resolver_match.url_name|slice:":4" == 'hod_' %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'pending' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_pending_results' %}">
                             <i class="bi bi-clock"></i>
@@ -768,7 +756,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if 'lecturer' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_lecturer_list' %}">
+                        <a class="nav-link {% if 'lecturer_list' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_lecturer_list' %}">
                             <i class="bi bi-person-badge"></i>
                             <span>Lecturers</span>
                         </a>
@@ -776,13 +764,7 @@
                     {% endif %}
 
                     <!-- Lecturer Navigation (Only on Lecturer pages) -->
-                    {% if 'lecturer' in request.resolver_match.url_name %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'lecturer_dashboard' %}active{% endif %}" href="{% url 'lecturer_dashboard' %}">
-                            <i class="bi bi-house-fill"></i>
-                            <span>Lecturer Home</span>
-                        </a>
-                    </li>
+                    {% if request.resolver_match.url_name|slice:":9" == 'lecturer_' %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'lecturer_enroll_students' %}">
                             <i class="bi bi-person-plus"></i>
@@ -820,13 +802,7 @@
                     {% endif %}
 
                     <!-- DAAA Navigation (Only on DAAA pages) -->
-                    {% if 'daaa' in request.resolver_match.url_name %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'daaa_dashboard' %}active{% endif %}" href="{% url 'daaa_dashboard' %}">
-                            <i class="bi bi-house-fill"></i>
-                            <span>DAAA Home</span>
-                        </a>
-                    </li>
+                    {% if request.resolver_match.url_name|slice:":5" == 'daaa_' %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'pending' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'daaa_pending_results' %}">
                             <i class="bi bi-clock"></i>
@@ -889,15 +865,13 @@
                     {% endif %}
 
                     <!-- Show "Return to Main" button ONLY on delegated role pages -->
-                    {% if 'faculty_dean' in request.resolver_match.url_name or 'hod' in request.resolver_match.url_name or 'daaa' in request.resolver_match.url_name or 'lecturer' in request.resolver_match.url_name %}
-                        {% if request.resolver_match.url_name != 'dashboard' %}
+                    {% if request.resolver_match.url_name|slice:":13" == 'faculty_dean_' or request.resolver_match.url_name|slice:":4" == 'hod_' or request.resolver_match.url_name|slice:":5" == 'daaa_' or request.resolver_match.url_name|slice:":9" == 'lecturer_' %}
                         <li class="nav-item">
                             <a class="nav-link text-info" href="{% url 'dashboard' %}">
                                 <i class="bi bi-arrow-left-circle"></i>
                                 <span>Return to Main</span>
                             </a>
                         </li>
-                        {% endif %}
                     {% endif %}
 
                     <!-- Notifications (for all users) -->

@@ -945,75 +945,117 @@
     </style>
 
     <script>
-        // Fresh dropdown implementation - runs only once
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔧 Fresh dropdown system starting...');
+        // Ultra-robust dropdown system - prevents all conflicts
+        (function() {
+            // Absolutely prevent multiple initializations
+            if (window.RMS_DROPDOWN_SYSTEM_ACTIVE) {
+                console.log('🚫 Dropdown system already active, skipping...');
+                return;
+            }
 
-            // Track which dropdowns are open
+            window.RMS_DROPDOWN_SYSTEM_ACTIVE = true;
+            console.log('🔧 RMS Dropdown System - Starting (SINGLE INSTANCE)');
+
             let openDropdown = null;
+            let systemReady = false;
 
-            // Find all dropdown toggles
-            const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
-            console.log('📋 Found', dropdownToggles.length, 'dropdown toggles');
+            function initializeDropdownSystem() {
+                if (systemReady) {
+                    console.log('🚫 System already ready, skipping...');
+                    return;
+                }
 
-            // Add click handler to each dropdown toggle
-            dropdownToggles.forEach(function(toggle, index) {
-                console.log('⚙️ Setting up dropdown', index + 1);
+                systemReady = true;
+                console.log('⚙️ Initializing dropdown handlers...');
 
-                toggle.addEventListener('click', function(event) {
-                    event.preventDefault();
-                    event.stopPropagation();
+                // Clear any existing dropdown states
+                document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+                    menu.classList.remove('show');
+                });
+                document.querySelectorAll('.dropdown-toggle[aria-expanded="true"]').forEach(toggle => {
+                    toggle.setAttribute('aria-expanded', 'false');
+                });
 
-                    console.log('🖱️ Dropdown clicked:', index + 1);
+                // Find all dropdown toggles
+                const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+                console.log('📋 Found', dropdownToggles.length, 'dropdown toggles');
 
-                    // Find the dropdown menu
-                    const menu = this.nextElementSibling;
-
-                    if (!menu || !menu.classList.contains('dropdown-menu')) {
-                        console.log('❌ No dropdown menu found');
+                // Remove any existing event listeners by cloning elements
+                dropdownToggles.forEach(function(toggle, index) {
+                    // Check if already has our custom handler
+                    if (toggle.hasAttribute('data-rms-dropdown-ready')) {
+                        console.log('⏭️ Dropdown', index + 1, 'already configured');
                         return;
                     }
 
-                    // Check if this dropdown is currently open
-                    const isThisOpen = menu.classList.contains('show');
-                    console.log('📊 Current state - open:', isThisOpen);
+                    console.log('⚙️ Setting up dropdown', index + 1);
+                    toggle.setAttribute('data-rms-dropdown-ready', 'true');
 
-                    // Close any open dropdown
-                    if (openDropdown && openDropdown !== menu) {
+                    toggle.addEventListener('click', function(event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+
+                        console.log('🖱️ Dropdown clicked:', index + 1);
+
+                        // Find the dropdown menu
+                        const menu = this.nextElementSibling;
+
+                        if (!menu || !menu.classList.contains('dropdown-menu')) {
+                            console.log('❌ No dropdown menu found for toggle', index + 1);
+                            return;
+                        }
+
+                        // Check current state
+                        const isCurrentlyOpen = menu.classList.contains('show');
+                        console.log('📊 Dropdown', index + 1, 'currently open:', isCurrentlyOpen);
+
+                        // Close any other open dropdown
+                        if (openDropdown && openDropdown !== menu) {
+                            openDropdown.classList.remove('show');
+                            const prevToggle = openDropdown.previousElementSibling;
+                            if (prevToggle) prevToggle.setAttribute('aria-expanded', 'false');
+                            console.log('🔒 Closed other dropdown');
+                        }
+
+                        // Toggle this dropdown
+                        if (isCurrentlyOpen) {
+                            // Close it
+                            menu.classList.remove('show');
+                            this.setAttribute('aria-expanded', 'false');
+                            openDropdown = null;
+                            console.log('🔒 Closed dropdown', index + 1);
+                        } else {
+                            // Open it
+                            menu.classList.add('show');
+                            this.setAttribute('aria-expanded', 'true');
+                            openDropdown = menu;
+                            console.log('🔓 Opened dropdown', index + 1, '- Classes:', menu.className);
+                        }
+                    });
+                });
+
+                // Global click handler for closing dropdowns
+                document.addEventListener('click', function(event) {
+                    if (openDropdown && !event.target.closest('.dropdown')) {
                         openDropdown.classList.remove('show');
-                        openDropdown.previousElementSibling.setAttribute('aria-expanded', 'false');
-                        console.log('🔒 Closed previous dropdown');
-                    }
-
-                    // Toggle this dropdown
-                    if (isThisOpen) {
-                        // Close it
-                        menu.classList.remove('show');
-                        this.setAttribute('aria-expanded', 'false');
+                        const toggle = openDropdown.previousElementSibling;
+                        if (toggle) toggle.setAttribute('aria-expanded', 'false');
                         openDropdown = null;
-                        console.log('🔒 Closed dropdown', index + 1);
-                    } else {
-                        // Open it
-                        menu.classList.add('show');
-                        this.setAttribute('aria-expanded', 'true');
-                        openDropdown = menu;
-                        console.log('🔓 Opened dropdown', index + 1, '- Menu classes:', menu.className);
+                        console.log('🔒 Closed dropdown (outside click)');
                     }
                 });
-            });
 
-            // Close dropdown when clicking outside
-            document.addEventListener('click', function(event) {
-                if (openDropdown && !event.target.closest('.dropdown')) {
-                    openDropdown.classList.remove('show');
-                    openDropdown.previousElementSibling.setAttribute('aria-expanded', 'false');
-                    openDropdown = null;
-                    console.log('🔒 Closed dropdown (outside click)');
-                }
-            });
+                console.log('✅ RMS Dropdown System - READY!');
+            }
 
-            console.log('✅ Fresh dropdown system ready!');
-        });
+            // Initialize immediately if DOM is ready, otherwise wait
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initializeDropdownSystem);
+            } else {
+                // DOM already loaded, initialize immediately
+                setTimeout(initializeDropdownSystem, 10);
+            }
+        })();
     </script>
 
     <!-- Enhanced JavaScript for iOS-like interactions -->

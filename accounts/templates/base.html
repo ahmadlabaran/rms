@@ -827,52 +827,79 @@
                     {% load role_tags %}
                     {% get_user_roles_with_delegation user as user_roles_details %}
 
-                    <!-- Show "Switch to [Role]" buttons ONLY on main dashboard -->
-                    {% if request.resolver_match.url_name == 'dashboard' %}
-                        {% for role_detail in user_roles_details %}
-                            {% if role_detail.is_delegated %}
-                                {% if role_detail.role == 'FACULTY_DEAN' %}
-                                <li class="nav-item">
-                                    <a class="nav-link text-warning" href="{% url 'faculty_dean_dashboard' %}">
-                                        <i class="bi bi-arrow-right-circle"></i>
-                                        <span>Switch to Dean</span>
-                                    </a>
-                                </li>
-                                {% elif role_detail.role == 'HOD' %}
-                                <li class="nav-item">
-                                    <a class="nav-link text-warning" href="{% url 'hod_dashboard' %}">
-                                        <i class="bi bi-arrow-right-circle"></i>
-                                        <span>Switch to HOD</span>
-                                    </a>
-                                </li>
-                                {% elif role_detail.role == 'DAAA' %}
-                                <li class="nav-item">
-                                    <a class="nav-link text-warning" href="{% url 'daaa_dashboard' %}">
-                                        <i class="bi bi-arrow-right-circle"></i>
-                                        <span>Switch to DAAA</span>
-                                    </a>
-                                </li>
-                                {% elif role_detail.role == 'LECTURER' %}
-                                <li class="nav-item">
-                                    <a class="nav-link text-warning" href="{% url 'lecturer_dashboard' %}">
-                                        <i class="bi bi-arrow-right-circle"></i>
-                                        <span>Switch to Lecturer</span>
-                                    </a>
-                                </li>
-                                {% endif %}
+                    <!-- Smart delegation switching - show OTHER roles, not current one -->
+                    {% for role_detail in user_roles_details %}
+                        {% if role_detail.is_delegated %}
+                            <!-- Show Dean switch button when NOT on Dean pages -->
+                            {% if role_detail.role == 'FACULTY_DEAN' and request.resolver_match.url_name|slice:":13" != 'faculty_dean_' %}
+                            <li class="nav-item">
+                                <a class="nav-link text-warning" href="{% url 'faculty_dean_dashboard' %}">
+                                    <i class="bi bi-arrow-right-circle"></i>
+                                    <span>Switch to Dean</span>
+                                </a>
+                            </li>
+                            <!-- Show HOD switch button when NOT on HOD pages -->
+                            {% elif role_detail.role == 'HOD' and request.resolver_match.url_name|slice:":4" != 'hod_' %}
+                            <li class="nav-item">
+                                <a class="nav-link text-warning" href="{% url 'hod_dashboard' %}">
+                                    <i class="bi bi-arrow-right-circle"></i>
+                                    <span>Switch to HOD</span>
+                                </a>
+                            </li>
+                            <!-- Show DAAA switch button when NOT on DAAA pages -->
+                            {% elif role_detail.role == 'DAAA' and request.resolver_match.url_name|slice:":5" != 'daaa_' %}
+                            <li class="nav-item">
+                                <a class="nav-link text-warning" href="{% url 'daaa_dashboard' %}">
+                                    <i class="bi bi-arrow-right-circle"></i>
+                                    <span>Switch to DAAA</span>
+                                </a>
+                            </li>
+                            <!-- Show Lecturer switch button when NOT on Lecturer pages -->
+                            {% elif role_detail.role == 'LECTURER' and request.resolver_match.url_name|slice:":9" != 'lecturer_' %}
+                            <li class="nav-item">
+                                <a class="nav-link text-warning" href="{% url 'lecturer_dashboard' %}">
+                                    <i class="bi bi-arrow-right-circle"></i>
+                                    <span>Switch to Lecturer</span>
+                                </a>
+                            </li>
                             {% endif %}
-                        {% endfor %}
-                    {% endif %}
+                        {% endif %}
+                    {% endfor %}
 
-                    <!-- Show "Return to Main" button ONLY on delegated role pages -->
-                    {% if request.resolver_match.url_name|slice:":13" == 'faculty_dean_' or request.resolver_match.url_name|slice:":4" == 'hod_' or request.resolver_match.url_name|slice:":5" == 'daaa_' or request.resolver_match.url_name|slice:":9" == 'lecturer_' %}
-                        <li class="nav-item">
-                            <a class="nav-link text-info" href="{% url 'dashboard' %}">
-                                <i class="bi bi-arrow-left-circle"></i>
-                                <span>Return to Main</span>
-                            </a>
-                        </li>
-                    {% endif %}
+                    <!-- Show "Return to Main" button ONLY when user is on a DELEGATED role page -->
+                    {% for role_detail in user_roles_details %}
+                        {% if role_detail.is_delegated %}
+                            {% if role_detail.role == 'FACULTY_DEAN' and request.resolver_match.url_name|slice:":13" == 'faculty_dean_' %}
+                            <li class="nav-item">
+                                <a class="nav-link text-info" href="{% url 'dashboard' %}">
+                                    <i class="bi bi-arrow-left-circle"></i>
+                                    <span>Return to Main</span>
+                                </a>
+                            </li>
+                            {% elif role_detail.role == 'HOD' and request.resolver_match.url_name|slice:":4" == 'hod_' %}
+                            <li class="nav-item">
+                                <a class="nav-link text-info" href="{% url 'dashboard' %}">
+                                    <i class="bi bi-arrow-left-circle"></i>
+                                    <span>Return to Main</span>
+                                </a>
+                            </li>
+                            {% elif role_detail.role == 'DAAA' and request.resolver_match.url_name|slice:":5" == 'daaa_' %}
+                            <li class="nav-item">
+                                <a class="nav-link text-info" href="{% url 'dashboard' %}">
+                                    <i class="bi bi-arrow-left-circle"></i>
+                                    <span>Return to Main</span>
+                                </a>
+                            </li>
+                            {% elif role_detail.role == 'LECTURER' and request.resolver_match.url_name|slice:":9" == 'lecturer_' %}
+                            <li class="nav-item">
+                                <a class="nav-link text-info" href="{% url 'dashboard' %}">
+                                    <i class="bi bi-arrow-left-circle"></i>
+                                    <span>Return to Main</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
 
                     <!-- Notifications (for all users) -->
                     <li class="nav-item nav-notification">

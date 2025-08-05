@@ -714,93 +714,78 @@
                     </li>
                     {% endif %}
 
-                    <!-- Faculty Dean Navigation -->
+                    <!-- Faculty Dean Navigation (Compact) -->
                     {% if is_faculty_dean %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'departments' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'faculty_dean_departments' %}">
-                            <i class="bi bi-building"></i>
-                            <span>Departments</span>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-university"></i>
+                            <span>Dean</span>
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'lecturers' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'consolidated_lecturers' %}">
-                            <i class="bi bi-person-badge"></i>
-                            <span>Lecturers</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'courses' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'consolidated_courses' %}">
-                            <i class="bi bi-book-fill"></i>
-                            <span>Courses</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'pending' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'consolidated_results' %}">
-                            <i class="bi bi-clipboard-check"></i>
-                            <span>Results</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'reports' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'consolidated_reports' %}">
-                            <i class="bi bi-graph-up"></i>
-                            <span>Reports</span>
-                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'faculty_dean_departments' %}">
+                                <i class="bi bi-building"></i> Departments
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'consolidated_lecturers' %}">
+                                <i class="bi bi-person-badge"></i> Lecturers
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'consolidated_courses' %}">
+                                <i class="bi bi-book-fill"></i> Courses
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'consolidated_results' %}">
+                                <i class="bi bi-clipboard-check"></i> Results
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'consolidated_reports' %}">
+                                <i class="bi bi-graph-up"></i> Reports
+                            </a></li>
+                        </ul>
                     </li>
                     {% endif %}
 
-                    <!-- HOD Navigation -->
+                    <!-- HOD Navigation (Compact) -->
                     {% if is_hod %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'pending' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'consolidated_results' %}">
-                            <i class="bi bi-clock"></i>
-                            <span>Results</span>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-tie"></i>
+                            <span>HOD</span>
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'courses' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'consolidated_courses' %}">
-                            <i class="bi bi-book-fill"></i>
-                            <span>Courses</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'lecturer' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'consolidated_lecturers' %}">
-                            <i class="bi bi-person-badge"></i>
-                            <span>Lecturers</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'department' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'hod_department_summary' %}">
-                            <i class="bi bi-graph-up"></i>
-                            <span>Department Summary</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'reports' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'consolidated_reports' %}">
-                            <i class="bi bi-file-text"></i>
-                            <span>Reports</span>
-                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'hod_department_summary' %}">
+                                <i class="bi bi-graph-up"></i> Department Summary
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'consolidated_lecturers' %}">
+                                <i class="bi bi-person-badge"></i> Lecturers
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'consolidated_courses' %}">
+                                <i class="bi bi-book-fill"></i> Courses
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'consolidated_results' %}">
+                                <i class="bi bi-clock"></i> Results
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'consolidated_reports' %}">
+                                <i class="bi bi-file-text"></i> Reports
+                            </a></li>
+                        </ul>
                     </li>
                     {% endif %}
 
-                    <!-- Lecturer Navigation -->
+                    <!-- Lecturer Navigation (Compact) -->
                     {% if is_lecturer %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'courses' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'lecturer_courses' %}">
-                            <i class="bi bi-book-fill"></i>
-                            <span>My Courses</span>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-workspace"></i>
+                            <span>Lecturer</span>
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'results' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'lecturer_enter_results' %}">
-                            <i class="bi bi-clipboard-data-fill"></i>
-                            <span>Enter Results</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'student' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'lecturer_student_list' %}">
-                            <i class="bi bi-people-fill"></i>
-                            <span>Students</span>
-                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'lecturer_courses' %}">
+                                <i class="bi bi-book-fill"></i> My Courses
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'lecturer_enter_results' %}">
+                                <i class="bi bi-clipboard-data-fill"></i> Enter Results
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'lecturer_student_list' %}">
+                                <i class="bi bi-people-fill"></i> Students
+                            </a></li>
+                        </ul>
                     </li>
                     {% endif %}
 
@@ -826,31 +811,27 @@
                     </li>
                     {% endif %}
 
-                    <!-- DAAA Navigation -->
+                    <!-- DAAA Navigation (Compact) -->
                     {% if is_daaa %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'pending' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'consolidated_results' %}">
-                            <i class="bi bi-clock"></i>
-                            <span>Results</span>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-gear"></i>
+                            <span>DAAA</span>
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'sessions' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'daaa_manage_sessions' %}">
-                            <i class="bi bi-calendar3"></i>
-                            <span>Sessions</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'publish' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'daaa_publish_results' %}">
-                            <i class="bi bi-megaphone"></i>
-                            <span>Publish Results</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if 'reports' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'consolidated_reports' %}">
-                            <i class="bi bi-graph-up"></i>
-                            <span>Reports</span>
-                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'daaa_manage_sessions' %}">
+                                <i class="bi bi-calendar3"></i> Sessions
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'daaa_publish_results' %}">
+                                <i class="bi bi-megaphone"></i> Publish Results
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'consolidated_results' %}">
+                                <i class="bi bi-clock"></i> Results
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'consolidated_reports' %}">
+                                <i class="bi bi-graph-up"></i> Reports
+                            </a></li>
+                        </ul>
                     </li>
                     {% endif %}
 

@@ -1039,9 +1039,15 @@
             box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15) !important;
         }
 
-        /* Show dropdown when active */
+        /* Show dropdown when active - with debugging */
         .dropdown-menu.show {
             display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+            background-color: white !important;
+            border: 2px solid red !important; /* Red border for debugging */
+            box-shadow: 0 0.5rem 1rem rgba(255,0,0,.3) !important; /* Red shadow for debugging */
         }
 
         .dropdown-item {
@@ -1082,68 +1088,118 @@
         }
     </style>
 
-    <!-- Simple Dropdown Functionality -->
+    <!-- Fixed Dropdown Functionality -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Initializing simple dropdowns...');
-
-            // Simple dropdown toggle function
-            function toggleDropdown(toggle) {
-                const menu = toggle.nextElementSibling;
-                if (!menu || !menu.classList.contains('dropdown-menu')) return;
-
-                const isOpen = menu.classList.contains('show');
-
-                // Close all other dropdowns
-                document.querySelectorAll('.dropdown-menu.show').forEach(function(otherMenu) {
-                    if (otherMenu !== menu) {
-                        otherMenu.classList.remove('show');
-                    }
-                });
-                document.querySelectorAll('.dropdown-toggle.show').forEach(function(otherToggle) {
-                    if (otherToggle !== toggle) {
-                        otherToggle.classList.remove('show');
-                        otherToggle.setAttribute('aria-expanded', 'false');
-                    }
-                });
-
-                // Toggle current dropdown
-                if (isOpen) {
-                    menu.classList.remove('show');
-                    toggle.classList.remove('show');
-                    toggle.setAttribute('aria-expanded', 'false');
-                } else {
-                    menu.classList.add('show');
-                    toggle.classList.add('show');
-                    toggle.setAttribute('aria-expanded', 'true');
-                }
+        (function() {
+            // Use a more robust check to prevent duplicate initialization
+            if (window.dropdownSystemInitialized) {
+                console.log('Dropdowns already initialized, skipping...');
+                return;
             }
 
-            // Add click listeners to dropdown toggles
-            document.querySelectorAll('.dropdown-toggle').forEach(function(toggle) {
-                toggle.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Dropdown clicked:', this);
-                    toggleDropdown(this);
-                });
-            });
+            window.dropdownSystemInitialized = true;
+            console.log('Initializing dropdown system (once only)...');
 
-            // Close dropdowns when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!e.target.closest('.dropdown')) {
-                    document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
-                        menu.classList.remove('show');
-                    });
-                    document.querySelectorAll('.dropdown-toggle.show').forEach(function(toggle) {
-                        toggle.classList.remove('show');
-                        toggle.setAttribute('aria-expanded', 'false');
-                    });
+            let dropdownsReady = false;
+
+            function initializeDropdowns() {
+                if (dropdownsReady) {
+                    console.log('Dropdowns already ready, skipping...');
+                    return;
                 }
-            });
 
-            console.log('Simple dropdowns initialized');
-        });
+                dropdownsReady = true;
+                console.log('Setting up dropdown functionality...');
+
+                // Remove any existing event listeners to prevent duplicates
+                document.querySelectorAll('.dropdown-toggle').forEach(function(toggle) {
+                    // Clone node to remove all event listeners
+                    const newToggle = toggle.cloneNode(true);
+                    toggle.parentNode.replaceChild(newToggle, toggle);
+                });
+
+                // Simple dropdown toggle function
+                function toggleDropdown(toggle, event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    const menu = toggle.nextElementSibling;
+                    console.log('Toggle dropdown - menu found:', !!menu);
+
+                    if (!menu || !menu.classList.contains('dropdown-menu')) {
+                        console.log('No valid dropdown menu found');
+                        return;
+                    }
+
+                    const isCurrentlyOpen = menu.classList.contains('show');
+                    console.log('Dropdown currently open:', isCurrentlyOpen);
+
+                    // Close all dropdowns first
+                    document.querySelectorAll('.dropdown-menu.show').forEach(function(otherMenu) {
+                        otherMenu.classList.remove('show');
+                        otherMenu.style.display = 'none';
+                    });
+                    document.querySelectorAll('.dropdown-toggle.show').forEach(function(otherToggle) {
+                        otherToggle.classList.remove('show');
+                        otherToggle.setAttribute('aria-expanded', 'false');
+                    });
+
+                    // If it wasn't open, open it now
+                    if (!isCurrentlyOpen) {
+                        menu.classList.add('show');
+                        toggle.classList.add('show');
+                        toggle.setAttribute('aria-expanded', 'true');
+
+                        // Force visibility
+                        menu.style.display = 'block';
+                        menu.style.position = 'absolute';
+                        menu.style.top = '100%';
+                        menu.style.left = '0';
+                        menu.style.zIndex = '1050';
+                        menu.style.minWidth = '200px';
+
+                        console.log('Opened dropdown - classes:', menu.className);
+                    } else {
+                        console.log('Closed dropdown (was already open)');
+                    }
+                }
+
+                // Add click listeners to dropdown toggles (fresh ones after cloning)
+                const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+                console.log('Found dropdown toggles:', dropdownToggles.length);
+
+                dropdownToggles.forEach(function(toggle, index) {
+                    console.log('Setting up dropdown', index);
+                    toggle.addEventListener('click', function(e) {
+                        console.log('Dropdown clicked:', this);
+                        toggleDropdown(this, e);
+                    });
+                });
+
+                // Close dropdowns when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (!e.target.closest('.dropdown')) {
+                        document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
+                            menu.classList.remove('show');
+                            menu.style.display = 'none';
+                        });
+                        document.querySelectorAll('.dropdown-toggle.show').forEach(function(toggle) {
+                            toggle.classList.remove('show');
+                            toggle.setAttribute('aria-expanded', 'false');
+                        });
+                    }
+                });
+
+                console.log('Dropdown system ready!');
+            }
+
+            // Initialize when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initializeDropdowns);
+            } else {
+                initializeDropdowns();
+            }
+        })();
     </script>
 </body>
 </html>

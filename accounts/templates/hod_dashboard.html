@@ -1,9 +1,37 @@
 {% extends 'base.html' %}
 {% load role_tags %}
+{% load accounts_tags %}
 
 {% block title %}HOD Dashboard - RMS{% endblock %}
 
 {% block content %}
+
+<!-- Role Context Indicator and Return Button -->
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <h4 class="mb-0 text-primary">
+                        <i class="fas fa-user-tie me-2"></i>
+                        Acting as Head of Department
+                        {% if department %} - {{ department.name }}{% endif %}
+                    </h4>
+                    {% get_user_roles_with_details user as user_roles_details %}
+                    {% for role_detail in user_roles_details %}
+                        {% if role_detail.role == 'HOD' and role_detail.is_delegated %}
+                        <span class="badge bg-warning ms-2">Delegated Permission</span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>
+                    Return to My Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Delegation Status Badges -->
 {% show_delegation_badges user %}

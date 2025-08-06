@@ -100,3 +100,6 @@ secrets.json
 # Temporary files
 *.tmp
 *.temp
+
+# Project specific files to exclude
+accounts/next_prompt.txt

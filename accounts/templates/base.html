@@ -927,7 +927,7 @@
                     </div>
 
                     <!-- Logout Button -->
-                    <a href="{% url 'logout' %}" class="btn btn-outline-danger">
+                    <a href="#" onclick="showLogoutConfirmation()" class="btn btn-outline-danger">
                         <i class="bi bi-box-arrow-right"></i>
                         <span>Logout</span>
                     </a>
@@ -1085,8 +1085,46 @@
         });
     </script>
 
+    <!-- Logout Confirmation Dialog -->
+    <div id="logoutConfirmationModal" class="modal fade" tabindex="-1" aria-labelledby="logoutConfirmationLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title" id="logoutConfirmationLabel">
+                        <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                        Confirm Logout
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="mb-3">
+                        <i class="bi bi-box-arrow-right text-danger" style="font-size: 3rem;"></i>
+                    </div>
+                    <h6 class="mb-3">Are you sure you want to logout?</h6>
+                    <p class="text-muted mb-0">You will be signed out of your account and redirected to the login page.</p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i>
+                        Cancel
+                    </button>
+                    <a href="{% url 'logout' %}" class="btn btn-danger">
+                        <i class="bi bi-box-arrow-right me-1"></i>
+                        Yes, Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 
-
+    <!-- Logout Confirmation JavaScript -->
+    <script>
+        function showLogoutConfirmation() {
+            // Create and show the modal using Bootstrap 5
+            const modal = new bootstrap.Modal(document.getElementById('logoutConfirmationModal'));
+            modal.show();
+        }
+    </script>
 
 </body>
 </html>

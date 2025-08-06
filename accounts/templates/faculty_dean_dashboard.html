@@ -11,14 +11,21 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center">
-                    <h4 class="mb-0 text-primary">
-                        <i class="fas fa-university me-2"></i>
-                        Acting as Faculty Dean - {{ faculty.name }}
-                    </h4>
                     {% get_user_roles_with_delegation user as user_roles_details %}
                     {% for role_detail in user_roles_details %}
-                        {% if role_detail.role == 'FACULTY_DEAN' and role_detail.is_delegated %}
-                        <span class="badge bg-warning ms-2">Delegated Permission</span>
+                        {% if role_detail.role == 'FACULTY_DEAN' %}
+                            {% if role_detail.is_delegated %}
+                            <h4 class="mb-0 text-primary">
+                                <i class="fas fa-university me-2"></i>
+                                Acting as Faculty Dean - {{ faculty.name }}
+                            </h4>
+                            <span class="badge bg-warning ms-2">Delegated Permission</span>
+                            {% else %}
+                            <h4 class="mb-0 text-primary">
+                                <i class="fas fa-university me-2"></i>
+                                Faculty Dean - {{ faculty.name }}
+                            </h4>
+                            {% endif %}
                         {% endif %}
                     {% endfor %}
                 </div>

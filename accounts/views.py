@@ -6172,11 +6172,8 @@ def super_admin_delete_session(request, session_id):
             return JsonResponse({'success': False, 'message': 'Cannot delete active session. Deactivate it first.'})
 
         # Check if session has associated data (courses, enrollments, etc.)
-        from courses.models import Course
-        from enrollments.models import Enrollment
-
         course_count = Course.objects.filter(session=session).count()
-        enrollment_count = Enrollment.objects.filter(session=session).count()
+        enrollment_count = CourseEnrollment.objects.filter(session=session).count()
 
         if course_count > 0 or enrollment_count > 0:
             return JsonResponse({
@@ -7639,11 +7636,8 @@ def daaa_delete_session(request, session_id):
             return JsonResponse({'success': False, 'message': 'Cannot delete active session. Deactivate it first.'})
 
         # Check if session has associated data (courses, enrollments, etc.)
-        from courses.models import Course
-        from enrollments.models import Enrollment
-
         course_count = Course.objects.filter(session=session).count()
-        enrollment_count = Enrollment.objects.filter(session=session).count()
+        enrollment_count = CourseEnrollment.objects.filter(session=session).count()
 
         if course_count > 0 or enrollment_count > 0:
             return JsonResponse({

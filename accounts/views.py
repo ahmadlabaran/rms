@@ -6021,11 +6021,6 @@ def super_admin_manage_sessions(request):
         messages.error(request, 'Access denied. Super Admin or DAAA role required.')
         return redirect('dashboard')
 
-    # Ensure at least one session exists
-    default_session = ensure_default_session_exists()
-    if default_session:
-        messages.info(request, f'Created default academic session: {default_session.name}')
-
     # Get all sessions
     sessions = AcademicSession.objects.all().order_by('-created_at')
     active_session = sessions.filter(is_active=True).first()
@@ -6154,6 +6149,43 @@ def super_admin_unlock_session(request, session_id):
 
 
 @login_required
+def super_admin_deactivate_session(request, session_id):
+    """Super Admin Deactivate Academic Session (AJAX endpoint)"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid request method.'})
+
+    # Check if user has Super Admin or DAAA role
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['SUPER_ADMIN', 'DAAA'])
+    if not has_access:
+        return JsonResponse({'success': False, 'message': 'Access denied. Super Admin or DAAA role required.'})
+
+    try:
+        session = AcademicSession.objects.get(id=session_id)
+
+        if not session.is_active:
+            return JsonResponse({'success': False, 'message': 'Session is already inactive.'})
+
+        # Deactivate this session
+        session.is_active = False
+        session.save()
+
+        # Log the action
+        AuditLog.objects.create(
+            user=request.user,
+            action='DEACTIVATE_SESSION',
+            description=f'Deactivated academic session: {session.name}',
+            level='INFO'
+        )
+
+        return JsonResponse({'success': True, 'message': f'Session "{session.name}" deactivated successfully!'})
+
+    except AcademicSession.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Session not found.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error deactivating session: {str(e)}'})
+
+
+@login_required
 def super_admin_delete_session(request, session_id):
     """Super Admin Delete Academic Session (AJAX endpoint)"""
     if request.method != 'POST':
@@ -6167,9 +6199,18 @@ def super_admin_delete_session(request, session_id):
     try:
         session = AcademicSession.objects.get(id=session_id)
 
-        # Prevent deletion of active session
+        # Auto-deactivate if session is active
         if session.is_active:
-            return JsonResponse({'success': False, 'message': 'Cannot delete active session. Deactivate it first.'})
+            session.is_active = False
+            session.save()
+
+            # Log the deactivation
+            AuditLog.objects.create(
+                user=request.user,
+                action='AUTO_DEACTIVATE_SESSION',
+                description=f'Auto-deactivated academic session before deletion: {session.name}',
+                level='INFO'
+            )
 
         # Check if session has associated data (courses, enrollments, etc.)
         course_count = Course.objects.filter(session=session).count()
@@ -7442,24 +7483,7 @@ def daaa_create_session(request):
 
     return render(request, 'daaa_create_session.html', {})
 
-def ensure_default_session_exists():
-    """Utility function to ensure at least one session exists"""
-    if not AcademicSession.objects.exists():
-        from datetime import date, timedelta
-        current_year = date.today().year
-        next_year = current_year + 1
 
-        # Create a default session for current academic year
-        default_session = AcademicSession.objects.create(
-            name=f"{current_year}/{next_year}",
-            start_date=date(current_year, 9, 1),  # September 1st
-            end_date=date(next_year, 8, 31),      # August 31st next year
-            is_active=True,  # Make it active by default
-            is_locked=False,
-            created_by=None  # System-created
-        )
-        return default_session
-    return None
 
 
 @login_required
@@ -7470,11 +7494,6 @@ def daaa_manage_sessions(request):
     if not has_access:
         messages.error(request, 'Access denied. DAAA or Super Admin role required.')
         return redirect('dashboard')
-
-    # Ensure at least one session exists
-    default_session = ensure_default_session_exists()
-    if default_session:
-        messages.info(request, f'Created default academic session: {default_session.name}')
 
     # Get current active session
     current_session = AcademicSession.objects.filter(is_active=True).first()
@@ -7618,6 +7637,43 @@ def daaa_unlock_session(request, session_id):
 
 
 @login_required
+def daaa_deactivate_session(request, session_id):
+    """DAAA Deactivate Academic Session (AJAX endpoint)"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid request method.'})
+
+    # Check if user has DAAA role or is Super Admin
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['DAAA', 'SUPER_ADMIN'])
+    if not has_access:
+        return JsonResponse({'success': False, 'message': 'Access denied. DAAA or Super Admin role required.'})
+
+    try:
+        session = AcademicSession.objects.get(id=session_id)
+
+        if not session.is_active:
+            return JsonResponse({'success': False, 'message': 'Session is already inactive.'})
+
+        # Deactivate this session
+        session.is_active = False
+        session.save()
+
+        # Log the action
+        AuditLog.objects.create(
+            user=request.user,
+            action='DEACTIVATE_SESSION',
+            description=f'Deactivated academic session: {session.name}',
+            level='INFO'
+        )
+
+        return JsonResponse({'success': True, 'message': f'Session "{session.name}" deactivated successfully!'})
+
+    except AcademicSession.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Session not found.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error deactivating session: {str(e)}'})
+
+
+@login_required
 def daaa_delete_session(request, session_id):
     """DAAA Delete Academic Session (AJAX endpoint)"""
     if request.method != 'POST':
@@ -7631,9 +7687,18 @@ def daaa_delete_session(request, session_id):
     try:
         session = AcademicSession.objects.get(id=session_id)
 
-        # Prevent deletion of active session
+        # Auto-deactivate if session is active
         if session.is_active:
-            return JsonResponse({'success': False, 'message': 'Cannot delete active session. Deactivate it first.'})
+            session.is_active = False
+            session.save()
+
+            # Log the deactivation
+            AuditLog.objects.create(
+                user=request.user,
+                action='AUTO_DEACTIVATE_SESSION',
+                description=f'Auto-deactivated academic session before deletion: {session.name}',
+                level='INFO'
+            )
 
         # Check if session has associated data (courses, enrollments, etc.)
         course_count = Course.objects.filter(session=session).count()

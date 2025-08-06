@@ -3,272 +3,176 @@
 {% block title %}Manage Courses - HOD{% endblock %}
 
 {% block content %}
-<style>
-    :root {
-        --ios-red: #FF3B30;
-        --ios-blue: #007AFF;
-        --ios-green: #34C759;
-        --ios-orange: #FF9500;
-        --text-primary: #1D1D1F;
-        --text-secondary: #86868B;
-        --text-tertiary: #C7C7CC;
-        --surface-primary: #FFFFFF;
-        --surface-secondary: #F2F2F7;
-        --border-color: #D1D1D6;
-        --border-light: #E5E5EA;
-        --royal-blue-gradient: linear-gradient(135deg, #007AFF 0%, #FF3B30 100%);
-    }
-
-    .ios-card {
-        background: white;
-        border-radius: 16px;
-        padding: 20px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        border: 1px solid var(--border-light);
-        transition: all 0.3s ease;
-        margin-bottom: 20px;
-    }
-
-    .btn {
-        padding: 10px 16px;
-        border-radius: 8px;
-        font-weight: 600;
-        text-align: center;
-        transition: all 0.3s ease;
-        border: none;
-        cursor: pointer;
-        font-size: 12px;
-        text-decoration: none;
-        display: inline-block;
-        min-width: 100px;
-    }
-
-    .btn-primary {
-        background: var(--royal-blue-gradient);
-        color: white;
-    }
-
-    .btn-secondary {
-        background: var(--surface-secondary);
-        color: var(--text-primary);
-        border: 1px solid var(--border-color);
-    }
-
-    .btn-success {
-        background: var(--ios-green);
-        color: white;
-    }
-
-    .btn-warning {
-        background: var(--ios-orange);
-        color: white;
-    }
-
-    .course-card {
-        background: var(--surface-secondary);
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 12px;
-        border: 1px solid var(--border-light);
-        transition: all 0.2s ease;
-    }
-
-    .course-card:hover {
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        transform: translateY(-1px);
-    }
-
-    .status-badge {
-        padding: 4px 8px;
-        border-radius: 6px;
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-    }
-
-    .status-assigned {
-        background: rgba(52, 199, 89, 0.2);
-        color: var(--ios-green);
-    }
-
-    .status-unassigned {
-        background: rgba(255, 149, 0, 0.2);
-        color: var(--ios-orange);
-    }
-
-    /* Mobile Responsive */
-    @media (max-width: 768px) {
-        .mobile-grid {
-            grid-template-columns: 1fr !important;
-            gap: 12px !important;
-        }
-
-        .mobile-card {
-            padding: 16px !important;
-        }
-
-        .btn {
-            padding: 8px 12px !important;
-            font-size: 11px !important;
-            min-width: 80px !important;
-        }
-
-        h1 {
-            font-size: 24px !important;
-        }
-
-        h2 {
-            font-size: 18px !important;
-        }
-
-        .course-card {
-            padding: 12px !important;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .btn {
-            padding: 6px 10px !important;
-            font-size: 10px !important;
-            min-width: 70px !important;
-        }
-
-        h1 {
-            font-size: 20px !important;
-        }
-
-        h2 {
-            font-size: 16px !important;
-        }
-
-        .ios-card {
-            padding: 12px !important;
-        }
-    }
-</style>
-
-<div style="max-width: 1400px; margin: 0 auto; padding: 16px;">
-    
-    <!-- Header -->
-    <div class="ios-card" style="background: var(--royal-blue-gradient); color: white;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-            <div>
-                <h1 style="margin: 0 0 6px 0; font-size: 28px; font-weight: 600;">
-                    Manage Courses
-                </h1>
-                <p style="margin: 0; opacity: 0.9; font-size: 16px;">
-                    {{ department.name }} Department • {{ current_session.name|default:"No Active Session" }}
-                </p>
-            </div>
-            <div style="display: flex; gap: 12px;">
-                <a href="{% url 'hod_dashboard' %}" class="btn" style="background: rgba(255,255,255,0.2); color: white;">
-                    ← Back to Dashboard
-                </a>
+<!-- Use Bootstrap styling to match other pages -->
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="background: var(--royal-blue-gradient);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <div>
+                            <h1 class="h3 mb-1 fw-bold">Manage Courses</h1>
+                            <p class="mb-0 opacity-75">{{ department.name }} Department • {{ current_session.name|default:"No Active Session" }}</p>
+                        </div>
+                        <div>
+                            <a href="{% url 'hod_dashboard' %}" class="btn btn-outline-light">
+                                <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Statistics -->
-    <div class="mobile-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-        <div class="ios-card" style="text-align: center; background: var(--ios-blue); color: white;">
-            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.total_courses }}</div>
-            <div style="font-size: 14px; opacity: 0.9;">Total Courses</div>
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100" style="background: var(--royal-blue-gradient);">
+                <div class="card-body text-center text-white">
+                    <div class="display-4 fw-bold mb-2">{{ stats.total_courses|default:0 }}</div>
+                    <h6 class="text-white-50 text-uppercase mb-0">Total Courses</h6>
+                </div>
+            </div>
         </div>
-        <div class="ios-card" style="text-align: center; background: var(--ios-green); color: white;">
-            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.assigned_courses }}</div>
-            <div style="font-size: 14px; opacity: 0.9;">Assigned</div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100 bg-success">
+                <div class="card-body text-center text-white">
+                    <div class="display-4 fw-bold mb-2">{{ stats.assigned_courses|default:0 }}</div>
+                    <h6 class="text-white-50 text-uppercase mb-0">Assigned</h6>
+                </div>
+            </div>
         </div>
-        <div class="ios-card" style="text-align: center; background: var(--ios-orange); color: white;">
-            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.unassigned_courses }}</div>
-            <div style="font-size: 14px; opacity: 0.9;">Unassigned</div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100 bg-warning">
+                <div class="card-body text-center text-white">
+                    <div class="display-4 fw-bold mb-2">{{ stats.unassigned_courses|default:0 }}</div>
+                    <h6 class="text-white-50 text-uppercase mb-0">Unassigned</h6>
+                </div>
+            </div>
         </div>
-        <div class="ios-card" style="text-align: center; background: var(--ios-red); color: white;">
-            <div style="font-size: 32px; font-weight: 700; margin-bottom: 6px;">{{ stats.total_credit_units }}</div>
-            <div style="font-size: 14px; opacity: 0.9;">Total Credits</div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100 bg-info">
+                <div class="card-body text-center text-white">
+                    <div class="display-4 fw-bold mb-2">{{ stats.total_credit_units|default:0 }}</div>
+                    <h6 class="text-white-50 text-uppercase mb-0">Total Credits</h6>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Courses by Level -->
     {% for level_name, level_courses in courses_by_level.items %}
-    <div class="ios-card">
-        <h2 style="color: var(--text-primary); margin-bottom: 16px; font-size: 20px; font-weight: 700;">
-            {{ level_name }} Level Courses ({{ level_courses|length }})
-        </h2>
-        
-        {% for course in level_courses %}
-        <div class="course-card">
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-                <div style="flex: 1;">
-                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
-                        {{ course.code }} - {{ course.title }}
-                    </div>
-                    <div style="color: var(--text-secondary); font-size: 12px; margin-bottom: 2px;">
-                        {{ course.credit_units }} Credit Units • {{ course.session.name }}
-                    </div>
-                    {% if course.assigned_lecturer %}
-                        <div style="color: var(--ios-green); font-size: 12px; font-weight: 600;">
-                            Lecturer: {{ course.assigned_lecturer.get_full_name }}
-                        </div>
-                    {% else %}
-                        <div style="color: var(--ios-orange); font-size: 12px; font-weight: 600;">
-                            No lecturer assigned
-                        </div>
-                    {% endif %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0 fw-bold">{{ level_name }} Level Courses ({{ level_courses|length }})</h5>
                 </div>
-                <div style="text-align: right;">
-                    {% if course.assigned_lecturer %}
-                        <span class="status-badge status-assigned">Assigned</span>
-                    {% else %}
-                        <span class="status-badge status-unassigned">Unassigned</span>
-                    {% endif %}
+                <div class="card-body p-0">
+                    {% for course in level_courses %}
+                    <div class="border-bottom p-4 {% if course.assigned_lecturer %}bg-light{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <h6 class="mb-0 fw-bold">{{ course.code }} - {{ course.title }}</h6>
+                                    {% if course.assigned_lecturer %}
+                                        <span class="badge bg-success">Assigned</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Unassigned</span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="text-muted small mb-1">
+                                    <i class="fas fa-credit-card me-1"></i>
+                                    <strong>Credits:</strong> {{ course.credit_units }} • <strong>Session:</strong> {{ course.session.name }}
+                                </div>
+
+                                {% if course.assigned_lecturer %}
+                                    <div class="text-success small fw-bold">
+                                        <i class="fas fa-user me-1"></i>Lecturer: {{ course.assigned_lecturer.get_full_name }}
+                                    </div>
+                                {% else %}
+                                    <div class="text-warning small fw-bold">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>No lecturer assigned
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button class="btn btn-outline-primary btn-sm course-action" data-action="view" data-course-id="{{ course.id }}" data-course-code="{{ course.code }}">
+                                    <i class="fas fa-eye me-1"></i>View
+                                </button>
+                                {% if not course.assigned_lecturer %}
+                                    <button class="btn btn-success btn-sm course-action" data-action="assign" data-course-id="{{ course.id }}" data-course-code="{{ course.code }}">
+                                        <i class="fas fa-user-plus me-1"></i>Assign
+                                    </button>
+                                {% else %}
+                                    <button class="btn btn-warning btn-sm course-action" data-action="change" data-course-id="{{ course.id }}" data-course-code="{{ course.code }}">
+                                        <i class="fas fa-user-edit me-1"></i>Change
+                                    </button>
+                                {% endif %}
+                                <button class="btn btn-primary btn-sm course-action" data-action="edit" data-course-id="{{ course.id }}" data-course-code="{{ course.code }}">
+                                    <i class="fas fa-edit me-1"></i>Edit
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
-            </div>
-            
-            <div style="display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;">
-                <button class="btn btn-secondary course-action" data-action="view" data-course-id="{{ course.id }}" data-course-code="{{ course.code }}">
-                    View Details
-                </button>
-                {% if not course.assigned_lecturer %}
-                    <button class="btn btn-success course-action" data-action="assign" data-course-id="{{ course.id }}" data-course-code="{{ course.code }}">
-                        Assign Lecturer
-                    </button>
-                {% else %}
-                    <button class="btn btn-warning course-action" data-action="change" data-course-id="{{ course.id }}" data-course-code="{{ course.code }}">
-                        Change Lecturer
-                    </button>
-                {% endif %}
-                <button class="btn btn-primary course-action" data-action="edit" data-course-id="{{ course.id }}" data-course-code="{{ course.code }}">
-                    Edit
-                </button>
             </div>
         </div>
-        {% endfor %}
     </div>
     {% empty %}
-    <div class="ios-card">
-        <div style="text-align: center; padding: 60px; color: var(--text-secondary);">
-            <div style="width: 80px; height: 80px; background: var(--ios-blue); opacity: 0.2; border-radius: 20px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-                <div style="width: 40px; height: 40px; background: var(--ios-blue); border-radius: 10px; opacity: 0.6;"></div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-book fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">No Courses Found</h4>
+                    <p class="text-muted mb-4">No courses have been created for {{ current_session.name|default:"the current session" }}.</p>
+                    <a href="{% url 'hod_create_course' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Create Your First Course
+                    </a>
+                </div>
             </div>
-            <h3 style="color: var(--text-primary); margin-bottom: 8px;">No Courses Found</h3>
-            <p>No courses have been created for {{ current_session.name|default:"the current session" }}.</p>
-            <button type="button" class="btn btn-primary nav-button" data-url="{% url 'hod_create_course' %}" style="margin-top: 16px; cursor: pointer;">
-                Create Your First Course
-            </button>
         </div>
     </div>
     {% endfor %}
 
     <!-- Quick Actions -->
-    <div class="ios-card">
-        <h3 style="color: var(--text-primary); margin-bottom: 16px; font-size: 18px; font-weight: 700;">
-            Quick Actions
-        </h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-            <a href="{% url 'hod_create_course' %}" class="btn btn-primary">Create New Course</a>
-            <a href="{% url 'hod_assign_lecturers' %}" class="btn btn-success">Assign Lecturers</a>
-            <button onclick="exportCourses()" class="btn btn-secondary">Export Course List</button>
-            <button onclick="importCourses()" class="btn btn-secondary">Import Courses</button>
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0 fw-bold">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-lg-3 col-md-6">
+                            <a href="{% url 'hod_create_course' %}" class="btn btn-primary w-100">
+                                <i class="fas fa-plus me-1"></i>Create New Course
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <a href="{% url 'hod_assign_lecturers' %}" class="btn btn-success w-100">
+                                <i class="fas fa-user-plus me-1"></i>Assign Lecturers
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <button onclick="exportCourses()" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-download me-1"></i>Export Course List
+                            </button>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <button onclick="importCourses()" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-upload me-1"></i>Import Courses
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

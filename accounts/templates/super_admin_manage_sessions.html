@@ -34,7 +34,7 @@
         <div class="col-md-4 mb-3">
             <div class="card border-0 shadow-sm h-100" style="background: var(--royal-blue-gradient);">
                 <div class="card-body text-center text-white">
-                    <div class="display-4 fw-bold mb-2">{{ total_sessions }}</div>
+                    <div class="display-4 fw-bold mb-2">{{ total_sessions|default:0 }}</div>
                     <h6 class="text-white-50 text-uppercase mb-0">Total Sessions</h6>
                 </div>
             </div>
@@ -42,7 +42,7 @@
         <div class="col-md-4 mb-3">
             <div class="card border-0 shadow-sm h-100 bg-success">
                 <div class="card-body text-center text-white">
-                    <div class="display-4 fw-bold mb-2">{{ active_sessions }}</div>
+                    <div class="display-4 fw-bold mb-2">{{ active_sessions|default:0 }}</div>
                     <h6 class="text-white-50 text-uppercase mb-0">Active Sessions</h6>
                 </div>
             </div>
@@ -50,7 +50,7 @@
         <div class="col-md-4 mb-3">
             <div class="card border-0 shadow-sm h-100 bg-danger">
                 <div class="card-body text-center text-white">
-                    <div class="display-4 fw-bold mb-2">{{ locked_sessions }}</div>
+                    <div class="display-4 fw-bold mb-2">{{ locked_sessions|default:0 }}</div>
                     <h6 class="text-white-50 text-uppercase mb-0">Locked Sessions</h6>
                 </div>
             </div>
@@ -62,7 +62,7 @@
         <div class="col-12">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white border-bottom">
-                    <h5 class="mb-0 fw-bold">Academic Sessions ({{ sessions.count }})</h5>
+                    <h5 class="mb-0 fw-bold">Academic Sessions ({{ sessions.count|default:0 }})</h5>
                 </div>
                 <div class="card-body p-0">
 
@@ -110,6 +110,10 @@
                                         <button class="btn btn-success btn-sm activate-session-btn" data-session-id="{{ session.id }}" data-session-name="{{ session.name }}">
                                             <i class="fas fa-play me-1"></i>Activate
                                         </button>
+                                    {% else %}
+                                        <button class="btn btn-secondary btn-sm deactivate-session-btn" data-session-id="{{ session.id }}" data-session-name="{{ session.name }}">
+                                            <i class="fas fa-stop me-1"></i>Deactivate
+                                        </button>
                                     {% endif %}
 
                                     {% if not session.is_locked %}
@@ -137,11 +141,16 @@
                     {% else %}
                         <div class="text-center py-5">
                             <i class="fas fa-calendar-alt fa-4x text-muted mb-3"></i>
-                            <h4 class="text-muted">No Academic Sessions</h4>
-                            <p class="text-muted">Create your first academic session to get started.</p>
-                            <a href="{% url 'super_admin_create_session' %}" class="btn btn-primary">
-                                <i class="fas fa-plus me-1"></i>Create Session
-                            </a>
+                            <h4 class="text-muted">No Academic Sessions Found</h4>
+                            <p class="text-muted mb-4">No academic sessions have been created yet. Create your first session to enable course management and student enrollments.</p>
+                            <div class="d-flex gap-2 justify-content-center">
+                                <a href="{% url 'super_admin_create_session' %}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-1"></i>Create New Session
+                                </a>
+                                <a href="{% url 'super_admin_dashboard' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                                </a>
+                            </div>
                         </div>
                     {% endif %}
                 </div>
@@ -225,21 +234,8 @@ function unlockSession(sessionId, sessionName) {
 }
 
 function viewSessionDetails(sessionId, sessionName) {
-    // Fetch session details from server
-    fetch(`/api/sessions/${sessionId}/details/`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showSessionDetailsModal(data.session);
-            } else {
-                // Fallback to basic details if API not available
-                showBasicSessionDetails(sessionId, sessionName);
-            }
-        })
-        .catch(error => {
-            // Fallback to basic details
-            showBasicSessionDetails(sessionId, sessionName);
-        });
+    // Use basic session details directly
+    showBasicSessionDetails(sessionId, sessionName);
 }
 
 function showBasicSessionDetails(sessionId, sessionName) {
@@ -331,8 +327,32 @@ function showBasicSessionDetails(sessionId, sessionName) {
     document.body.appendChild(modal);
 }
 
+function deactivateSession(sessionId, sessionName) {
+    if (confirm(`Deactivate academic session "${sessionName}"?\n\nThis will make the session inactive. You can reactivate it later.`)) {
+        fetch(`{% url "super_admin_deactivate_session" 0 %}`.replace('0', sessionId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+
 function deleteSession(sessionId, sessionName) {
-    if (confirm(`Delete academic session "${sessionName}"?\n\nThis action cannot be undone. Make sure this session has no associated courses or enrollments.`)) {
+    if (confirm(`Delete academic session "${sessionName}"?\n\nThis action cannot be undone. The session will be automatically deactivated if needed.`)) {
         fetch(`{% url "super_admin_delete_session" 0 %}`.replace('0', sessionId), {
             method: 'POST',
             headers: {
@@ -362,6 +382,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const sessionId = this.getAttribute('data-session-id');
             const sessionName = this.getAttribute('data-session-name');
             activateSession(sessionId, sessionName);
+        });
+    });
+
+    document.querySelectorAll('.deactivate-session-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const sessionId = this.getAttribute('data-session-id');
+            const sessionName = this.getAttribute('data-session-name');
+            deactivateSession(sessionId, sessionName);
         });
     });
 

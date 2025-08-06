@@ -220,6 +220,10 @@
                             <button class="btn btn-success activate-session-btn" data-session-id="{{ session.id }}" data-session-name="{{ session.name }}">
                                 Activate
                             </button>
+                        {% else %}
+                            <button class="btn btn-secondary deactivate-session-btn" data-session-id="{{ session.id }}" data-session-name="{{ session.name }}">
+                                Deactivate
+                            </button>
                         {% endif %}
 
                         {% if not session.is_locked %}
@@ -423,8 +427,32 @@ function viewSessionDetails(sessionId, sessionName) {
     document.body.appendChild(modal);
 }
 
+function deactivateSession(sessionId, sessionName) {
+    if (confirm(`Deactivate academic session "${sessionName}"?\n\nThis will make the session inactive. You can reactivate it later.`)) {
+        fetch(`{% url "daaa_deactivate_session" 0 %}`.replace('0', sessionId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+
 function deleteSession(sessionId, sessionName) {
-    if (confirm(`Delete academic session "${sessionName}"?\n\nThis action cannot be undone. Make sure this session has no associated courses or enrollments.`)) {
+    if (confirm(`Delete academic session "${sessionName}"?\n\nThis action cannot be undone. The session will be automatically deactivated if needed.`)) {
         fetch(`{% url "daaa_delete_session" 0 %}`.replace('0', sessionId), {
             method: 'POST',
             headers: {
@@ -454,6 +482,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const sessionId = this.getAttribute('data-session-id');
             const sessionName = this.getAttribute('data-session-name');
             activateSession(sessionId, sessionName);
+        });
+    });
+
+    document.querySelectorAll('.deactivate-session-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const sessionId = this.getAttribute('data-session-id');
+            const sessionName = this.getAttribute('data-session-name');
+            deactivateSession(sessionId, sessionName);
         });
     });
 

@@ -4,12 +4,12 @@
 *.pyc
 __pycache__/
 local_settings.py
-db.sqlite3
-db.sqlite3-journal
+# db.sqlite3  # Commented out to include database in repo
+# db.sqlite3-journal  # Commented out to include database in repo
 
-# RMS specific databases
-rms_database.sqlite3
-rms_database.sqlite3-journal
+# RMS specific databases - INCLUDE THESE IN REPO FOR EASY DEPLOYMENT
+# rms_database.sqlite3  # Commented out to include database in repo
+# rms_database.sqlite3-journal  # Commented out to include database in repo
 
 # Virtual environment
 venv/

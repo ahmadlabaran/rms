@@ -6021,6 +6021,11 @@ def super_admin_manage_sessions(request):
         messages.error(request, 'Access denied. Super Admin role required.')
         return redirect('dashboard')
 
+    # Ensure at least one session exists
+    default_session = ensure_default_session_exists()
+    if default_session:
+        messages.info(request, f'Created default academic session: {default_session.name}')
+
     # Get all sessions
     sessions = AcademicSession.objects.all().order_by('-created_at')
     active_session = sessions.filter(is_active=True).first()
@@ -7390,6 +7395,26 @@ def daaa_create_session(request):
 
     return render(request, 'daaa_create_session.html', {})
 
+def ensure_default_session_exists():
+    """Utility function to ensure at least one session exists"""
+    if not AcademicSession.objects.exists():
+        from datetime import date, timedelta
+        current_year = date.today().year
+        next_year = current_year + 1
+
+        # Create a default session for current academic year
+        default_session = AcademicSession.objects.create(
+            name=f"{current_year}/{next_year}",
+            start_date=date(current_year, 9, 1),  # September 1st
+            end_date=date(next_year, 8, 31),      # August 31st next year
+            is_active=True,  # Make it active by default
+            is_locked=False,
+            created_by=None  # System-created
+        )
+        return default_session
+    return None
+
+
 @login_required
 def daaa_manage_sessions(request):
     """DAAA Session Management Interface"""
@@ -7398,6 +7423,11 @@ def daaa_manage_sessions(request):
     if not has_access:
         messages.error(request, 'Access denied. DAAA or Super Admin role required.')
         return redirect('dashboard')
+
+    # Ensure at least one session exists
+    default_session = ensure_default_session_exists()
+    if default_session:
+        messages.info(request, f'Created default academic session: {default_session.name}')
 
     # Get current active session
     current_session = AcademicSession.objects.filter(is_active=True).first()
@@ -8440,7 +8470,7 @@ def hod_create_course(request):
     # Get current session
     current_session = AcademicSession.objects.filter(is_active=True).first()
     if not current_session:
-        messages.error(request, 'No active academic session found.')
+        messages.error(request, 'No active academic session found. Please contact DAAA or Super Admin to create and activate a session.')
         return redirect('hod_dashboard')
 
     if request.method == 'POST':

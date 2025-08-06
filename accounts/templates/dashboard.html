@@ -133,6 +133,42 @@
 </div>
 {% endif %}
 
+<!-- Session Status Indicator -->
+{% load role_tags %}
+{% if user.is_authenticated %}
+<div class="container-fluid mb-3">
+    <div class="row">
+        <div class="col-12">
+            {% get_current_session as current_session %}
+            {% if current_session %}
+            <div class="alert alert-success d-flex align-items-center" role="alert">
+                <i class="fas fa-calendar-check me-2"></i>
+                <div>
+                    <strong>Active Session:</strong> {{ current_session.name }}
+                    <small class="text-muted">({{ current_session.start_date }} to {{ current_session.end_date }})</small>
+                    {% if current_session.is_locked %}
+                    <span class="badge bg-warning ms-2">Locked</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-warning d-flex align-items-center" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <div>
+                    <strong>No Active Session:</strong> Some features may be unavailable.
+                    {% if user|has_role:'SUPER_ADMIN' or user|has_role:'DAAA' %}
+                    <a href="{% if user|has_role:'SUPER_ADMIN' %}{% url 'super_admin_manage_sessions' %}{% else %}{% url 'daaa_manage_sessions' %}{% endif %}" class="alert-link">Manage Sessions</a>
+                    {% else %}
+                    Contact DAAA or Super Admin to activate a session.
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="page-header">
     <h1 class="page-title">Welcome back, {{ user.first_name|default:user.username }}</h1>
     <p class="page-subtitle">Result Management System Dashboard</p>

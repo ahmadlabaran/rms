@@ -1,6 +1,6 @@
 from django import template
 from django.db.models import Q
-from accounts.models import UserRole, PermissionDelegation
+from accounts.models import UserRole, PermissionDelegation, AcademicSession
 from accounts.permissions import get_user_roles_with_details, get_active_delegations_for_user
 
 register = template.Library()
@@ -178,3 +178,19 @@ def get_delegation_context(user, role_name):
             'end_date': delegation_role.delegation.end_date
         }
     return {'is_delegated': False}
+
+
+@register.simple_tag
+def get_current_session():
+    """Get the currently active academic session"""
+    try:
+        return AcademicSession.objects.get(is_active=True)
+    except AcademicSession.DoesNotExist:
+        return None
+
+
+@register.filter
+def has_role(user, role_name):
+    """Check if user has a specific role (direct or delegated)"""
+    from accounts.permissions import user_has_role
+    return user_has_role(user, role_name)

@@ -32,26 +32,26 @@
     <!-- Statistics Cards -->
     <div class="row mb-4">
         <div class="col-md-4 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body text-center">
-                    <div class="display-4 fw-bold text-primary mb-2">{{ total_sessions }}</div>
-                    <h6 class="text-muted text-uppercase mb-0">Total Sessions</h6>
+            <div class="card border-0 shadow-sm h-100" style="background: var(--royal-blue-gradient);">
+                <div class="card-body text-center text-white">
+                    <div class="display-4 fw-bold mb-2">{{ total_sessions }}</div>
+                    <h6 class="text-white-50 text-uppercase mb-0">Total Sessions</h6>
                 </div>
             </div>
         </div>
         <div class="col-md-4 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body text-center">
-                    <div class="display-4 fw-bold text-success mb-2">{{ active_sessions }}</div>
-                    <h6 class="text-muted text-uppercase mb-0">Active Sessions</h6>
+            <div class="card border-0 shadow-sm h-100 bg-success">
+                <div class="card-body text-center text-white">
+                    <div class="display-4 fw-bold mb-2">{{ active_sessions }}</div>
+                    <h6 class="text-white-50 text-uppercase mb-0">Active Sessions</h6>
                 </div>
             </div>
         </div>
         <div class="col-md-4 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body text-center">
-                    <div class="display-4 fw-bold text-danger mb-2">{{ locked_sessions }}</div>
-                    <h6 class="text-muted text-uppercase mb-0">Locked Sessions</h6>
+            <div class="card border-0 shadow-sm h-100 bg-danger">
+                <div class="card-body text-center text-white">
+                    <div class="display-4 fw-bold mb-2">{{ locked_sessions }}</div>
+                    <h6 class="text-white-50 text-uppercase mb-0">Locked Sessions</h6>
                 </div>
             </div>
         </div>

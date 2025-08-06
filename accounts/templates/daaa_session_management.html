@@ -39,7 +39,13 @@
                 </div>
                 <div>
                     <h3 style="color: var(--ios-blue); margin-bottom: 8px; font-size: 16px; font-weight: 600;">Created By</h3>
-                    <p style="color: var(--text-primary); font-size: 16px; margin: 0;">{{ current_session.created_by.get_full_name }}</p>
+                    <p style="color: var(--text-primary); font-size: 16px; margin: 0;">
+                        {% if current_session.created_by %}
+                            {{ current_session.created_by.get_full_name|default:current_session.created_by.username }}
+                        {% else %}
+                            System
+                        {% endif %}
+                    </p>
                     <p style="color: var(--text-secondary); font-size: 12px; margin: 0;">{{ current_session.created_at|date:"M d, Y H:i" }}</p>
                 </div>
             </div>
@@ -132,8 +138,13 @@
                             </div>
                         </td>
                         <td style="padding: 12px;">
-                            <div style="color: var(--text-primary);">{{ session.created_by.get_full_name }}</div>
-                            <div style="color: var(--text-secondary); font-size: 12px;">{{ session.created_by.email }}</div>
+                            {% if session.created_by %}
+                                <div style="color: var(--text-primary);">{{ session.created_by.get_full_name|default:session.created_by.username }}</div>
+                                <div style="color: var(--text-secondary); font-size: 12px;">{{ session.created_by.email|default:"No email" }}</div>
+                            {% else %}
+                                <div style="color: var(--text-primary);">System</div>
+                                <div style="color: var(--text-secondary); font-size: 12px;">Auto-generated</div>
+                            {% endif %}
                         </td>
                         <td style="padding: 12px;">
                             <div style="display: flex; gap: 8px; flex-wrap: wrap;">

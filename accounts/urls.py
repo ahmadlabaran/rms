@@ -16,9 +16,9 @@ router.register(r'result-approvals', views.ResultApprovalViewSet, basename='resu
 
 urlpatterns = [
     # Authentication endpoints
-    path('auth/login/', views.login_view, name='login'),
+    path('auth/login/', views.login_view, name='api_login'),
     path('auth/alternative-login/', views.alternative_login_view, name='alternative-login'),
-    path('auth/logout/', views.logout_view, name='logout'),
+    path('auth/logout/', views.logout_view, name='api_logout'),
     path('auth/user/', views.current_user_view, name='current-user'),
 
     # Super Admin Professional Interface
@@ -114,7 +114,7 @@ urlpatterns = [
 
     # Web Interface URLs (iOS Aesthetic)
     path('login/', views.web_login_view, name='web_login'),
-    path('logout/', views.web_logout_view, name='logout'),
+    path('logout/', views.web_logout_view, name='web_logout'),
     path('dashboard/', views.dashboard_view, name='dashboard'),
     path('students/', views.students_view, name='students'),
     path('courses/', views.courses_view, name='courses'),

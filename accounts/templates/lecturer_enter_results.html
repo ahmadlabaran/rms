@@ -1,1 +1,597 @@
-{% extends 'base.html' %} {% load role_tags %} {% block title %}Enter Results - Lecturer{% endblock %} {% block content %} <div class="container-fluid"> <!-- Delegation Status Badges --> {% show_delegation_badges user %} <!-- Header --> <div class="row mb-4"> <div class="col-12"> <div class="card" style="background: var(--royal-blue-gradient); color: white;"> <div class="card-body"> <h1 class="mb-1 fw-bold">Enter Results</h1> <p class="mb-0 opacity-75">Input student results for your courses</p> </div> </div> </div> </div> <!-- Course Selection --> <div class="row mb-4"> <div class="col-12"> <div class="card"> <div class="card-header d-flex justify-content-between align-items-center"> <h5 class="mb-0 fw-bold">Select Course</h5> <a href="{% url 'lecturer_dashboard' %}" class="btn btn-outline-secondary btn-sm"> <i class="bi bi-arrow-left me-1"></i>Back to Dashboard </a> </div> <div class="card-body"> <form method="get" id="courseSelectionForm"> <div class="row"> <div class="col-md-6"> <label class="form-label fw-bold">Course</label> <select name="course_id" class="form-select" required onchange="this.form.submit()"> <option value="">Choose a course...</option> {% for assignment in assigned_courses %} <option value="{{ assignment.course.id }}" {% if selected_course and selected_course.id == assignment.course.id %}selected{% endif %}> {{ assignment.course.code }} - {{ assignment.course.title }} </option> {% endfor %} </select> </div> <div class="col-md-6"> <label class="form-label fw-bold">Academic Session</label> <select name="session_id" class="form-select" required onchange="this.form.submit()"> <option value="">Select session...</option> {% for session in sessions %} <option value="{{ session.id }}" {% if selected_session and selected_session.id == session.id %}selected{% endif %} {% if session.is_active and not selected_session %}selected{% endif %}> {{ session.name }} </option> {% endfor %} </select> </div> </div> </form> </div> </div> </div> </div> <!-- Results Entry Form --> {% if selected_course and enrolled_students %} <div class="row"> <div class="col-12"> <div class="card"> <div class="card-header"> <div class="d-flex justify-content-between align-items-center"> <div> <h5 class="mb-0 fw-bold">{{ selected_course.code }} - {{ selected_course.title }}</h5> <div class="d-flex align-items-center gap-3"> <small class="text-muted">{{ enrolled_students.count }} students enrolled</small> {% if course_threshold %} <small class="text-info"> <i class="bi bi-info-circle me-1"></i> Max Scores: CA = {{ course_threshold.ca_max_score }}, Exam = {{ course_threshold.exam_max_score }} </small> {% else %} <small class="text-warning"> <i class="bi bi-exclamation-triangle me-1"></i> Default Max: CA = 30, Exam = 70 <a href="{% url 'lecturer_course_thresholds' %}" class="text-primary">Set Custom</a> </small> {% endif %} </div> </div> <div> <a href="{% url 'lecturer_course_thresholds' %}" class="btn btn-outline-secondary btn-sm me-2"> <i class="bi bi-gear me-1"></i>Thresholds </a> <button type="button" class="btn btn-outline-info btn-sm" onclick="calculateTotals()"> <i class="bi bi-calculator me-1"></i>Calculate All </button> <button type="button" class="btn btn-outline-warning btn-sm" onclick="saveDraft()"> <i class="bi bi-save me-1"></i>Save as Draft </button> </div> </div> </div> <div class="card-body"> <form method="post" id="resultsForm"> {% csrf_token %} <input type="hidden" name="course_id" value="{{ selected_course.id }}"> <input type="hidden" name="session_id" value="{{ selected_session.id }}"> <!-- Desktop Table View --> <div class="d-none d-lg-block"> <div class="table-responsive"> <table class="table table-hover"> <thead class="table-light"> <tr> <th>Matric Number</th> <th>Student Name</th> <th>CA Score (30)</th> <th>Exam Score (70)</th> <th>Total (100)</th> <th>Grade</th> </tr> </thead> <tbody> {% for enrollment in enrolled_students %} <tr> <td> <span class="fw-bold text-primary">{{ enrollment.student.matric_number }}</span> </td> <td>{{ enrollment.student.get_full_name }}</td> <td> <input type="number" name="ca_score_{{ enrollment.id }}" class="form-control form-control-sm ca-score" min="0" max="30" step="0.01" value="{{ enrollment.result.ca_score|default:'' }}" onchange="calculateTotal({{ enrollment.id }})"> </td> <td> <input type="number" name="exam_score_{{ enrollment.id }}" class="form-control form-control-sm exam-score" min="0" max="70" step="0.01" value="{{ enrollment.result.exam_score|default:'' }}" onchange="calculateTotal({{ enrollment.id }})"> </td> <td> <input type="number" name="total_score_{{ enrollment.id }}" class="form-control form-control-sm total-score" readonly id="total_{{ enrollment.id }}" value="{{ enrollment.result.total_score|default:'' }}"> </td> <td> <span class="badge grade-badge" id="grade_{{ enrollment.id }}"> {{ enrollment.result.grade|default:'-' }} </span> </td> </tr> {% endfor %} </tbody> </table> </div> </div> <!-- Mobile Card View --> <div class="d-lg-none"> {% for enrollment in enrolled_students %} <div class="card mb-3"> <div class="card-body"> <h6 class="card-title text-primary">{{ enrollment.student.matric_number }}</h6> <p class="card-text">{{ enrollment.student.get_full_name }}</p> <div class="row"> <div class="col-6 mb-2"> <label class="form-label">CA Score (30)</label> <input type="number" name="ca_score_{{ enrollment.id }}" class="form-control ca-score" min="0" max="30" step="0.01" value="{{ enrollment.result.ca_score|default:'' }}" onchange="calculateTotal({{ enrollment.id }})"> </div> <div class="col-6 mb-2"> <label class="form-label">Exam Score (70)</label> <input type="number" name="exam_score_{{ enrollment.id }}" class="form-control exam-score" min="0" max="70" step="0.01" value="{{ enrollment.result.exam_score|default:'' }}" onchange="calculateTotal({{ enrollment.id }})"> </div> <div class="col-6 mb-2"> <label class="form-label">Total (100)</label> <input type="number" name="total_score_{{ enrollment.id }}" class="form-control total-score" readonly id="total_mobile_{{ enrollment.id }}" value="{{ enrollment.result.total_score|default:'' }}"> </div> <div class="col-6 mb-2"> <label class="form-label">Grade</label> <div class="form-control"> <span class="badge grade-badge" id="grade_mobile_{{ enrollment.id }}"> {{ enrollment.result.grade|default:'-' }} </span> </div> </div> </div> </div> </div> {% endfor %} </div> <!-- Action Buttons --> <div class="d-flex gap-2 justify-content-end mt-4"> <a href="{% url 'lecturer_dashboard' %}" class="btn btn-secondary">Cancel</a> <button type="button" class="btn btn-outline-warning" onclick="saveDraft()"> <i class="bi bi-save me-1"></i>Save as Draft </button> <button type="submit" class="btn btn-success"> <i class="bi bi-check-circle me-1"></i>Submit Results </button> </div> </form> </div> </div> </div> </div> {% elif selected_course %} <div class="row"> <div class="col-12"> <div class="card"> <div class="card-body text-center py-5"> <i class="bi bi-people display-1 text-muted"></i> <h4 class="text-muted mt-3">No Students Enrolled</h4> <p class="text-muted">No students are enrolled in this course for the selected session.</p> <a href="{% url 'lecturer_enroll_students' %}" class="btn btn-primary"> <i class="bi bi-person-plus me-1"></i>Enroll Students </a> </div> </div> </div> </div> {% endif %} </div> <script> // Get threshold values from template const caMaxScore = {% if course_threshold %}{{ course_threshold.ca_max_score }}{% else %}30{% endif %}; const examMaxScore = {% if course_threshold %}{{ course_threshold.exam_max_score }}{% else %}70{% endif %}; function calculateTotal(enrollmentId) { const caInput = document.querySelector(`input[name="ca_score_${enrollmentId}"]`); const examInput = document.querySelector(`input[name="exam_score_${enrollmentId}"]`); const totalInput = document.getElementById(`total_${enrollmentId}`); const totalMobileInput = document.getElementById(`total_mobile_${enrollmentId}`); const gradeSpan = document.getElementById(`grade_${enrollmentId}`); const gradeMobileSpan = document.getElementById(`grade_mobile_${enrollmentId}`); const caScore = parseFloat(caInput.value) || 0; const examScore = parseFloat(examInput.value) || 0; // Validate against thresholds if (caScore > caMaxScore) { caInput.classList.add('is-invalid'); caInput.title = `Maximum CA score is ${caMaxScore}`; return; } else { caInput.classList.remove('is-invalid'); caInput.title = ''; } if (examScore > examMaxScore) { examInput.classList.add('is-invalid'); examInput.title = `Maximum Exam score is ${examMaxScore}`; return; } else { examInput.classList.remove('is-invalid'); examInput.title = ''; } const total = caScore + examScore; if (totalInput) totalInput.value = total.toFixed(2); if (totalMobileInput) totalMobileInput.value = total.toFixed(2); // Calculate grade let grade = ''; let gradeClass = ''; if (total >= 70) { grade = 'A'; gradeClass = 'bg-success'; } else if (total >= 60) { grade = 'B'; gradeClass = 'bg-primary'; } else if (total >= 50) { grade = 'C'; gradeClass = 'bg-info'; } else if (total >= 45) { grade = 'D'; gradeClass = 'bg-warning'; } else if (total > 0) { grade = 'F'; gradeClass = 'bg-danger'; } else { grade = '-'; gradeClass = 'bg-secondary'; } if (gradeSpan) { gradeSpan.textContent = grade; gradeSpan.className = `badge grade-badge ${gradeClass}`; } if (gradeMobileSpan) { gradeMobileSpan.textContent = grade; gradeMobileSpan.className = `badge grade-badge ${gradeClass}`; } } function calculateTotals() { const enrollmentIds = []; document.querySelectorAll('input[name^="ca_score_"]').forEach(input => { const enrollmentId = input.name.split('_')[2]; enrollmentIds.push(enrollmentId); }); enrollmentIds.forEach(id => calculateTotal(id)); } function saveDraft() { const form = document.getElementById('resultsForm'); const formData = new FormData(form); formData.append('save_as_draft', 'true'); fetch(form.action || window.location.href, { method: 'POST', body: formData }) .then(response => response.json()) .then(data => { if (data.success) { alert('Results saved as draft successfully!'); } else { alert('Error saving draft: ' + data.error); } }) .catch(error => { console.error('Error:', error); alert('Error saving draft'); }); } // Calculate totals on page load document.addEventListener('DOMContentLoaded', function() { calculateTotals(); }); </script> {% endblock %} 
+{% extends 'base.html' %}
+{% load role_tags %}
+
+{% block title %}Enter Results - Lecturer{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Delegation Status Badges -->
+    {% show_delegation_badges user %}
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <h1 class="mb-1 fw-bold">Enter Results</h1>
+                    <p class="mb-0 opacity-75">Input student results for your courses</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Selection -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">Select Course</h5>
+                    <a href="{% url 'lecturer_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+                    </a>
+                </div>
+                <div class="card-body">
+                    <form method="get" id="courseSelectionForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Course</label>
+                                <select name="course_id" class="form-select" required onchange="this.form.submit()">
+                                    <option value="">Choose a course...</option>
+                                    {% for assignment in assigned_courses %}
+                                    <option value="{{ assignment.course.id }}"
+                                            {% if selected_course and selected_course.id == assignment.course.id %}selected{% endif %}>
+                                        {{ assignment.course.code }} - {{ assignment.course.title }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Academic Session</label>
+                                <select name="session_id" class="form-select" required onchange="this.form.submit()">
+                                    <option value="">Select session...</option>
+                                    {% for session in sessions %}
+                                    <option value="{{ session.id }}"
+                                            {% if selected_session and selected_session.id == session.id %}selected{% endif %}
+                                            {% if session.is_active and not selected_session %}selected{% endif %}>
+                                        {{ session.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Entry Form -->
+    {% if selected_course and enrolled_students %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0 fw-bold">{{ selected_course.code }} - {{ selected_course.title }}</h5>
+                            <div class="d-flex align-items-center gap-3">
+                                <small class="text-muted">{{ enrolled_students.count }} students enrolled</small>
+                                {% if course_threshold %}
+                                <small class="text-info">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Max Scores: CA = {{ course_threshold.ca_max_score }}, Exam = {{ course_threshold.exam_max_score }}
+                                </small>
+                                {% else %}
+                                <small class="text-warning">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    Default Max: CA = 30, Exam = 70
+                                    <a href="{% url 'lecturer_course_thresholds' %}" class="text-primary">Set Custom</a>
+                                </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div>
+                            <a href="{% url 'lecturer_course_thresholds' %}" class="btn btn-outline-secondary btn-sm me-2">
+                                <i class="bi bi-gear me-1"></i>Thresholds
+                            </a>
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="calculateTotals()">
+                                <i class="bi bi-calculator me-1"></i>Calculate All
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm" onclick="saveDraft()">
+                                <i class="bi bi-save me-1"></i>Save as Draft
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="resultsForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="course_id" value="{{ selected_course.id }}">
+                        <input type="hidden" name="session_id" value="{{ selected_session.id }}">
+
+                        <!-- Desktop Table View -->
+                        <div class="d-none d-lg-block">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Matric Number</th>
+                                            <th>Student Name</th>
+                                            <th>CA Score (30)</th>
+                                            <th>Exam Score (70)</th>
+                                            <th>Total (100)</th>
+                                            <th>Grade</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for enrollment in enrolled_students %}
+                                        <tr>
+                                            <td>
+                                                <span class="fw-bold text-primary">{{ enrollment.student.matric_number }}</span>
+                                            </td>
+                                            <td>{{ enrollment.student.get_full_name }}</td>
+                                            <td>
+                                                <input type="number"
+                                                       name="ca_score_{{ enrollment.id }}"
+                                                       class="form-control form-control-sm ca-score"
+                                                       min="0" max="30" step="0.01"
+                                                       value="{{ enrollment.result.ca_score|default:'' }}"
+                                                       data-enrollment-id="{{ enrollment.id }}">
+                                            </td>
+                                            <td>
+                                                <input type="number"
+                                                       name="exam_score_{{ enrollment.id }}"
+                                                       class="form-control form-control-sm exam-score"
+                                                       min="0" max="70" step="0.01"
+                                                       value="{{ enrollment.result.exam_score|default:'' }}"
+                                                       data-enrollment-id="{{ enrollment.id }}">
+                                            </td>
+                                            <td>
+                                                <!-- Hidden input for form submission -->
+                                                <input type="hidden"
+                                                       name="total_score_{{ enrollment.id }}"
+                                                       id="total_hidden_{{ enrollment.id }}"
+                                                       value="{{ enrollment.result.total_score|default:'' }}">
+                                                <!-- Display total as badge -->
+                                                <span class="badge bg-primary total-score-display"
+                                                      id="total_{{ enrollment.id }}"
+                                                      style="font-size: 14px; padding: 8px 12px;">
+                                                    {% if enrollment.result.total_score %}{{ enrollment.result.total_score|floatformat:1 }}{% else %}-{% endif %}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge grade-badge" id="grade_{{ enrollment.id }}">
+                                                    {{ enrollment.result.grade|default:'-' }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Card View -->
+                        <div class="d-lg-none">
+                            {% for enrollment in enrolled_students %}
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6 class="card-title text-primary">{{ enrollment.student.matric_number }}</h6>
+                                    <p class="card-text">{{ enrollment.student.get_full_name }}</p>
+                                    <div class="row">
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label">CA Score (30)</label>
+                                            <input type="number"
+                                                   name="ca_score_{{ enrollment.id }}"
+                                                   class="form-control ca-score"
+                                                   min="0" max="30" step="0.01"
+                                                   value="{{ enrollment.result.ca_score|default:'' }}"
+                                                   data-enrollment-id="{{ enrollment.id }}">
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label">Exam Score (70)</label>
+                                            <input type="number"
+                                                   name="exam_score_{{ enrollment.id }}"
+                                                   class="form-control exam-score"
+                                                   min="0" max="70" step="0.01"
+                                                   value="{{ enrollment.result.exam_score|default:'' }}"
+                                                   data-enrollment-id="{{ enrollment.id }}">
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label">Total (100)</label>
+                                            <!-- Hidden input for form submission -->
+                                            <input type="hidden"
+                                                   name="total_score_{{ enrollment.id }}"
+                                                   id="total_mobile_hidden_{{ enrollment.id }}"
+                                                   value="{{ enrollment.result.total_score|default:'' }}">
+                                            <!-- Display total as badge -->
+                                            <div class="form-control d-flex align-items-center justify-content-center" style="height: 38px;">
+                                                <span class="badge bg-primary total-score-display"
+                                                      id="total_mobile_{{ enrollment.id }}"
+                                                      style="font-size: 14px; padding: 8px 12px;">
+                                                    {% if enrollment.result.total_score %}{{ enrollment.result.total_score|floatformat:1 }}{% else %}-{% endif %}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label">Grade</label>
+                                            <div class="form-control d-flex align-items-center justify-content-center" style="height: 38px;">
+                                                <span class="badge grade-badge" id="grade_mobile_{{ enrollment.id }}">
+                                                    {{ enrollment.result.grade|default:'-' }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="{% url 'lecturer_dashboard' %}" class="btn btn-secondary">Cancel</a>
+                            <button type="button" class="btn btn-outline-warning" onclick="saveDraft()">
+                                <i class="bi bi-save me-1"></i>Save as Draft
+                            </button>
+                            <button type="submit" class="btn btn-success" id="submitButton">
+                                <i class="bi bi-check-circle me-1"></i>Submit Results
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif selected_course %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-people display-1 text-muted"></i>
+                    <h4 class="text-muted mt-3">No Students Enrolled</h4>
+                    <p class="text-muted">No students are enrolled in this course for the selected session.</p>
+                    <a href="{% url 'lecturer_enroll_students' %}" class="btn btn-primary">
+                        <i class="bi bi-person-plus me-1"></i>Enroll Students
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Pass threshold values to JavaScript via data attributes -->
+<div id="thresholds-data"
+     data-ca-max="{{ course_threshold.ca_max_score|default:30 }}"
+     data-exam-max="{{ course_threshold.exam_max_score|default:70 }}"
+     style="display: none;"></div>
+
+<script>
+// Get threshold values from data attributes
+const thresholdsData = document.getElementById('thresholds-data');
+const caMaxScore = parseFloat(thresholdsData.dataset.caMax);
+const examMaxScore = parseFloat(thresholdsData.dataset.examMax);
+
+console.log('📊 Score thresholds loaded:', { caMaxScore, examMaxScore });
+
+function calculateTotal(enrollmentId) {
+    const caInput = document.querySelector(`input[name="ca_score_${enrollmentId}"]`);
+    const examInput = document.querySelector(`input[name="exam_score_${enrollmentId}"]`);
+
+    // Get display elements (badges)
+    const totalDisplay = document.getElementById(`total_${enrollmentId}`);
+    const totalMobileDisplay = document.getElementById(`total_mobile_${enrollmentId}`);
+
+    // Get hidden inputs for form submission
+    const totalHidden = document.getElementById(`total_hidden_${enrollmentId}`);
+    const totalMobileHidden = document.getElementById(`total_mobile_hidden_${enrollmentId}`);
+
+    // Get grade elements
+    const gradeSpan = document.getElementById(`grade_${enrollmentId}`);
+    const gradeMobileSpan = document.getElementById(`grade_mobile_${enrollmentId}`);
+
+    // Parse scores - use 0 if empty or invalid
+    const caScore = parseFloat(caInput.value) || 0;
+    const examScore = parseFloat(examInput.value) || 0;
+
+    // Validate against thresholds
+    let isValid = true;
+
+    if (caInput.value && caScore > caMaxScore) {
+        caInput.classList.add('is-invalid');
+        caInput.title = `Maximum CA score is ${caMaxScore}`;
+        isValid = false;
+    } else {
+        caInput.classList.remove('is-invalid');
+        caInput.title = '';
+    }
+
+    if (examInput.value && examScore > examMaxScore) {
+        examInput.classList.add('is-invalid');
+        examInput.title = `Maximum Exam score is ${examMaxScore}`;
+        isValid = false;
+    } else {
+        examInput.classList.remove('is-invalid');
+        examInput.title = '';
+    }
+
+    // Only calculate if both scores are provided and valid
+    if (isValid && (caInput.value || examInput.value)) {
+        const total = caScore + examScore;
+        const totalFormatted = total.toFixed(1);
+
+        // Update display badges
+        if (totalDisplay) {
+            totalDisplay.textContent = totalFormatted;
+            totalDisplay.classList.remove('bg-secondary');
+            totalDisplay.classList.add('bg-primary');
+        }
+        if (totalMobileDisplay) {
+            totalMobileDisplay.textContent = totalFormatted;
+            totalMobileDisplay.classList.remove('bg-secondary');
+            totalMobileDisplay.classList.add('bg-primary');
+        }
+
+        // Update hidden inputs for form submission
+        if (totalHidden) {
+            totalHidden.value = total.toFixed(2);
+            console.log(`Updated hidden total for enrollment ${enrollmentId}: ${total.toFixed(2)}`);
+        }
+        if (totalMobileHidden) {
+            totalMobileHidden.value = total.toFixed(2);
+            console.log(`Updated mobile hidden total for enrollment ${enrollmentId}: ${total.toFixed(2)}`);
+        }
+
+        // Calculate grade
+        let grade = '';
+        let gradeClass = '';
+
+        if (total >= 70) {
+            grade = 'A';
+            gradeClass = 'bg-success';
+        } else if (total >= 60) {
+            grade = 'B';
+            gradeClass = 'bg-primary';
+        } else if (total >= 50) {
+            grade = 'C';
+            gradeClass = 'bg-info';
+        } else if (total >= 45) {
+            grade = 'D';
+            gradeClass = 'bg-warning';
+        } else if (total > 0) {
+            grade = 'F';
+            gradeClass = 'bg-danger';
+        } else {
+            grade = '-';
+            gradeClass = 'bg-secondary';
+        }
+
+        // Update grade displays
+        if (gradeSpan) {
+            gradeSpan.textContent = grade;
+            gradeSpan.className = `badge grade-badge ${gradeClass}`;
+        }
+        if (gradeMobileSpan) {
+            gradeMobileSpan.textContent = grade;
+            gradeMobileSpan.className = `badge grade-badge ${gradeClass}`;
+        }
+    } else if (!caInput.value && !examInput.value) {
+        // Reset to default state if both fields are empty
+        if (totalDisplay) {
+            totalDisplay.textContent = '-';
+            totalDisplay.classList.remove('bg-primary');
+            totalDisplay.classList.add('bg-secondary');
+        }
+        if (totalMobileDisplay) {
+            totalMobileDisplay.textContent = '-';
+            totalMobileDisplay.classList.remove('bg-primary');
+            totalMobileDisplay.classList.add('bg-secondary');
+        }
+
+        if (totalHidden) totalHidden.value = '';
+        if (totalMobileHidden) totalMobileHidden.value = '';
+
+        if (gradeSpan) {
+            gradeSpan.textContent = '-';
+            gradeSpan.className = 'badge grade-badge bg-secondary';
+        }
+        if (gradeMobileSpan) {
+            gradeMobileSpan.textContent = '-';
+            gradeMobileSpan.className = 'badge grade-badge bg-secondary';
+        }
+    }
+}
+
+function calculateTotals() {
+    // Calculate totals for all students
+    const enrollmentIds = [];
+    document.querySelectorAll('input[name^="ca_score_"]').forEach(input => {
+        const enrollmentId = input.name.split('_')[2];
+        enrollmentIds.push(enrollmentId);
+    });
+    enrollmentIds.forEach(id => calculateTotal(id));
+
+    // Show success message
+    const button = document.querySelector('button[onclick="calculateTotals()"]');
+    if (button) {
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-check-circle me-1"></i>Calculated!';
+        button.classList.remove('btn-outline-info');
+        button.classList.add('btn-success');
+
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-info');
+        }, 2000);
+    }
+}
+
+function saveDraft() {
+    const form = document.getElementById('resultsForm');
+    const formData = new FormData(form);
+    formData.append('save_as_draft', 'true');
+
+    const button = document.querySelector('button[onclick="saveDraft()"]');
+    if (button) {
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Saving...';
+        button.disabled = true;
+    }
+
+    fetch(form.action || window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (button) {
+                button.innerHTML = '<i class="bi bi-check-circle me-1"></i>Saved!';
+                button.classList.remove('btn-outline-warning');
+                button.classList.add('btn-success');
+
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.classList.remove('btn-success');
+                    button.classList.add('btn-outline-warning');
+                    button.disabled = false;
+                }, 2000);
+            }
+            alert('Results saved as draft successfully!');
+        } else {
+            alert('Error saving draft: ' + data.error);
+            if (button) {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving draft');
+        if (button) {
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+    });
+}
+
+// Auto-calculate on page load and add real-time calculation
+document.addEventListener('DOMContentLoaded', function() {
+    // Calculate totals for existing data
+    calculateTotals();
+
+    // Add real-time calculation for all CA and Exam inputs using event delegation
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('ca-score') || e.target.classList.contains('exam-score')) {
+            const enrollmentId = e.target.dataset.enrollmentId;
+            if (enrollmentId) {
+                calculateTotal(enrollmentId);
+            }
+        }
+    });
+
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('ca-score') || e.target.classList.contains('exam-score')) {
+            const enrollmentId = e.target.dataset.enrollmentId;
+            if (enrollmentId) {
+                calculateTotal(enrollmentId);
+            }
+        }
+    });
+
+    document.addEventListener('blur', function(e) {
+        if (e.target.classList.contains('ca-score') || e.target.classList.contains('exam-score')) {
+            const enrollmentId = e.target.dataset.enrollmentId;
+            if (enrollmentId) {
+                calculateTotal(enrollmentId);
+            }
+        }
+    }, true);
+
+    // Enhanced form submission validation with debugging
+    const form = document.getElementById('resultsForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            console.log('🚀 Form submission started');
+
+            // Check for validation errors
+            const invalidInputs = document.querySelectorAll('.is-invalid');
+            if (invalidInputs.length > 0) {
+                console.log('❌ Form has validation errors:', invalidInputs.length);
+                e.preventDefault();
+                alert('Please fix the validation errors before submitting.');
+                invalidInputs[0].focus();
+                return;
+            }
+
+            // Check if we have any scores entered
+            const caInputs = document.querySelectorAll('input[name^="ca_score_"]');
+            const examInputs = document.querySelectorAll('input[name^="exam_score_"]');
+
+            let hasAnyScores = false;
+            let studentsWithScores = 0;
+
+            // Check each student to see if they have at least one score
+            const enrollmentIds = [];
+            caInputs.forEach(input => {
+                const match = input.name.match(/ca_score_(\d+)/);
+                if (match) {
+                    enrollmentIds.push(match[1]);
+                }
+            });
+
+            enrollmentIds.forEach(enrollmentId => {
+                const caInput = document.querySelector(`input[name="ca_score_${enrollmentId}"]`);
+                const examInput = document.querySelector(`input[name="exam_score_${enrollmentId}"]`);
+
+                const caValue = caInput ? caInput.value.trim() : '';
+                const examValue = examInput ? examInput.value.trim() : '';
+
+                if (caValue !== '' || examValue !== '') {
+                    hasAnyScores = true;
+                    studentsWithScores++;
+                }
+            });
+
+            console.log('📊 Form validation check:');
+            console.log('  CA inputs found:', caInputs.length);
+            console.log('  Exam inputs found:', examInputs.length);
+            console.log('  Enrollment IDs found:', enrollmentIds.length);
+            console.log('  Students with scores:', studentsWithScores);
+            console.log('  Has any scores:', hasAnyScores);
+
+            if (!hasAnyScores) {
+                console.log('❌ No scores entered');
+                e.preventDefault();
+                alert('Please enter at least one CA or Exam score before submitting.');
+                return;
+            }
+
+            // Log form data for debugging
+            const formData = new FormData(form);
+            console.log('📝 Form data being submitted:');
+            for (let [key, value] of formData.entries()) {
+                if (key.startsWith('ca_score_') || key.startsWith('exam_score_') || key.startsWith('total_score_')) {
+                    console.log(`  ${key}: "${value}"`);
+                }
+            }
+
+            console.log('✅ Form validation passed, submitting...');
+
+            // Provide visual feedback
+            const submitButton = document.getElementById('submitButton');
+            if (submitButton) {
+                submitButton.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Submitting...';
+                submitButton.disabled = true;
+            }
+        });
+    }
+});
+</script>
+
+{% endblock %}

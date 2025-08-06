@@ -72,6 +72,7 @@ urlpatterns = [
     path('super-admin/activate-session/', views.super_admin_activate_session, name='super_admin_activate_session'),
     path('super-admin/lock-session/<int:session_id>/', views.super_admin_lock_session, name='super_admin_lock_session'),
     path('super-admin/unlock-session/<int:session_id>/', views.super_admin_unlock_session, name='super_admin_unlock_session'),
+    path('super-admin/delete-session/<int:session_id>/', views.super_admin_delete_session, name='super_admin_delete_session'),
 
     # Faculty Dean URLs
     path('faculty-dean/', views.faculty_dean_dashboard, name='faculty_dean_dashboard'),
@@ -214,6 +215,7 @@ urlpatterns = [
     path('daaa/activate-session/', views.daaa_activate_session, name='daaa_activate_session'),
     path('daaa/lock-session/<int:session_id>/', views.daaa_lock_session, name='daaa_lock_session'),
     path('daaa/unlock-session/<int:session_id>/', views.daaa_unlock_session, name='daaa_unlock_session'),
+    path('daaa/delete-session/<int:session_id>/', views.daaa_delete_session, name='daaa_delete_session'),
     path('daaa/pending-results/', views.daaa_pending_results, name='daaa_pending_results'),
     path('daaa/review-results/', views.daaa_review_results, name='daaa_review_results'),
     path('daaa/approve-results/', views.daaa_approve_results, name='daaa_approve_results'),

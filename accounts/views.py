@@ -5949,10 +5949,10 @@ def super_admin_system_settings(request):
 @login_required
 def super_admin_create_session(request):
     """Super Admin Create Academic Session"""
-    # Check if user has Super Admin role
-    super_admin_roles = UserRole.objects.filter(user=request.user, role='SUPER_ADMIN')
-    if not super_admin_roles.exists():
-        messages.error(request, 'Access denied. Super Admin role required.')
+    # Check if user has Super Admin or DAAA role
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['SUPER_ADMIN', 'DAAA'])
+    if not has_access:
+        messages.error(request, 'Access denied. Super Admin or DAAA role required.')
         return redirect('dashboard')
 
     if request.method == 'POST':
@@ -6015,10 +6015,10 @@ def super_admin_create_session(request):
 @login_required
 def super_admin_manage_sessions(request):
     """Super Admin Manage Academic Sessions"""
-    # Check if user has Super Admin role
-    super_admin_roles = UserRole.objects.filter(user=request.user, role='SUPER_ADMIN')
-    if not super_admin_roles.exists():
-        messages.error(request, 'Access denied. Super Admin role required.')
+    # Check if user has Super Admin or DAAA role
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['SUPER_ADMIN', 'DAAA'])
+    if not has_access:
+        messages.error(request, 'Access denied. Super Admin or DAAA role required.')
         return redirect('dashboard')
 
     # Ensure at least one session exists
@@ -6151,6 +6151,56 @@ def super_admin_unlock_session(request, session_id):
         return JsonResponse({'success': False, 'message': 'Session not found.'})
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'Error unlocking session: {str(e)}'})
+
+
+@login_required
+def super_admin_delete_session(request, session_id):
+    """Super Admin Delete Academic Session (AJAX endpoint)"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid request method.'})
+
+    # Check if user has Super Admin role
+    super_admin_roles = UserRole.objects.filter(user=request.user, role='SUPER_ADMIN')
+    if not super_admin_roles.exists():
+        return JsonResponse({'success': False, 'message': 'Access denied. Super Admin role required.'})
+
+    try:
+        session = AcademicSession.objects.get(id=session_id)
+
+        # Prevent deletion of active session
+        if session.is_active:
+            return JsonResponse({'success': False, 'message': 'Cannot delete active session. Deactivate it first.'})
+
+        # Check if session has associated data (courses, enrollments, etc.)
+        from courses.models import Course
+        from enrollments.models import Enrollment
+
+        course_count = Course.objects.filter(session=session).count()
+        enrollment_count = Enrollment.objects.filter(session=session).count()
+
+        if course_count > 0 or enrollment_count > 0:
+            return JsonResponse({
+                'success': False,
+                'message': f'Cannot delete session with associated data. Found {course_count} courses and {enrollment_count} enrollments.'
+            })
+
+        session_name = session.name
+        session.delete()
+
+        # Log the action
+        AuditLog.objects.create(
+            user=request.user,
+            action='DELETE_SESSION',
+            description=f'Deleted academic session: {session_name}',
+            level='WARNING'
+        )
+
+        return JsonResponse({'success': True, 'message': f'Session "{session_name}" deleted successfully!'})
+
+    except AcademicSession.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Session not found.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error deleting session: {str(e)}'})
 
 
 # ============================================================================
@@ -7333,7 +7383,7 @@ def exam_officer_approve_single(request, result_id):
 def daaa_create_session(request):
     """DAAA Create Academic Session"""
     # Check if user has DAAA role or is Super Admin
-    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['DAAA'])
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['DAAA', 'SUPER_ADMIN'])
     if not has_access:
         messages.error(request, 'Access denied. DAAA or Super Admin role required.')
         return redirect('dashboard')
@@ -7419,7 +7469,7 @@ def ensure_default_session_exists():
 def daaa_manage_sessions(request):
     """DAAA Session Management Interface"""
     # Check if user has DAAA role or is Super Admin
-    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['DAAA'])
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['DAAA', 'SUPER_ADMIN'])
     if not has_access:
         messages.error(request, 'Access denied. DAAA or Super Admin role required.')
         return redirect('dashboard')
@@ -7568,6 +7618,57 @@ def daaa_unlock_session(request, session_id):
         return JsonResponse({'success': False, 'message': 'Session not found.'})
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'Error unlocking session: {str(e)}'})
+
+
+@login_required
+def daaa_delete_session(request, session_id):
+    """DAAA Delete Academic Session (AJAX endpoint)"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid request method.'})
+
+    # Check if user has DAAA role or is Super Admin
+    has_access, user_role, department, faculty = check_if_user_has_access(request.user, ['DAAA'])
+    if not has_access:
+        return JsonResponse({'success': False, 'message': 'Access denied. DAAA or Super Admin role required.'})
+
+    try:
+        session = AcademicSession.objects.get(id=session_id)
+
+        # Prevent deletion of active session
+        if session.is_active:
+            return JsonResponse({'success': False, 'message': 'Cannot delete active session. Deactivate it first.'})
+
+        # Check if session has associated data (courses, enrollments, etc.)
+        from courses.models import Course
+        from enrollments.models import Enrollment
+
+        course_count = Course.objects.filter(session=session).count()
+        enrollment_count = Enrollment.objects.filter(session=session).count()
+
+        if course_count > 0 or enrollment_count > 0:
+            return JsonResponse({
+                'success': False,
+                'message': f'Cannot delete session with associated data. Found {course_count} courses and {enrollment_count} enrollments.'
+            })
+
+        session_name = session.name
+        session.delete()
+
+        # Log the action
+        AuditLog.objects.create(
+            user=request.user,
+            action='DELETE_SESSION',
+            description=f'Deleted academic session: {session_name}',
+            level='WARNING'
+        )
+
+        return JsonResponse({'success': True, 'message': f'Session "{session_name}" deleted successfully!'})
+
+    except AcademicSession.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Session not found.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error deleting session: {str(e)}'})
+
 
 @login_required
 def daaa_pending_results(request):

@@ -99,27 +99,6 @@ The repository includes test accounts for all user roles. Users can:
 - Create new accounts through the super admin interface
 - Use the existing sample data to test different workflows
 
-## API Endpoints
-
-The application includes REST API endpoints for integration with external systems or mobile applications:
-
-### Authentication
-```http
-POST /api/external/authenticate/
-{
-    "username": "your_username",
-    "password": "your_password"
-}
-```
-
-### Getting Student Data
-```http
-GET /api/students/
-Authorization: Token your_token_here
-```
-
-The API uses token-based authentication and returns JSON responses.
-
 ## Project Structure
 
 ```
@@ -136,10 +115,6 @@ rms/
 ├── manage.py              # Django management command-line utility
 └── requirements.txt       # Python package dependencies
 ```
-
-## About This Project
-
-This project was developed as a learning exercise in computer science education. The system is modeled after actual result management processes used in Nigerian universities, with flexibility for adaptation to other institutional workflows.
 
 ### Technologies Demonstrated
 - Django framework and web application architecture

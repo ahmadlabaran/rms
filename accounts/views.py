@@ -5625,10 +5625,94 @@ def faculty_dean_pending_results(request):
         messages.error(request, 'No faculty assigned to your Faculty Dean role.')
         return redirect('dashboard')
 
+    # Handle POST request for approval/rejection
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        # Handle bulk actions
+        if action == 'bulk_approve':
+            result_ids = request.POST.getlist('selected_results')
+            if not result_ids:
+                messages.error(request, 'No results selected for bulk approval.')
+                return redirect('faculty_dean_pending_results')
+
+            approved_count = 0
+            failed_count = 0
+
+            for result_id in result_ids:
+                try:
+                    result = Result.objects.get(
+                        id=result_id,
+                        status='SUBMITTED_TO_DEAN',
+                        enrollment__course__departments__faculty=faculty
+                    )
+                    success, message = ResultWorkflowService.approve_result(result, request.user, 'Bulk approval by dean')
+                    if success:
+                        approved_count += 1
+                    else:
+                        failed_count += 1
+                except Result.DoesNotExist:
+                    failed_count += 1
+                except Exception:
+                    failed_count += 1
+
+            if approved_count > 0:
+                messages.success(request, f'Successfully approved {approved_count} result(s).')
+            if failed_count > 0:
+                messages.warning(request, f'{failed_count} result(s) could not be approved.')
+
+        # Handle single approval
+        elif action == 'approve':
+            result_id = request.POST.get('result_id')
+            comments = request.POST.get('comments', '').strip()
+
+            try:
+                result = Result.objects.get(
+                    id=result_id,
+                    status='SUBMITTED_TO_DEAN',
+                    enrollment__course__departments__faculty=faculty
+                )
+                success, message = ResultWorkflowService.approve_result(result, request.user, comments)
+
+                if success:
+                    messages.success(request, f'Result approved for {result.enrollment.student.matric_number}.')
+                else:
+                    messages.error(request, f'Error approving result: {message}')
+
+            except Result.DoesNotExist:
+                messages.error(request, 'Result not found. It may have been processed by another user.')
+
+        # Handle single rejection
+        elif action == 'reject':
+            result_id = request.POST.get('result_id')
+            comments = request.POST.get('comments', '').strip()
+
+            if not comments:
+                messages.error(request, 'Comments are required when rejecting a result.')
+                return redirect('faculty_dean_pending_results')
+
+            try:
+                result = Result.objects.get(
+                    id=result_id,
+                    status='SUBMITTED_TO_DEAN',
+                    enrollment__course__departments__faculty=faculty
+                )
+                success, message = ResultWorkflowService.reject_result(result, request.user, comments)
+
+                if success:
+                    messages.success(request, f'Result rejected for {result.enrollment.student.matric_number}.')
+                else:
+                    messages.error(request, f'Error rejecting result: {message}')
+
+            except Result.DoesNotExist:
+                messages.error(request, 'Result not found. It may have been processed by another user.')
+
+        return redirect('faculty_dean_pending_results')
+
     # Get pending results
     pending_results = Result.objects.filter(
-        enrollment__student__faculty=faculty,
-        status__in=['SUBMITTED_TO_DEAN', 'APPROVED_BY_HOD']
+        enrollment__course__departments__faculty=faculty,
+        status='SUBMITTED_TO_DEAN'
     ).select_related(
         'enrollment__student__user',
         'enrollment__course',
@@ -5641,6 +5725,108 @@ def faculty_dean_pending_results(request):
     }
 
     return render(request, 'faculty_dean_pending_results.html', context)
+
+
+@login_required
+def faculty_dean_result_history(request):
+    """Faculty Dean Result History"""
+    # Check if user has Faculty Dean role
+    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not faculty_dean_roles.exists():
+        messages.error(request, 'Access denied. Faculty Dean role required.')
+        return redirect('dashboard')
+
+    # Get the faculty for this dean
+    faculty_role = faculty_dean_roles.first()
+    faculty = faculty_role.faculty
+
+    if not faculty:
+        messages.error(request, 'No faculty assigned to your Faculty Dean role.')
+        return redirect('dashboard')
+
+    # Get filter parameters
+    session_id = request.GET.get('session')
+    department_id = request.GET.get('department')
+    level_id = request.GET.get('level')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    action_filter = request.GET.get('action')
+
+    # Get dean's approval/rejection history
+    history_query = ResultApprovalHistory.objects.filter(
+        actor=request.user,
+        actor_role='FACULTY_DEAN',
+        result__enrollment__course__departments__faculty=faculty
+    ).select_related(
+        'result__enrollment__student__user',
+        'result__enrollment__course',
+        'result__enrollment__session'
+    ).order_by('-timestamp')
+
+    # Apply filters
+    if session_id:
+        history_query = history_query.filter(result__enrollment__session_id=session_id)
+
+    if department_id:
+        history_query = history_query.filter(result__enrollment__course__departments__id=department_id)
+
+    if level_id:
+        history_query = history_query.filter(result__enrollment__course__level_id=level_id)
+
+    if date_from:
+        history_query = history_query.filter(timestamp__date__gte=date_from)
+
+    if date_to:
+        history_query = history_query.filter(timestamp__date__lte=date_to)
+
+    if action_filter:
+        history_query = history_query.filter(action=action_filter)
+
+    # Paginate results
+    from django.core.paginator import Paginator
+    paginator = Paginator(history_query, 25)  # Show 25 results per page
+    page_number = request.GET.get('page')
+    history = paginator.get_page(page_number)
+
+    # Get filter options
+    sessions = AcademicSession.objects.all().order_by('-name')
+    departments = Department.objects.filter(faculty=faculty).order_by('name')
+    levels = Level.objects.all().order_by('numeric_value')
+
+    # Get statistics
+    total_approved = ResultApprovalHistory.objects.filter(
+        actor=request.user,
+        actor_role='FACULTY_DEAN',
+        action='APPROVED',
+        result__enrollment__course__departments__faculty=faculty
+    ).count()
+
+    total_rejected = ResultApprovalHistory.objects.filter(
+        actor=request.user,
+        actor_role='FACULTY_DEAN',
+        action='REJECTED',
+        result__enrollment__course__departments__faculty=faculty
+    ).count()
+
+    context = {
+        'faculty': faculty,
+        'history': history,
+        'sessions': sessions,
+        'departments': departments,
+        'levels': levels,
+        'total_approved': total_approved,
+        'total_rejected': total_rejected,
+        'filters': {
+            'session': session_id,
+            'department': department_id,
+            'level': level_id,
+            'date_from': date_from,
+            'date_to': date_to,
+            'action': action_filter,
+        }
+    }
+
+    return render(request, 'faculty_dean_result_history.html', context)
 
 
 @login_required
@@ -6753,17 +6939,17 @@ def faculty_dean_dashboard(request):
 
     # Results statistics
     pending_results_count = Result.objects.filter(
-        enrollment__student__faculty=faculty,
-        status__in=['SUBMITTED_TO_DEAN', 'APPROVED_BY_HOD']
+        enrollment__course__departments__faculty=faculty,
+        status='SUBMITTED_TO_DEAN'
     ).count()
 
     approved_results = Result.objects.filter(
-        enrollment__student__faculty=faculty,
+        enrollment__course__departments__faculty=faculty,
         status='APPROVED_BY_DEAN'
     ).count()
 
     published_results = Result.objects.filter(
-        enrollment__student__faculty=faculty,
+        enrollment__course__departments__faculty=faculty,
         status='PUBLISHED'
     ).count()
 
@@ -8608,6 +8794,13 @@ def lecturer_enter_results(request):
                     # Create or update result
                     try:
                         result = Result.objects.get(enrollment=enrollment)
+
+                        # Check if result can be edited based on its current status
+                        if result.status not in ['DRAFT', 'REJECTED']:
+                            print(f"  Cannot edit result for {enrollment.student.matric_number} - Status: {result.status}")
+                            validation_errors.append(f"{enrollment.student.matric_number}: Cannot edit result that has been submitted (Status: {result.get_status_display()})")
+                            continue
+
                         # Update existing result
                         result.ca_score = ca_score
                         result.exam_score = exam_score
@@ -9208,13 +9401,59 @@ def exam_officer_validate_results(request):
 
 @login_required
 def exam_officer_approve_results(request):
-    """Approve results functionality - placeholder"""
-    level = request.GET.get('level', '100')
-    return render(request, 'placeholder.html', {
-        'page_title': f'Approve Results - {level}L',
-        'message': f'Approve results for {level}L students',
-        'back_url': 'exam_officer_dashboard'
-    })
+    """Bulk approve results functionality"""
+    # Check if user has Exam Officer role
+    exam_officer_roles = UserRole.objects.filter(user=request.user, role='EXAM_OFFICER')
+    if not exam_officer_roles.exists():
+        messages.error(request, 'Access denied. Exam Officer role required.')
+        return redirect('dashboard')
+
+    # Get the faculty for this exam officer
+    exam_officer_role = exam_officer_roles.first()
+    faculty = exam_officer_role.faculty
+
+    if not faculty:
+        messages.error(request, 'No faculty assigned to your Exam Officer role.')
+        return redirect('exam_officer_dashboard')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        selected_results = request.POST.getlist('selected_results')
+
+        if action == 'bulk_approve' and selected_results:
+            approved_count = 0
+            failed_count = 0
+
+            for result_id in selected_results:
+                try:
+                    # Get the result with faculty filtering
+                    result = Result.objects.get(
+                        id=result_id,
+                        status='SUBMITTED_TO_EXAM_OFFICER',
+                        enrollment__course__departments__faculty=faculty
+                    )
+
+                    # Use the workflow service to approve the result
+                    success, message = ResultWorkflowService.approve_result(result, request.user, 'Bulk approval by exam officer')
+
+                    if success:
+                        approved_count += 1
+                    else:
+                        failed_count += 1
+
+                except Result.DoesNotExist:
+                    failed_count += 1
+                    continue
+
+            if approved_count > 0:
+                messages.success(request, f'Successfully approved {approved_count} result(s).')
+            if failed_count > 0:
+                messages.warning(request, f'{failed_count} result(s) could not be approved.')
+
+        else:
+            messages.error(request, 'No results selected for approval.')
+
+    return redirect('exam_officer_pending_results')
 
 @login_required
 def exam_officer_reject_results(request):
@@ -9709,7 +9948,63 @@ def exam_officer_review_result(request, result_id):
 
 @login_required
 def exam_officer_approve_single(request, result_id):
-    return render(request, 'placeholder.html', {'page_title': 'Quick Approve', 'message': f'Quick approve result ID: {result_id}'})
+    """Approve a single result by exam officer"""
+    # Check if user has Exam Officer role
+    exam_officer_roles = UserRole.objects.filter(user=request.user, role='EXAM_OFFICER')
+    if not exam_officer_roles.exists():
+        messages.error(request, 'Access denied. Exam Officer role required.')
+        return redirect('dashboard')
+
+    # Get the faculty for this exam officer
+    exam_officer_role = exam_officer_roles.first()
+    faculty = exam_officer_role.faculty
+
+    if not faculty:
+        messages.error(request, 'No faculty assigned to your Exam Officer role.')
+        return redirect('exam_officer_dashboard')
+
+    try:
+        # Get the result with faculty filtering
+        result = Result.objects.get(
+            id=result_id,
+            status='SUBMITTED_TO_EXAM_OFFICER',
+            enrollment__course__departments__faculty=faculty
+        )
+    except Result.DoesNotExist:
+        messages.error(request, 'Result not found. It may have been processed by another user or does not belong to your faculty.')
+        return redirect('exam_officer_pending_results')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        comments = request.POST.get('comments', '').strip()
+
+        if action == 'approve':
+            # Use the workflow service to approve the result
+            success, message = ResultWorkflowService.approve_result(result, request.user, comments)
+
+            if success:
+                messages.success(request, f'Result approved for {result.enrollment.student.matric_number}.')
+            else:
+                messages.error(request, f'Error approving result: {message}')
+
+        elif action == 'reject':
+            rejection_reason = comments
+            if not rejection_reason:
+                messages.error(request, 'Rejection reason is required.')
+                return redirect('exam_officer_pending_results')
+
+            # Use the workflow service to reject the result
+            success, message = ResultWorkflowService.reject_result(result, request.user, rejection_reason)
+
+            if success:
+                messages.success(request, f'Result rejected for {result.enrollment.student.matric_number}. Lecturer has been notified.')
+            else:
+                messages.error(request, f'Error rejecting result: {message}')
+
+        return redirect('exam_officer_pending_results')
+
+    # If GET request, redirect to pending results
+    return redirect('exam_officer_pending_results')
 
 
 # ============================================================================
@@ -10037,26 +10332,109 @@ def daaa_pending_results(request):
         messages.error(request, 'Access denied. DAAA role required.')
         return redirect('dashboard')
 
+    # Handle POST request for approval/rejection
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        # Handle bulk actions
+        if action == 'bulk_approve':
+            result_ids = request.POST.getlist('selected_results')
+            if not result_ids:
+                messages.error(request, 'No results selected for bulk approval.')
+                return redirect('daaa_pending_results')
+
+            approved_count = 0
+            failed_count = 0
+
+            for result_id in result_ids:
+                try:
+                    result = Result.objects.get(
+                        id=result_id,
+                        status='SUBMITTED_TO_DAAA'
+                    )
+                    success, message = ResultWorkflowService.approve_result(result, request.user, 'Bulk approval by DAAA')
+                    if success:
+                        approved_count += 1
+                    else:
+                        failed_count += 1
+                except Result.DoesNotExist:
+                    failed_count += 1
+                except Exception:
+                    failed_count += 1
+
+            if approved_count > 0:
+                messages.success(request, f'Successfully approved {approved_count} result(s).')
+            if failed_count > 0:
+                messages.warning(request, f'{failed_count} result(s) could not be approved.')
+
+        # Handle single approval
+        elif action == 'approve':
+            result_id = request.POST.get('result_id')
+            comments = request.POST.get('comments', '').strip()
+
+            try:
+                result = Result.objects.get(
+                    id=result_id,
+                    status='SUBMITTED_TO_DAAA'
+                )
+                success, message = ResultWorkflowService.approve_result(result, request.user, comments)
+
+                if success:
+                    messages.success(request, f'Result approved for {result.enrollment.student.matric_number}.')
+                else:
+                    messages.error(request, f'Error approving result: {message}')
+
+            except Result.DoesNotExist:
+                messages.error(request, 'Result not found. It may have been processed by another user.')
+
+        # Handle single rejection
+        elif action == 'reject':
+            result_id = request.POST.get('result_id')
+            comments = request.POST.get('comments', '').strip()
+
+            if not comments:
+                messages.error(request, 'Comments are required when rejecting a result.')
+                return redirect('daaa_pending_results')
+
+            try:
+                result = Result.objects.get(
+                    id=result_id,
+                    status='SUBMITTED_TO_DAAA'
+                )
+                success, message = ResultWorkflowService.reject_result(result, request.user, comments)
+
+                if success:
+                    messages.success(request, f'Result rejected for {result.enrollment.student.matric_number}.')
+                else:
+                    messages.error(request, f'Error rejecting result: {message}')
+
+            except Result.DoesNotExist:
+                messages.error(request, 'Result not found. It may have been processed by another user.')
+
+        return redirect('daaa_pending_results')
+
     # Get results submitted to DAAA (approved by Faculty Dean)
     pending_results = Result.objects.filter(
         status='SUBMITTED_TO_DAAA'
     ).select_related(
-        'course', 'student', 'session', 'lecturer'
+        'enrollment__student__user',
+        'enrollment__course',
+        'enrollment__session'
     ).prefetch_related(
-        'course__departments__faculty'
-    ).order_by('-created_at')
+        'enrollment__course__departments__faculty'
+    ).order_by('-updated_at')
 
     # Get statistics
     stats = {
         'total_pending': pending_results.count(),
         'by_faculty': {},
         'by_level': {},
-        'total_students': pending_results.values('student').distinct().count(),
+        'total_students': pending_results.values('enrollment__student').distinct().count(),
     }
 
     # Calculate faculty-wise statistics
     for result in pending_results:
-        for dept in result.course.departments.all():
+        for dept in result.enrollment.course.departments.all():
             faculty_name = dept.faculty.name
             if faculty_name not in stats['by_faculty']:
                 stats['by_faculty'][faculty_name] = 0
@@ -10064,7 +10442,7 @@ def daaa_pending_results(request):
 
     # Calculate level-wise statistics
     for result in pending_results:
-        level = result.course.level
+        level = result.enrollment.course.level
         if level not in stats['by_level']:
             stats['by_level'][level] = 0
         stats['by_level'][level] += 1
@@ -10283,49 +10661,96 @@ def daaa_publish_results(request):
         action = request.POST.get('action')
 
         if action == 'publish_results':
-            session_id = request.POST.get('session_id')
             notification_method = request.POST.get('notification_method', 'IMMEDIATE')
             faculty_ids = request.POST.getlist('faculty_ids')
             department_ids = request.POST.getlist('department_ids')
             level_filter = request.POST.get('level_filter')
 
             try:
-                session = AcademicSession.objects.get(id=session_id)
-
-                # Get results to publish (approved by Senate)
+                # Get all results approved by DAAA, ready for publication
                 results_query = Result.objects.filter(
-                    session=session,
-                    status='PUBLISHED'  # Assuming Senate sets this status
+                    status='APPROVED_BY_DAAA'  # Results approved by DAAA, ready for publication
                 )
 
                 # Apply filters based on notification method
                 if notification_method == 'BY_FACULTY' and faculty_ids:
-                    results_query = results_query.filter(course__departments__faculty__id__in=faculty_ids)
+                    results_query = results_query.filter(enrollment__course__departments__faculty__id__in=faculty_ids)
                 elif notification_method == 'BY_DEPARTMENT' and department_ids:
-                    results_query = results_query.filter(course__departments__id__in=department_ids)
+                    results_query = results_query.filter(enrollment__course__departments__id__in=department_ids)
                 elif notification_method == 'BY_LEVEL' and level_filter:
-                    results_query = results_query.filter(course__level=level_filter)
+                    results_query = results_query.filter(enrollment__course__level=level_filter)
 
                 results = results_query.distinct()
 
-                # Create publication record
-                publication = ResultPublication.objects.create(
-                    session=session,
-                    published_by=request.user,
-                    notification_method=notification_method,
-                    published_at=timezone.now()
+                if not results.exists():
+                    messages.error(request, 'No results found matching the selected criteria.')
+                    return redirect('daaa_publish_results')
+
+                # Check for duplicate publications
+                duplicate_check_query = Result.objects.filter(
+                    status='PUBLISHED'
                 )
 
-                # Add target filters
+                # Apply same filters to check for duplicates
                 if notification_method == 'BY_FACULTY' and faculty_ids:
-                    publication.target_faculties.set(faculty_ids)
+                    duplicate_check_query = duplicate_check_query.filter(enrollment__course__departments__faculty__id__in=faculty_ids)
                 elif notification_method == 'BY_DEPARTMENT' and department_ids:
-                    publication.target_departments.set(department_ids)
+                    duplicate_check_query = duplicate_check_query.filter(enrollment__course__departments__id__in=department_ids)
+                elif notification_method == 'BY_LEVEL' and level_filter:
+                    duplicate_check_query = duplicate_check_query.filter(enrollment__course__level=level_filter)
+
+                # Check if any of the results to be published are already published
+                overlapping_results = results.filter(
+                    enrollment__student__in=duplicate_check_query.values_list('enrollment__student', flat=True),
+                    enrollment__course__in=duplicate_check_query.values_list('enrollment__course', flat=True)
+                )
+
+                if overlapping_results.exists():
+                    overlapping_count = overlapping_results.count()
+                    if notification_method == 'BY_FACULTY':
+                        faculty_names = Faculty.objects.filter(id__in=faculty_ids).values_list('name', flat=True)
+                        criteria = f"faculty/faculties: {', '.join(faculty_names)}"
+                    elif notification_method == 'BY_DEPARTMENT':
+                        dept_names = Department.objects.filter(id__in=department_ids).values_list('name', flat=True)
+                        criteria = f"department(s): {', '.join(dept_names)}"
+                    elif notification_method == 'BY_LEVEL':
+                        level_obj = Level.objects.filter(numeric_value=level_filter).first()
+                        criteria = f"level: {level_obj.name if level_obj else level_filter}"
+                    else:
+                        criteria = "the selected criteria"
+
+                    messages.error(request, f'Cannot publish results: {overlapping_count} result(s) for {criteria} have already been published. Please check the publication history.')
+                    return redirect('daaa_publish_results')
+
+                # Update results status to PUBLISHED
+                results.update(status='PUBLISHED')
+
+                # Get unique sessions from the results
+                sessions_published = results.values_list('enrollment__session', flat=True).distinct()
+
+                # Create publication records for each session
+                publications_created = []
+                for session_id in sessions_published:
+                    session = AcademicSession.objects.get(id=session_id)
+                    publication = ResultPublication.objects.create(
+                        session=session,
+                        published_by=request.user,
+                        notification_method=notification_method,
+                        published_at=timezone.now()
+                    )
+                    publications_created.append(publication)
+
+                # Add target filters to all publications
+                for publication in publications_created:
+                    if notification_method == 'BY_FACULTY' and faculty_ids:
+                        publication.target_faculties.set(faculty_ids)
+                    elif notification_method == 'BY_DEPARTMENT' and department_ids:
+                        publication.target_departments.set(department_ids)
 
                 # Send notifications to students
                 students = User.objects.filter(
                     rms_roles__role='STUDENT',
-                    student_profile__results__in=results
+                    student__courseenrollment__result__in=results
                 ).distinct()
 
                 notification_count = 0
@@ -10343,25 +10768,27 @@ def daaa_publish_results(request):
                         notification_count += 1
 
                 # Log the action
+                session_names = [AcademicSession.objects.get(id=sid).name for sid in sessions_published]
+                sessions_text = ', '.join(session_names)
+
                 AuditLog.objects.create(
                     user=request.user,
                     action='PUBLISH_RESULTS',
-                    description=f'Published results for {session.name} session. Notified {notification_count} students.',
+                    description=f'Published results for session(s): {sessions_text}. Notified {notification_count} students.',
                     level='INFO'
                 )
 
-                messages.success(request, f'Successfully published results for {session.name}. Notified {notification_count} students.')
+                if len(sessions_published) == 1:
+                    messages.success(request, f'Successfully published results for {sessions_text}. Notified {notification_count} students.')
+                else:
+                    messages.success(request, f'Successfully published results for {len(sessions_published)} sessions ({sessions_text}). Notified {notification_count} students.')
                 return redirect('daaa_publish_results')
 
-            except AcademicSession.DoesNotExist:
-                messages.error(request, 'Academic session not found.')
             except Exception as e:
                 messages.error(request, f'Error publishing results: {str(e)}')
 
-    # Get sessions with results ready for publication
-    sessions = AcademicSession.objects.filter(
-        result__status='PUBLISHED'
-    ).distinct().order_by('-name')
+    # Get count of results ready for publication
+    ready_results_count = Result.objects.filter(status='APPROVED_BY_DAAA').count()
 
     # Get faculties and departments for filtering
     faculties = Faculty.objects.all().order_by('name')
@@ -10371,13 +10798,137 @@ def daaa_publish_results(request):
     publications = ResultPublication.objects.all().order_by('-published_at')[:10]
 
     context = {
-        'sessions': sessions,
+        'ready_results_count': ready_results_count,
         'faculties': faculties,
         'departments': departments,
         'publications': publications,
     }
 
     return render(request, 'daaa_publish_results.html', context)
+
+@login_required
+def daaa_result_history(request):
+    """DAAA Result History with Hierarchical Filtering"""
+    # Check if user has DAAA role
+    daaa_roles = UserRole.objects.filter(user=request.user, role='DAAA')
+    if not daaa_roles.exists():
+        messages.error(request, 'Access denied. DAAA role required.')
+        return redirect('dashboard')
+
+    # Get filter parameters
+    faculty_id = request.GET.get('faculty')
+    department_id = request.GET.get('department')
+    level_id = request.GET.get('level')
+    course_id = request.GET.get('course')
+    student_id = request.GET.get('student')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    action_filter = request.GET.get('action')
+
+    # Get DAAA's approval/rejection history
+    history_query = ResultApprovalHistory.objects.filter(
+        actor=request.user,
+        actor_role='DAAA'
+    ).select_related(
+        'result__enrollment__student__user',
+        'result__enrollment__course',
+        'result__enrollment__session'
+    ).order_by('-timestamp')
+
+    # Apply hierarchical filters
+    if faculty_id:
+        history_query = history_query.filter(result__enrollment__course__departments__faculty_id=faculty_id)
+
+    if department_id:
+        history_query = history_query.filter(result__enrollment__course__departments__id=department_id)
+
+    if level_id:
+        history_query = history_query.filter(result__enrollment__course__level_id=level_id)
+
+    if course_id:
+        history_query = history_query.filter(result__enrollment__course_id=course_id)
+
+    if student_id:
+        history_query = history_query.filter(result__enrollment__student_id=student_id)
+
+    if date_from:
+        history_query = history_query.filter(timestamp__date__gte=date_from)
+
+    if date_to:
+        history_query = history_query.filter(timestamp__date__lte=date_to)
+
+    if action_filter:
+        history_query = history_query.filter(action=action_filter)
+
+    # Paginate results
+    from django.core.paginator import Paginator
+    paginator = Paginator(history_query, 25)  # Show 25 results per page
+    page_number = request.GET.get('page')
+    history = paginator.get_page(page_number)
+
+    # Get filter options
+    faculties = Faculty.objects.all().order_by('name')
+
+    # Get departments based on selected faculty
+    departments = Department.objects.all().order_by('name')
+    if faculty_id:
+        departments = departments.filter(faculty_id=faculty_id)
+
+    # Get levels
+    levels = Level.objects.all().order_by('numeric_value')
+
+    # Get courses based on selected filters
+    courses = Course.objects.all().order_by('code')
+    if department_id:
+        courses = courses.filter(departments__id=department_id)
+    elif faculty_id:
+        courses = courses.filter(departments__faculty_id=faculty_id)
+
+    # Get students based on selected filters
+    students = Student.objects.all().order_by('matric_number')
+    if course_id:
+        students = students.filter(courseenrollment__course_id=course_id).distinct()
+    elif department_id:
+        students = students.filter(department_id=department_id)
+    elif faculty_id:
+        students = students.filter(department__faculty_id=faculty_id)
+
+    # Get statistics
+    total_approved = ResultApprovalHistory.objects.filter(
+        actor=request.user,
+        actor_role='DAAA',
+        action='APPROVED'
+    ).count()
+
+    total_rejected = ResultApprovalHistory.objects.filter(
+        actor=request.user,
+        actor_role='DAAA',
+        action='REJECTED'
+    ).count()
+
+    context = {
+        'history': history,
+        'faculties': faculties,
+        'departments': departments,
+        'levels': levels,
+        'courses': courses,
+        'students': students,
+        'total_approved': total_approved,
+        'total_rejected': total_rejected,
+        'filters': {
+            'faculty': faculty_id,
+            'department': department_id,
+            'level': level_id,
+            'course': course_id,
+            'student': student_id,
+            'date_from': date_from,
+            'date_to': date_to,
+            'action': action_filter,
+        }
+    }
+
+    return render(request, 'daaa_result_history.html', context)
+
 
 @login_required
 def daaa_publication_settings(request):
@@ -10671,7 +11222,54 @@ def daaa_review_single_result(request, result_id):
 
 @login_required
 def daaa_approve_single_result(request, result_id):
-    return render(request, 'placeholder.html', {'page_title': 'Approve Result', 'message': f'Approve result ID: {result_id}'})
+    """Approve a single result by DAAA"""
+    # Check if user has DAAA role
+    daaa_roles = UserRole.objects.filter(user=request.user, role='DAAA')
+    if not daaa_roles.exists():
+        messages.error(request, 'Access denied. DAAA role required.')
+        return redirect('dashboard')
+
+    try:
+        # Get the result
+        result = Result.objects.get(
+            id=result_id,
+            status='SUBMITTED_TO_DAAA'
+        )
+    except Result.DoesNotExist:
+        messages.error(request, 'Result not found. It may have been processed by another user.')
+        return redirect('daaa_pending_results')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        comments = request.POST.get('comments', '').strip()
+
+        if action == 'approve':
+            # Use the workflow service to approve the result
+            success, message = ResultWorkflowService.approve_result(result, request.user, comments)
+
+            if success:
+                messages.success(request, f'Result approved for {result.enrollment.student.matric_number}.')
+            else:
+                messages.error(request, f'Error approving result: {message}')
+
+        elif action == 'reject':
+            rejection_reason = comments
+            if not rejection_reason:
+                messages.error(request, 'Rejection reason is required.')
+                return redirect('daaa_pending_results')
+
+            # Use the workflow service to reject the result
+            success, message = ResultWorkflowService.reject_result(result, request.user, rejection_reason)
+
+            if success:
+                messages.success(request, f'Result rejected for {result.enrollment.student.matric_number}. Dean has been notified.')
+            else:
+                messages.error(request, f'Error rejecting result: {message}')
+
+        return redirect('daaa_pending_results')
+
+    # If GET request, redirect to pending results
+    return redirect('daaa_pending_results')
 
 # Additional DAAA Views
 @login_required
@@ -10762,7 +11360,82 @@ def senate_approval_history(request):
 
 @login_required
 def student_current_results(request):
-    return render(request, 'placeholder.html', {'page_title': 'Current Results', 'message': 'View current session results'})
+    """Student Current Results View"""
+    # Check if user has Student role
+    student_roles = UserRole.objects.filter(user=request.user, role='STUDENT')
+    if not student_roles.exists():
+        messages.error(request, 'Access denied. Student role required.')
+        return redirect('dashboard')
+
+    # Get the student
+    student_role = student_roles.first()
+    try:
+        student = Student.objects.get(user=request.user)
+    except Student.DoesNotExist:
+        messages.error(request, 'Student profile not found.')
+        return redirect('dashboard')
+
+    # Get current session
+    current_session = AcademicSession.objects.filter(is_active=True).first()
+
+    # Get all levels for selection
+    levels = Level.objects.all().order_by('numeric_value')
+
+    # Get selected level and session from request
+    selected_level = request.GET.get('level')
+    selected_session = request.GET.get('session')
+    show_results = request.GET.get('show_results') == 'true'
+
+    # Only show results if both level and session are selected and show_results is true
+    results = Result.objects.none()  # Empty queryset by default
+
+    if show_results and selected_level and selected_session:
+        try:
+            level_obj = Level.objects.get(numeric_value=int(selected_level))
+            session_obj = AcademicSession.objects.get(id=int(selected_session))
+
+            # Get student's published results for the selected level and session
+            results = Result.objects.filter(
+                enrollment__student=student,
+                enrollment__course__level=level_obj,
+                enrollment__session=session_obj,
+                status='PUBLISHED'
+            ).select_related(
+                'enrollment__course',
+                'enrollment__session'
+            ).order_by('enrollment__course__code')
+        except (Level.DoesNotExist, AcademicSession.DoesNotExist, ValueError):
+            results = Result.objects.none()
+
+    # Calculate statistics
+    if results.exists():
+        total_credit_units = sum(result.enrollment.course.credit_units for result in results)
+        total_grade_points = sum(
+            result.enrollment.course.credit_units * result.get_grade_point()
+            for result in results if result.get_grade_point() is not None
+        )
+        gpa = total_grade_points / total_credit_units if total_credit_units > 0 else 0
+    else:
+        total_credit_units = 0
+        gpa = 0
+
+    # Get all academic sessions for selection
+    sessions = AcademicSession.objects.all().order_by('-name')
+
+    context = {
+        'student': student,
+        'current_session': current_session,
+        'levels': levels,
+        'sessions': sessions,
+        'results': results,
+        'selected_level': selected_level,
+        'selected_session': selected_session,
+        'show_results': show_results,
+        'total_credit_units': total_credit_units,
+        'gpa': round(gpa, 2),
+    }
+
+    return render(request, 'student_current_results.html', context)
 
 @login_required
 def student_all_results(request):
@@ -10778,7 +11451,178 @@ def student_transcript(request):
 
 @login_required
 def student_download_result(request):
-    return render(request, 'placeholder.html', {'page_title': 'Download Result', 'message': 'Download result PDF'})
+    """Download student result as PDF"""
+    # Check if user has Student role
+    student_roles = UserRole.objects.filter(user=request.user, role='STUDENT')
+    if not student_roles.exists():
+        messages.error(request, 'Access denied. Student role required.')
+        return redirect('dashboard')
+
+    try:
+        student = Student.objects.get(user=request.user)
+    except Student.DoesNotExist:
+        messages.error(request, 'Student profile not found.')
+        return redirect('dashboard')
+
+    # Get parameters
+    level = request.GET.get('level')
+    session = request.GET.get('session')
+
+    if not level or not session:
+        messages.error(request, 'Both level and session parameters are required.')
+        return redirect('student_current_results')
+
+    try:
+        level_obj = Level.objects.get(numeric_value=int(level))
+        session_obj = AcademicSession.objects.get(id=int(session))
+    except (Level.DoesNotExist, AcademicSession.DoesNotExist, ValueError):
+        messages.error(request, 'Invalid level or session specified.')
+        return redirect('student_current_results')
+
+    # Get student's published results for the specified level and session
+    results = Result.objects.filter(
+        enrollment__student=student,
+        enrollment__course__level=level_obj,
+        enrollment__session=session_obj,
+        status='PUBLISHED'
+    ).select_related(
+        'enrollment__course',
+        'enrollment__session'
+    ).order_by('enrollment__course__code')
+
+    if not results.exists():
+        messages.error(request, 'No published results found for the specified criteria.')
+        return redirect('student_current_results')
+
+    # Generate PDF
+    from django.http import HttpResponse
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import letter, A4
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.units import inch
+    from io import BytesIO
+    import datetime
+
+    # Create PDF
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+
+    # Container for the 'Flowable' objects
+    elements = []
+
+    # Define styles
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        spaceAfter=30,
+        alignment=1,  # Center alignment
+    )
+
+    # Add title
+    title = Paragraph("ACADEMIC RESULT SHEET", title_style)
+    elements.append(title)
+    elements.append(Spacer(1, 12))
+
+    # Student information
+    student_info = [
+        ['Student Name:', student.user.get_full_name()],
+        ['Matric Number:', student.matric_number],
+        ['Faculty:', student.faculty.name if student.faculty else 'N/A'],
+        ['Department:', student.department.name if student.department else 'N/A'],
+        ['Level:', f"{level_obj.name}"],
+        ['Session:', results.first().enrollment.session.name if results.exists() else 'N/A'],
+    ]
+
+    if semester:
+        student_info.append(['Semester:', f"{semester}{'st' if semester == '1' else 'nd'} Semester"])
+
+    student_table = Table(student_info, colWidths=[2*inch, 4*inch])
+    student_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+
+    elements.append(student_table)
+    elements.append(Spacer(1, 20))
+
+    # Results table
+    table_data = [['S/N', 'Course Code', 'Course Title', 'Credit Units', 'CA Score', 'Exam Score', 'Total', 'Grade']]
+
+    total_credit_units = 0
+    total_grade_points = 0
+
+    for i, result in enumerate(results, 1):
+        course = result.enrollment.course
+        credit_units = course.credit_units
+        grade_point = result.get_grade_point()
+
+        total_credit_units += credit_units
+        total_grade_points += credit_units * grade_point
+
+        table_data.append([
+            str(i),
+            course.code,
+            course.title,
+            str(credit_units),
+            f"{result.ca_score:.1f}" if result.ca_score else 'N/A',
+            f"{result.exam_score:.1f}" if result.exam_score else 'N/A',
+            f"{result.total_score:.1f}" if result.total_score else 'N/A',
+            result.grade or 'N/A'
+        ])
+
+    # Calculate GPA
+    gpa = total_grade_points / total_credit_units if total_credit_units > 0 else 0
+
+    # Add summary row
+    table_data.append(['', '', 'TOTAL CREDIT UNITS:', str(total_credit_units), '', '', '', ''])
+    table_data.append(['', '', 'GPA:', f"{gpa:.2f}", '', '', '', ''])
+
+    results_table = Table(table_data, colWidths=[0.5*inch, 1*inch, 2.5*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.6*inch])
+    results_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('BACKGROUND', (0, 1), (-1, -3), colors.beige),
+        ('BACKGROUND', (0, -2), (-1, -1), colors.lightgrey),
+        ('FONTNAME', (0, -2), (-1, -1), 'Helvetica-Bold'),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+
+    elements.append(results_table)
+    elements.append(Spacer(1, 30))
+
+    # Footer
+    footer_text = f"Generated on: {datetime.datetime.now().strftime('%B %d, %Y at %I:%M %p')}"
+    footer = Paragraph(footer_text, styles['Normal'])
+    elements.append(footer)
+
+    # Build PDF
+    doc.build(elements)
+
+    # Get PDF data
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # Create response
+    response = HttpResponse(content_type='application/pdf')
+    filename = f"{student.matric_number}_{level_obj.name}"
+    if semester:
+        filename += f"_Semester{semester}"
+    filename += "_Result.pdf"
+
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response.write(pdf)
+
+    return response
 
 @login_required
 def student_download_transcript(request):

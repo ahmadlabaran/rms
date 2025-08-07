@@ -70,7 +70,7 @@ class ResultWorkflowService:
             result.status = next_status
             result.last_modified_by = approver
             result.save()
-            
+
             # Create approval history record
             ResultApprovalHistory.objects.create(
                 result=result,
@@ -81,7 +81,7 @@ class ResultWorkflowService:
                 actor_role=approver_role,
                 comments=comments
             )
-            
+
             # Create audit log
             AuditLog.objects.create(
                 user=approver,
@@ -89,10 +89,49 @@ class ResultWorkflowService:
                 description=f'Approved result for {result.enrollment.student.matric_number} in {result.enrollment.course.code}',
                 level='INFO'
             )
-            
+
+            # Auto-progress certain statuses that don't require manual review
+            if next_status == 'APPROVED_BY_EXAM_OFFICER':
+                # Auto-progress to SUBMITTED_TO_DEAN
+                final_status = 'SUBMITTED_TO_DEAN'
+                result.status = final_status
+                result.save()
+
+                # Create auto-progression history record
+                ResultApprovalHistory.objects.create(
+                    result=result,
+                    action='AUTO_PROGRESSED',
+                    from_status=next_status,
+                    to_status=final_status,
+                    actor=approver,
+                    actor_role=approver_role,
+                    comments='Auto-progressed to dean review after exam officer approval'
+                )
+
+                next_status = final_status  # Update for notifications
+
+            elif next_status == 'APPROVED_BY_DEAN':
+                # Auto-progress to SUBMITTED_TO_DAAA
+                final_status = 'SUBMITTED_TO_DAAA'
+                result.status = final_status
+                result.save()
+
+                # Create auto-progression history record
+                ResultApprovalHistory.objects.create(
+                    result=result,
+                    action='AUTO_PROGRESSED',
+                    from_status=next_status,
+                    to_status=final_status,
+                    actor=approver,
+                    actor_role=approver_role,
+                    comments='Auto-progressed to DAAA review after dean approval'
+                )
+
+                next_status = final_status  # Update for notifications
+
             # Send notifications
             cls._send_approval_notifications(result, approver, approver_role, old_status, next_status)
-            
+
             return True, "Result approved successfully"
             
         except Exception as e:

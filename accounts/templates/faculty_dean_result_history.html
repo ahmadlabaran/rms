@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+{% load role_tags %}
+
+{% block title %}Result History - Faculty Dean{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Delegation Status Badges -->
+    {% show_delegation_badges user %}
+    
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">Result History</h1>
+                            <p class="mb-0 opacity-75">Your approval and rejection history for {{ faculty.name }}</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <a href="{% url 'faculty_dean_dashboard' %}" class="btn btn-outline-light btn-sm">
+                                <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="h2 text-success fw-bold mb-1">{{ total_approved }}</div>
+                    <div class="text-muted">Total Approved</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="h2 text-danger fw-bold mb-1">{{ total_rejected }}</div>
+                    <div class="text-muted">Total Rejected</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="h2 text-primary fw-bold mb-1">{{ history.paginator.count }}</div>
+                    <div class="text-muted">Total Actions</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold text-primary mb-3">Filter Results</h5>
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Academic Session</label>
+                            <select name="session" class="form-select">
+                                <option value="">All Sessions</option>
+                                {% for session in sessions %}
+                                    <option value="{{ session.id }}" {% if filters.session == session.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ session.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Department</label>
+                            <select name="department" class="form-select">
+                                <option value="">All Departments</option>
+                                {% for department in departments %}
+                                    <option value="{{ department.id }}" {% if filters.department == department.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ department.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Level</label>
+                            <select name="level" class="form-select">
+                                <option value="">All Levels</option>
+                                {% for level in levels %}
+                                    <option value="{{ level.id }}" {% if filters.level == level.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ level.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Action</label>
+                            <select name="action" class="form-select">
+                                <option value="">All Actions</option>
+                                <option value="APPROVED" {% if filters.action == "APPROVED" %}selected{% endif %}>Approved</option>
+                                <option value="REJECTED" {% if filters.action == "REJECTED" %}selected{% endif %}>Rejected</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-funnel me-1"></i>Filter
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <!-- Date Range Filter -->
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-3">
+                            <label class="form-label">Date From</label>
+                            <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Date To</label>
+                            <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}">
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <a href="{% url 'faculty_dean_result_history' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Clear Filters
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result History -->
+    {% if history %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-0 fw-bold text-primary">
+                                <i class="bi bi-clock-history me-2"></i>Result History
+                            </h5>
+                            <small class="text-muted">Showing {{ history.start_index }}-{{ history.end_index }} of {{ history.paginator.count }} results</small>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <span class="badge bg-info">{{ history.paginator.count }} Total Actions</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Course</th>
+                                    <th>Scores</th>
+                                    <th>Grade</th>
+                                    <th>Action</th>
+                                    <th>Date</th>
+                                    <th>Comments</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in history %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold">{{ entry.result.enrollment.student.matric_number }}</div>
+                                        <small class="text-muted">{{ entry.result.enrollment.student.user.get_full_name }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold">{{ entry.result.enrollment.course.code }}</div>
+                                        <small class="text-muted">{{ entry.result.enrollment.course.title|truncatechars:30 }}</small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            CA: {{ entry.result.ca_score|floatformat:1 }}<br>
+                                            Exam: {{ entry.result.exam_score|floatformat:1 }}<br>
+                                            Total: {{ entry.result.total_score|floatformat:1 }}
+                                        </small>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if entry.result.grade == 'A' %}
+                                            <span class="badge bg-success">{{ entry.result.grade }}</span>
+                                        {% elif entry.result.grade == 'B' %}
+                                            <span class="badge bg-primary">{{ entry.result.grade }}</span>
+                                        {% elif entry.result.grade == 'C' %}
+                                            <span class="badge bg-info">{{ entry.result.grade }}</span>
+                                        {% elif entry.result.grade == 'D' %}
+                                            <span class="badge bg-warning">{{ entry.result.grade }}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{{ entry.result.grade }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if entry.action == 'APPROVED' %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle me-1"></i>Approved
+                                            </span>
+                                        {% elif entry.action == 'REJECTED' %}
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-x-circle me-1"></i>Rejected
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ entry.action }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="small">{{ entry.timestamp|date:"M d, Y" }}</div>
+                                        <div class="small text-muted">{{ entry.timestamp|time:"H:i" }}</div>
+                                    </td>
+                                    <td>
+                                        {% if entry.comments %}
+                                            <small class="text-muted">{{ entry.comments|truncatechars:50 }}</small>
+                                        {% else %}
+                                            <small class="text-muted">No comments</small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if history.has_other_pages %}
+                    <nav aria-label="Result history pagination" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if history.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ history.previous_page_number }}{% if request.GET.session %}&session={{ request.GET.session }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}{% if request.GET.level %}&level={{ request.GET.level }}{% endif %}{% if request.GET.action %}&action={{ request.GET.action }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}">Previous</a>
+                                </li>
+                            {% endif %}
+
+                            {% for num in history.paginator.page_range %}
+                                {% if history.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                {% elif num > history.number|add:'-3' and num < history.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ num }}{% if request.GET.session %}&session={{ request.GET.session }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}{% if request.GET.level %}&level={{ request.GET.level }}{% endif %}{% if request.GET.action %}&action={{ request.GET.action }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}">{{ num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if history.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ history.next_page_number }}{% if request.GET.session %}&session={{ request.GET.session }}{% endif %}{% if request.GET.department %}&department={{ request.GET.department }}{% endif %}{% if request.GET.level %}&level={{ request.GET.level }}{% endif %}{% if request.GET.action %}&action={{ request.GET.action }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}">Next</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="bi bi-clock-history text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+                    </div>
+                    <h4 class="fw-bold mb-2">No Result History</h4>
+                    <p class="text-muted mb-4">
+                        {% if filters.session or filters.department or filters.level or filters.action or filters.date_from or filters.date_to %}
+                            No results found for the selected filters. Try adjusting your search criteria.
+                        {% else %}
+                            You haven't approved or rejected any results yet. Results will appear here once you start reviewing them.
+                        {% endif %}
+                    </p>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <a href="{% url 'faculty_dean_pending_results' %}" class="btn btn-primary">
+                            <i class="bi bi-clock me-1"></i>View Pending Results
+                        </a>
+                        {% if filters.session or filters.department or filters.level or filters.action or filters.date_from or filters.date_to %}
+                            <a href="{% url 'faculty_dean_result_history' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Clear Filters
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

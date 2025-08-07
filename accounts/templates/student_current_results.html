@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+{% load role_tags %}
+
+{% block title %}My Results - Student Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Delegation Status Badges -->
+    {% show_delegation_badges user %}
+    
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-12">
+                            <h1 class="mb-1 fw-bold">My Academic Results</h1>
+                            <p class="mb-0 opacity-75">{{ student.user.get_full_name }} - {{ student.matric_number }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Student Info -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-person-circle me-2 fs-4"></i>
+                    <div>
+                        <h6 class="mb-0">{{ student.faculty.name }} - {{ student.department.name }}</h6>
+                        <small>Current Level: {{ student.current_level.name }} | Session: {{ current_session.name }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filter Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold text-primary mb-3">View Your Results</h5>
+                    <p class="text-muted mb-3">Select both academic session and level to view your results</p>
+                    <form method="get" class="row g-3" id="resultsForm">
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold">Academic Session *</label>
+                            <select name="session" class="form-select" required>
+                                <option value="">Select Academic Session</option>
+                                {% for session in sessions %}
+                                    <option value="{{ session.id }}" {% if selected_session == session.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ session.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold">Academic Level *</label>
+                            <select name="level" class="form-select" required>
+                                <option value="">Select Academic Level</option>
+                                {% for level in levels %}
+                                    <option value="{{ level.numeric_value }}" {% if selected_level == level.numeric_value|stringformat:"s" %}selected{% endif %}>
+                                        {{ level.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <input type="hidden" name="show_results" value="true">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search me-1"></i>Get Details
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Results Section -->
+    {% if show_results %}
+        {% if results %}
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-light">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h5 class="mb-0 fw-bold text-primary">
+                                    <i class="bi bi-file-earmark-text me-2"></i>Academic Results
+                                </h5>
+                                <small class="text-muted">
+                                    {% if selected_level %}Level {{ selected_level }}{% endif %}
+                                    {% if selected_session %}
+                                        {% for session in sessions %}
+                                            {% if session.id|stringformat:"s" == selected_session %} - {{ session.name }}{% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <a href="{% url 'student_download_result' %}?level={{ selected_level }}&session={{ selected_session }}"
+                                   class="btn btn-success">
+                                    <i class="bi bi-file-earmark-pdf me-1"></i>Print/Download PDF
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>S/N</th>
+                                    <th>Course Code</th>
+                                    <th>Course Title</th>
+                                    <th>Credit Units</th>
+                                    <th>CA Score</th>
+                                    <th>Exam Score</th>
+                                    <th>Total</th>
+                                    <th>Grade</th>
+                                    <th>Session</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for result in results %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ result.enrollment.course.code }}</span>
+                                    </td>
+                                    <td>{{ result.enrollment.course.title }}</td>
+                                    <td class="text-center">{{ result.enrollment.course.credit_units }}</td>
+                                    <td class="text-center">{{ result.ca_score|floatformat:1 }}</td>
+                                    <td class="text-center">{{ result.exam_score|floatformat:1 }}</td>
+                                    <td class="text-center fw-bold">{{ result.total_score|floatformat:1 }}</td>
+                                    <td class="text-center">
+                                        {% if result.grade == 'A' %}
+                                            <span class="badge bg-success">{{ result.grade }}</span>
+                                        {% elif result.grade == 'B' %}
+                                            <span class="badge bg-primary">{{ result.grade }}</span>
+                                        {% elif result.grade == 'C' %}
+                                            <span class="badge bg-info">{{ result.grade }}</span>
+                                        {% elif result.grade == 'D' %}
+                                            <span class="badge bg-warning">{{ result.grade }}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{{ result.grade }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ result.enrollment.session.name }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Summary -->
+                    {% if results %}
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title text-primary">Total Credit Units</h5>
+                                    <h3 class="text-success">{{ total_credit_units }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title text-primary">GPA</h5>
+                                    <h3 class="{% if gpa >= 3.5 %}text-success{% elif gpa >= 2.5 %}text-warning{% else %}text-danger{% endif %}">
+                                        {{ gpa }}
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+        {% else %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-3">
+                            <i class="bi bi-file-earmark-x display-1 text-muted opacity-50"></i>
+                        </div>
+                        <h4 class="text-muted">No Results Found</h4>
+                        <p class="text-muted">
+                            No results found for the selected academic session and level.
+                            Please try a different combination or contact the academic office if you believe this is an error.
+                        </p>
+                        <a href="{% url 'student_current_results' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-left me-1"></i>Try Different Selection
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    {% endif %}
+</div>
+
+<script>
+// Form validation
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('resultsForm');
+    const sessionSelect = document.querySelector('select[name="session"]');
+    const levelSelect = document.querySelector('select[name="level"]');
+    const submitButton = form.querySelector('button[type="submit"]');
+
+    function validateForm() {
+        const sessionSelected = sessionSelect.value !== '';
+        const levelSelected = levelSelect.value !== '';
+
+        if (sessionSelected && levelSelected) {
+            submitButton.disabled = false;
+            submitButton.classList.remove('btn-secondary');
+            submitButton.classList.add('btn-primary');
+        } else {
+            submitButton.disabled = true;
+            submitButton.classList.remove('btn-primary');
+            submitButton.classList.add('btn-secondary');
+        }
+    }
+
+    // Initial validation
+    validateForm();
+
+    // Add event listeners
+    sessionSelect.addEventListener('change', validateForm);
+    levelSelect.addEventListener('change', validateForm);
+
+    // Form submission validation
+    form.addEventListener('submit', function(e) {
+        if (!sessionSelect.value || !levelSelect.value) {
+            e.preventDefault();
+            alert('Please select both Academic Session and Academic Level to view your results.');
+        }
+    });
+});
+</script>
+{% endblock %}

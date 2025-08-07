@@ -478,6 +478,22 @@ class Result(models.Model):
         }
         return previous_status_map.get(self.status)
 
+    def get_grade_point(self):
+        """Get the grade point value for this result"""
+        if self.grade_point is not None:
+            return self.grade_point
+
+        # Calculate grade point based on grade
+        grade_point_map = {
+            'A': 5.0,
+            'B': 4.0,
+            'C': 3.0,
+            'D': 2.0,
+            'E': 1.0,
+            'F': 0.0,
+        }
+        return grade_point_map.get(self.grade, 0.0)
+
 
 class ResultApprovalHistory(models.Model):
     """Track the complete approval workflow history for each result"""

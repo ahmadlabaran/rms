@@ -1,1 +1,227 @@
-{% extends 'base.html' %} {% block title %}Reports & Analytics - DAAA{% endblock %} {% block content %} <!-- Page Header --> <div class="page-header"> <h1 class="page-title">Reports & Analytics</h1> <p class="page-subtitle">Generate comprehensive reports and export data</p> </div> <!-- Quick Export Actions --> <div class="ios-card" style="margin-bottom: 32px;"> <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;"> <h2 style="color: var(--text-primary); font-size: 20px; font-weight: 600; margin: 0;">Quick Exports</h2> </div> <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;"> <a href="{% url 'daaa_export_university' %}?type=university_summary" class="btn btn-primary">University Summary</a> <a href="{% url 'daaa_export_university' %}?type=all_student_results" class="btn btn-secondary">All Student Results</a> <a href="{% url 'daaa_export_university' %}?type=all_carryovers" class="btn btn-secondary">All Carryovers</a> <a href="{% url 'daaa_export_university' %}?type=all_students" class="btn btn-secondary">All Students</a> </div> </div> <!-- Report Categories --> <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px;"> <!-- Academic Reports --> <div class="ios-card"> <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Academic Reports</h2> <div style="margin-bottom: 32px;"> <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Student Performance</h3> <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;"> <a href="{% url 'daaa_student_performance_report' %}" class="btn btn-primary btn-compact">Performance Report</a> <a href="{% url 'daaa_gpa_analysis' %}" class="btn btn-primary btn-compact">GPA Analysis</a> <a href="{% url 'daaa_graduation_report' %}" class="btn btn-secondary btn-compact">Graduation Report</a> <a href="{% url 'daaa_academic_standing' %}" class="btn btn-secondary btn-compact">Academic Standing</a> </div> </div> <div style="margin-bottom: 32px;"> <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Course Analysis</h3> <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;"> <a href="{% url 'daaa_course_performance' %}" class="btn btn-primary btn-compact">Course Performance</a> <a href="{% url 'daaa_pass_rate_analysis' %}" class="btn btn-secondary btn-compact">Pass Rate Analysis</a> </div> </div> </div> <!-- Administrative Reports --> <div class="ios-card"> <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Administrative Reports</h2> <div style="margin-bottom: 32px;"> <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Faculty & Department</h3> <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;"> <a href="{% url 'daaa_faculty_comparison' %}" class="btn btn-primary btn-compact">Faculty Comparison</a> <a href="{% url 'daaa_department_analysis' %}" class="btn btn-primary btn-compact">Department Analysis</a> <a href="{% url 'daaa_enrollment_trends' %}" class="btn btn-secondary btn-compact">Enrollment Trends</a> <a href="{% url 'daaa_capacity_analysis' %}" class="btn btn-secondary btn-compact">Capacity Analysis</a> </div> </div> <div style="margin-bottom: 32px;"> <h3 style="color: var(--ios-blue); margin-bottom: 16px; font-size: 18px; font-weight: 600;">Session Reports</h3> <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;"> <a href="{% url 'daaa_session_summary' %}" class="btn btn-primary btn-compact">Session Summary</a> <a href="{% url 'daaa_workflow_analysis' %}" class="btn btn-secondary btn-compact">Workflow Analysis</a> </div> </div> </div> </div> <!-- Custom Report Builder --> <div class="ios-card" style="margin-bottom: 32px;"> <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Custom Report Builder</h2> <form method="get" action="{% url 'daaa_custom_report' %}"> <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px;"> <div> <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Report Type</label> <select name="report_type" required style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;"> <option value="">Select Report Type</option> <option value="student_results">Student Results</option> <option value="course_performance">Course Performance</option> <option value="faculty_summary">Faculty Summary</option> <option value="carryover_analysis">Carryover Analysis</option> <option value="enrollment_report">Enrollment Report</option> </select> </div> <div> <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Faculty</label> <select name="faculty" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;"> <option value="">All Faculties</option> {% for faculty in faculties %} <option value="{{ faculty.id }}">{{ faculty.name }}</option> {% endfor %} </select> </div> <div> <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Level</label> <select name="level" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;"> <option value="">All Levels</option> {% for level in levels %} <option value="{{ level.id }}">{{ level.name }}</option> {% endfor %} </select> </div> </div> <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px;"> <div> <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Session</label> <select name="session" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;"> <option value="">All Sessions</option> {% for session in sessions %} <option value="{{ session.id }}" {% if session.is_active %}selected{% endif %}>{{ session.name }}</option> {% endfor %} </select> </div> <div> <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Export Format</label> <select name="format" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;"> <option value="excel">Excel (.xlsx)</option> <option value="pdf">PDF</option> <option value="csv">CSV</option> </select> </div> <div style="display: flex; align-items: end;"> <button type="submit" class="btn btn-primary" style="width: 100%;">Generate Report</button> </div> </div> </form> </div> <!-- Recent Reports --> <div class="ios-card" style="margin-bottom: 32px;"> <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;"> <h2 style="color: var(--text-primary); font-size: 22px; font-weight: 600; margin: 0;">Recent Reports</h2> <a href="{% url 'daaa_report_history' %}" style="color: var(--ios-blue); text-decoration: none; font-weight: 500;">View All</a> </div> {% if recent_reports %} <div style="overflow-x: auto;"> <table style="width: 100%; border-collapse: collapse;"> <thead> <tr style="background: var(--surface-secondary);"> <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Report Type</th> <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Filters</th> <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Generated By</th> <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Date</th> <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Actions</th> </tr> </thead> <tbody> {% for report in recent_reports %} <tr style="border-bottom: 1px solid var(--border-light);"> <td style="padding: 12px;"> <div style="font-weight: 600; color: var(--text-primary);">{{ report.report_type }}</div> <div style="color: var(--text-secondary); font-size: 12px;">{{ report.format|upper }}</div> </td> <td style="padding: 12px; color: var(--text-secondary);">{{ report.filters }}</td> <td style="padding: 12px; color: var(--text-secondary);">{{ report.generated_by.get_full_name }}</td> <td style="padding: 12px; color: var(--text-secondary);">{{ report.created_at|date:"M d, Y H:i" }}</td> <td style="padding: 12px;"> <div style="display: flex; gap: 8px;"> <a href="{% url 'daaa_download_report' report.id %}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">Download</a> <a href="{% url 'daaa_regenerate_report' report.id %}" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;">Regenerate</a> </div> </td> </tr> {% endfor %} </tbody> </table> </div> {% else %} <div style="text-align: center; padding: 60px; color: var(--text-secondary);"> <div style="width: 80px; height: 80px; background: var(--ios-blue-ultra-light); border-radius: 20px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;"> <div style="width: 40px; height: 40px; background: var(--ios-blue); border-radius: 10px; opacity: 0.6;"></div> </div> <h3 style="color: var(--text-primary); margin-bottom: 8px;">No Reports Generated</h3> <p style="margin-bottom: 20px;">Generate your first report to get started</p> </div> {% endif %} </div> <!-- Analytics Dashboard --> <div class="ios-card"> <h2 style="color: var(--text-primary); margin-bottom: 24px; font-size: 22px; font-weight: 600;">Analytics Overview</h2> <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 24px;"> <div style="background: var(--surface-secondary); padding: 20px; border-radius: 12px; text-align: center;"> <div style="font-size: 24px; font-weight: 700; color: var(--ios-blue); margin-bottom: 8px;">{{ analytics.total_students }}</div> <div style="color: var(--text-secondary); font-size: 14px;">Total Students</div> </div> <div style="background: var(--surface-secondary); padding: 20px; border-radius: 12px; text-align: center;"> <div style="font-size: 24px; font-weight: 700; color: var(--ios-green); margin-bottom: 8px;">{{ analytics.average_gpa|floatformat:2 }}</div> <div style="color: var(--text-secondary); font-size: 14px;">Average GPA</div> </div> <div style="background: var(--surface-secondary); padding: 20px; border-radius: 12px; text-align: center;"> <div style="font-size: 24px; font-weight: 700; color: var(--ios-red); margin-bottom: 8px;">{{ analytics.carryover_rate|floatformat:1 }}%</div> <div style="color: var(--text-secondary); font-size: 14px;">Carryover Rate</div> </div> <div style="background: var(--surface-secondary); padding: 20px; border-radius: 12px; text-align: center;"> <div style="font-size: 24px; font-weight: 700; color: var(--ios-blue); margin-bottom: 8px;">{{ analytics.graduation_rate|floatformat:1 }}%</div> <div style="color: var(--text-secondary); font-size: 14px;">Graduation Rate</div> </div> </div> <div style="display: flex; gap: 12px;"> <a href="{% url 'daaa_detailed_analytics' %}" class="btn btn-primary">Detailed Analytics</a> <a href="{% url 'daaa_trend_analysis' %}" class="btn btn-secondary">Trend Analysis</a> <a href="{% url 'daaa_comparative_analysis' %}" class="btn btn-secondary">Comparative Analysis</a> </div> </div> {% endblock %} 
+{% extends 'base.html' %}
+{% load role_tags %}
+
+{% block title %}Reports & Analytics - DAAA{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Delegation Status Badges -->
+    {% show_delegation_badges user %}
+
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">Reports & Analytics</h1>
+                            <p class="mb-0 opacity-75">Generate comprehensive reports and export university data</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">
+                                <div class="h3 fw-bold mb-0">{{ analytics.total_students|default:"0" }}</div>
+                                <small class="opacity-75">Total Students</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Export Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold text-primary mb-3">Quick Exports</h5>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <a href="{% url 'daaa_export_university' %}?type=university_summary" class="btn btn-primary w-100">
+                                <i class="bi bi-building me-2"></i>University Summary
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'daaa_export_university' %}?type=all_student_results" class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-file-earmark-spreadsheet me-2"></i>All Student Results
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'daaa_export_university' %}?type=all_carryovers" class="btn btn-outline-warning w-100">
+                                <i class="bi bi-exclamation-triangle me-2"></i>All Carryovers
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'daaa_export_university' %}?type=all_students" class="btn btn-outline-info w-100">
+                                <i class="bi bi-people me-2"></i>All Students
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="h2 text-primary fw-bold mb-1">{{ analytics.total_students|default:"0" }}</div>
+                    <div class="text-muted">Total Students</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="h2 text-success fw-bold mb-1">{{ analytics.average_gpa|floatformat:2|default:"0.00" }}</div>
+                    <div class="text-muted">Average GPA</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="h2 text-warning fw-bold mb-1">{{ analytics.carryover_rate|floatformat:1|default:"0.0" }}%</div>
+                    <div class="text-muted">Carryover Rate</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="h2 text-info fw-bold mb-1">{{ analytics.graduation_rate|floatformat:1|default:"0.0" }}%</div>
+                    <div class="text-muted">Graduation Rate</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Categories -->
+    <div class="row mb-4">
+        <!-- Academic Reports -->
+        <div class="col-lg-6 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold text-primary mb-3">Academic Reports</h5>
+
+                    <h6 class="text-secondary mb-2">Student Performance</h6>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <a href="{% url 'daaa_student_performance_report' %}" class="btn btn-outline-primary btn-sm w-100">
+                                Performance Report
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'daaa_gpa_analysis' %}" class="btn btn-outline-primary btn-sm w-100">
+                                GPA Analysis
+                            </a>
+                        </div>
+                    </div>
+
+                    <h6 class="text-secondary mb-2">Course Analysis</h6>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="{% url 'daaa_course_performance' %}" class="btn btn-outline-secondary btn-sm w-100">
+                                Course Performance
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'daaa_pass_rate_analysis' %}" class="btn btn-outline-secondary btn-sm w-100">
+                                Pass Rate Analysis
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Administrative Reports -->
+        <div class="col-lg-6 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold text-primary mb-3">Administrative Reports</h5>
+
+                    <h6 class="text-secondary mb-2">Faculty & Department</h6>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <a href="{% url 'daaa_faculty_comparison' %}" class="btn btn-outline-primary btn-sm w-100">
+                                Faculty Comparison
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'daaa_department_analysis' %}" class="btn btn-outline-primary btn-sm w-100">
+                                Department Analysis
+                            </a>
+                        </div>
+                    </div>
+
+                    <h6 class="text-secondary mb-2">Session Reports</h6>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="{% url 'daaa_session_summary' %}" class="btn btn-outline-secondary btn-sm w-100">
+                                Session Summary
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'daaa_workflow_analysis' %}" class="btn btn-outline-secondary btn-sm w-100">
+                                Workflow Analysis
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Report Builder -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold text-primary mb-3">Custom Report Builder</h5>
+                    <form method="get" action="{% url 'daaa_custom_report' %}">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Report Type</label>
+                                <select name="report_type" required class="form-select">
+                                    <option value="">Select Report Type</option>
+                                    <option value="student_results">Student Results</option>
+                                    <option value="course_performance">Course Performance</option>
+                                    <option value="faculty_summary">Faculty Summary</option>
+                                    <option value="carryover_analysis">Carryover Analysis</option>
+                                    <option value="enrollment_report">Enrollment Report</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Faculty</label>
+                                <select name="faculty" class="form-select">
+                                    <option value="">All Faculties</option>
+                                    {% for faculty in faculties %}
+                                    <option value="{{ faculty.id }}">{{ faculty.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Export Format</label>
+                                <select name="format" class="form-select">
+                                    <option value="excel">Excel (.xlsx)</option>
+                                    <option value="pdf">PDF</option>
+                                    <option value="csv">CSV</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-download me-2"></i>Generate Report
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

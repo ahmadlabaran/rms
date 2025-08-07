@@ -1,6 +1,10 @@
 """
 Result Approval Workflow Service
 Handles the complete approval workflow for results including notifications
+
+Current Workflow: Lecturer → Exam Officer → Faculty Dean → DAAA → Senate → Published
+Note: HOD role exists for administrative functions but is not part of the approval chain.
+Legacy HOD workflow support is maintained for existing results only.
 """
 
 from django.contrib.auth.models import User
@@ -14,17 +18,18 @@ from .models import (
 class ResultWorkflowService:
     """Service class to handle result approval workflow"""
     
-    # Define the workflow chain (HOD step removed as requested)
+    # Current workflow chain (HOD removed from active workflow)
     WORKFLOW_CHAIN = {
         'DRAFT': 'SUBMITTED_TO_EXAM_OFFICER',
         'SUBMITTED_TO_EXAM_OFFICER': 'APPROVED_BY_EXAM_OFFICER',
-        'APPROVED_BY_EXAM_OFFICER': 'SUBMITTED_TO_DEAN',  # Skip HOD, go directly to Dean
+        'APPROVED_BY_EXAM_OFFICER': 'SUBMITTED_TO_DEAN',  # Direct to Dean (HOD bypassed)
         'SUBMITTED_TO_DEAN': 'APPROVED_BY_DEAN',
         'APPROVED_BY_DEAN': 'SUBMITTED_TO_DAAA',
         'SUBMITTED_TO_DAAA': 'APPROVED_BY_DAAA',
         'APPROVED_BY_DAAA': 'SUBMITTED_TO_SENATE',
         'SUBMITTED_TO_SENATE': 'PUBLISHED',
-        # Legacy HOD workflow (for existing results)
+
+        # Legacy HOD workflow (only for backward compatibility with existing results)
         'SUBMITTED_TO_HOD': 'APPROVED_BY_HOD',
         'APPROVED_BY_HOD': 'SUBMITTED_TO_DEAN',
     }
@@ -32,19 +37,20 @@ class ResultWorkflowService:
     # Define who can approve at each stage
     APPROVER_ROLES = {
         'SUBMITTED_TO_EXAM_OFFICER': 'EXAM_OFFICER',
-        'SUBMITTED_TO_HOD': 'HOD',
         'SUBMITTED_TO_DEAN': 'FACULTY_DEAN',
         'SUBMITTED_TO_DAAA': 'DAAA',
         'SUBMITTED_TO_SENATE': 'SENATE',
+        # Legacy HOD support (for existing results only)
+        'SUBMITTED_TO_HOD': 'HOD',
     }
     
     # Define previous status for rejection handling
     PREVIOUS_STATUS = {
         'SUBMITTED_TO_EXAM_OFFICER': 'DRAFT',
-        'SUBMITTED_TO_DEAN': 'APPROVED_BY_EXAM_OFFICER',  # Updated to skip HOD
+        'SUBMITTED_TO_DEAN': 'APPROVED_BY_EXAM_OFFICER',  # Direct from Exam Officer (HOD bypassed)
         'SUBMITTED_TO_DAAA': 'APPROVED_BY_DEAN',
         'SUBMITTED_TO_SENATE': 'APPROVED_BY_DAAA',
-        # Legacy HOD workflow
+        # Legacy HOD workflow (for existing results only)
         'SUBMITTED_TO_HOD': 'APPROVED_BY_EXAM_OFFICER',
     }
     

@@ -1,18 +1,60 @@
-# Core Django Requirements for RMS
+# Core Django Framework
 Django==5.2.5
 djangorestframework==3.16.1
+
+# CORS Headers for API access
 django-cors-headers==4.7.0
 
-# Export functionality
+# PDF Generation for Result Transcripts
+reportlab==4.0.4
+
+# Excel/CSV Processing for Bulk Operations
 openpyxl==3.1.2
+pandas==2.1.0
 
-# Database
-# SQLite is included with Python, no additional requirements
+# Image Processing (for user profiles, logos, etc.)
+Pillow==10.0.0
 
-# Optional: For production deployment
+# Date and Time Utilities
+python-dateutil==2.8.2
+pytz==2023.3
+
+# HTTP Requests (for external integrations)
+requests==2.31.0
+
+# Environment Variables Management
+python-decouple==3.8
+python-dotenv==1.0.0
+
+# Authentication and Security
+djangorestframework-simplejwt==5.3.0
+PyJWT==2.8.0
+cryptography==41.0.4
+
+# Form Handling and Bootstrap Integration
+django-crispy-forms==2.0
+crispy-bootstrap5==0.7
+
+# File Storage (for production)
+django-storages==1.14.2
+
+# API Documentation
+drf-spectacular==0.26.5
+
+# Development Tools
+django-debug-toolbar==4.2.0
+
+# Production Server Dependencies (uncomment for production)
+# gunicorn==21.2.0
+# whitenoise==6.5.0
+
+# Database Drivers (uncomment as needed)
 # psycopg2-binary==2.9.7  # For PostgreSQL
-# gunicorn==21.2.0  # For production server
-# whitenoise==6.5.0  # For static files serving
+# mysqlclient==2.2.0      # For MySQL
 
-# Development dependencies (optional)
-# django-debug-toolbar==4.2.0  # For debugging
+# Caching (uncomment if using Redis)
+# django-redis==5.3.0
+# redis==4.6.0
+
+# Background Tasks (uncomment if using Celery)
+# celery==5.3.1

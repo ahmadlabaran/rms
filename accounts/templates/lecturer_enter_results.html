@@ -182,20 +182,22 @@
                                         <div class="col-6 mb-2">
                                             <label class="form-label">CA Score (30)</label>
                                             <input type="number"
-                                                   name="ca_score_{{ enrollment.id }}"
-                                                   class="form-control ca-score"
+                                                   name="mobile_ca_score_{{ enrollment.id }}"
+                                                   class="form-control ca-score mobile-input"
                                                    min="0" max="30" step="0.01"
                                                    value="{{ enrollment.result.ca_score|default:'' }}"
-                                                   data-enrollment-id="{{ enrollment.id }}">
+                                                   data-enrollment-id="{{ enrollment.id }}"
+                                                   data-desktop-input="ca_score_{{ enrollment.id }}">
                                         </div>
                                         <div class="col-6 mb-2">
                                             <label class="form-label">Exam Score (70)</label>
                                             <input type="number"
-                                                   name="exam_score_{{ enrollment.id }}"
-                                                   class="form-control exam-score"
+                                                   name="mobile_exam_score_{{ enrollment.id }}"
+                                                   class="form-control exam-score mobile-input"
                                                    min="0" max="70" step="0.01"
                                                    value="{{ enrollment.result.exam_score|default:'' }}"
-                                                   data-enrollment-id="{{ enrollment.id }}">
+                                                   data-enrollment-id="{{ enrollment.id }}"
+                                                   data-desktop-input="exam_score_{{ enrollment.id }}">
                                         </div>
                                         <div class="col-6 mb-2">
                                             <label class="form-label">Total (100)</label>
@@ -568,7 +570,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!hasAnyScores) {
                 console.log('❌ No scores entered');
                 e.preventDefault();
-                alert('Please enter at least one CA or Exam score before submitting.');
+                alert('Please enter at least one CA or Exam score before submitting.\n\nDebug info:\n- CA inputs found: ' + caInputs.length + '\n- Exam inputs found: ' + examInputs.length + '\n- Students with scores: ' + studentsWithScores);
                 return;
             }
 
@@ -589,6 +591,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitButton.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Submitting...';
                 submitButton.disabled = true;
             }
+        });
+    }
+
+    // Sync mobile inputs with desktop inputs
+    document.querySelectorAll('.mobile-input').forEach(mobileInput => {
+        const desktopInputName = mobileInput.getAttribute('data-desktop-input');
+        const desktopInput = document.querySelector(`input[name="${desktopInputName}"]`);
+
+        if (desktopInput) {
+            // Sync mobile to desktop
+            mobileInput.addEventListener('input', function() {
+                desktopInput.value = this.value;
+                // Trigger calculation for desktop input
+                const enrollmentId = this.getAttribute('data-enrollment-id');
+                if (enrollmentId) {
+                    calculateTotal(enrollmentId);
+                }
+            });
+
+            // Sync desktop to mobile
+            desktopInput.addEventListener('input', function() {
+                mobileInput.value = this.value;
+            });
+        }
+    });
+
+    // Before form submission, disable mobile inputs to prevent duplicate submission
+    const resultsForm = document.getElementById('resultsForm');
+    if (resultsForm) {
+        resultsForm.addEventListener('submit', function(e) {
+            // Disable all mobile inputs so they don't get submitted
+            document.querySelectorAll('.mobile-input').forEach(input => {
+                input.disabled = true;
+            });
         });
     }
 });

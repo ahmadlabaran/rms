@@ -216,7 +216,7 @@ urlpatterns = [
     path('exam-officer/bulk-students/', views.exam_officer_bulk_students, name='exam_officer_bulk_students'),
     path('exam-officer/student-list/', views.exam_officer_student_list, name='exam_officer_student_list'),
     path('exam-officer/student-records/', views.exam_officer_student_records, name='exam_officer_student_records'),
-    path('exam-officer/carryovers/', views.exam_officer_carryovers, name='exam_officer_carryovers'),
+    path('exam-officer/carryovers/', views.exam_officer_carryover_students, name='exam_officer_carryovers'),
     path('exam-officer/carryover-students/', views.exam_officer_carryover_students, name='exam_officer_carryover_students'),
     path('exam-officer/carryover-export/', views.exam_officer_carryover_export, name='exam_officer_carryover_export'),
     path('exam-officer/export/students/', views.exam_officer_export_students, name='exam_officer_export_students'),
@@ -318,6 +318,10 @@ urlpatterns = [
     # Student Professional Interface
     path('student/', views.student_dashboard, name='student_dashboard'),
     path('student/current-results/', views.student_current_results, name='student_current_results'),
+    path('student/carryover-courses/', views.student_carryover_courses, name='student_carryover_courses'),
+
+    # Administrative result modification
+    path('admin/modify-results/', views.admin_modify_results, name='admin_modify_results'),
     path('student/all-results/', views.student_all_results, name='student_all_results'),
     path('student/result-history/', views.student_result_history, name='student_result_history'),
     path('student/transcript/', views.student_transcript, name='student_transcript'),

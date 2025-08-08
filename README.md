@@ -17,7 +17,7 @@ The system manages the complete lifecycle of student grade processing, from init
 - **Super Admin** manages users and system settings
 
 **Result Approval Workflow:**
-Lecturer enters grades → Exam Officer processes → Faculty Dean approves → DAAA approves → Senate approves → Results published
+Lecturer enters grades → Exam Officer processes → Faculty Dean approves → DAAA approves → Results published
 
 Note: HODs have administrative functions for department management but are not part of the result approval chain.
 

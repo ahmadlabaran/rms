@@ -414,26 +414,60 @@ class Result(models.Model):
             # Auto-detect carry-over based on faculty criteria
             try:
                 carryover_criteria = CarryOverCriteria.objects.get(faculty=faculty)
-                if (self.total_score < carryover_criteria.minimum_score or
-                    self.grade < carryover_criteria.minimum_grade):
+                # Check if score is below minimum or grade is F
+                if (self.total_score < carryover_criteria.minimum_score or self.grade == 'F'):
                     self.is_carry_over = True
                 else:
                     self.is_carry_over = False
             except CarryOverCriteria.DoesNotExist:
-                # Default: F grade is carry-over
-                self.is_carry_over = (self.grade == 'F')
+                # Default: F grade or score below 45 is carry-over
+                self.is_carry_over = (self.grade == 'F' or self.total_score < 45)
+
+        # Store if this is an update (for audit logging)
+        is_update = self.pk is not None
 
         super().save(*args, **kwargs)
 
-        # Create carry-over record if needed
-        if self.is_carry_over and self.status == 'PUBLISHED':
-            CarryOverList.objects.get_or_create(
-                session=self.enrollment.session,
-                faculty=self.enrollment.course.departments.first().faculty,
-                department=self.enrollment.course.departments.first(),
-                result=self,
-                defaults={}
-            )
+        # Create carry-over record if needed (for any status, not just published)
+        if self.is_carry_over:
+            # Create CarryOverList entry
+            if self.enrollment.course.departments.exists():
+                CarryOverList.objects.get_or_create(
+                    session=self.enrollment.session,
+                    faculty=self.enrollment.course.departments.first().faculty,
+                    department=self.enrollment.course.departments.first(),
+                    result=self,
+                    defaults={}
+                )
+
+            # Create CarryOverStudent entry for detailed tracking
+            if self.enrollment.course.departments.exists():
+                department = self.enrollment.course.departments.first()
+                faculty = department.faculty
+
+                # Get passing threshold
+                passing_threshold = 45.0  # Default
+                try:
+                    carryover_criteria = CarryOverCriteria.objects.get(faculty=faculty)
+                    passing_threshold = carryover_criteria.minimum_score
+                except CarryOverCriteria.DoesNotExist:
+                    pass
+
+                CarryOverStudent.objects.get_or_create(
+                    student=self.enrollment.student,
+                    course=self.enrollment.course,
+                    session=self.enrollment.session,
+                    defaults={
+                        'result': self,
+                        'faculty': faculty,
+                        'department': department,
+                        'level': self.enrollment.course.level,
+                        'failed_score': self.total_score,
+                        'failed_grade': self.grade,
+                        'passing_threshold': passing_threshold,
+                        'status': 'IDENTIFIED'
+                    }
+                )
 
     def __str__(self):
         return f"{self.enrollment.student.matric_number} - {self.enrollment.course.code} ({self.grade})"
@@ -604,8 +638,12 @@ class CarryOverStudent(models.Model):
         """Automatically identify carry-over students based on failed results"""
         from django.db.models import Q
 
-        # Get all published results for the session
-        results_query = Result.objects.filter(status='PUBLISHED')
+        # Get all results (not just published) for the session
+        results_query = Result.objects.filter(
+            status__in=['SUBMITTED_TO_EXAM_OFFICER', 'APPROVED_BY_EXAM_OFFICER',
+                       'SUBMITTED_TO_DEAN', 'APPROVED_BY_DEAN', 'SUBMITTED_TO_DAAA',
+                       'APPROVED_BY_DAAA', 'PUBLISHED']
+        )
         if session:
             results_query = results_query.filter(enrollment__session=session)
 
@@ -614,9 +652,8 @@ class CarryOverStudent(models.Model):
         for result in results_query.select_related(
             'enrollment__student',
             'enrollment__course',
-            'enrollment__session',
-            'enrollment__course__departments'
-        ):
+            'enrollment__session'
+        ).prefetch_related('enrollment__course__departments'):
             # Get faculty from course departments
             course = result.enrollment.course
             if not course.departments.exists():
@@ -829,6 +866,11 @@ class AuditLog(models.Model):
         ('CREATE_FACULTY_WITH_DEAN', 'Create Faculty with Dean'),
         ('ASSIGN_DEAN', 'Assign Faculty Dean'),
         ('CREATE_USER', 'Create User'),
+        ('MODIFY_RESULT', 'Modify Result'),
+        ('CARRYOVER_STATUS_CHANGE', 'Carryover Status Change'),
+        ('APPROVE_RESULT', 'Approve Result'),
+        ('REJECT_RESULT', 'Reject Result'),
+        ('FORWARD_RESULT', 'Forward Result'),
     ]
 
     LEVEL_CHOICES = [
@@ -846,6 +888,29 @@ class AuditLog(models.Model):
     level = models.CharField(max_length=10, choices=LEVEL_CHOICES, default='INFO')
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
+
+    # Enhanced fields for result modification tracking
+    result = models.ForeignKey('Result', on_delete=models.CASCADE, null=True, blank=True, related_name='audit_logs')
+    student = models.ForeignKey('Student', on_delete=models.CASCADE, null=True, blank=True, related_name='audit_logs')
+    faculty = models.ForeignKey('Faculty', on_delete=models.CASCADE, null=True, blank=True, related_name='audit_logs')
+    department = models.ForeignKey('Department', on_delete=models.CASCADE, null=True, blank=True, related_name='audit_logs')
+
+    # Original values (for result modifications)
+    original_ca_score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    original_exam_score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    original_total_score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    original_grade = models.CharField(max_length=1, blank=True)
+    original_carryover_status = models.BooleanField(null=True, blank=True)
+
+    # New values (for result modifications)
+    new_ca_score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    new_exam_score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    new_total_score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    new_grade = models.CharField(max_length=1, blank=True)
+    new_carryover_status = models.BooleanField(null=True, blank=True)
+
+    # Modification reason
+    modification_reason = models.TextField(blank=True, help_text="Reason for the modification")
 
     # Optional related objects for context
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, null=True, blank=True)

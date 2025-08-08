@@ -2338,11 +2338,14 @@ def student_dashboard(request):
     )
     current_cgpa = total_grade_points / total_credit_units if total_credit_units > 0 else 0.0
 
+    # Get carryover count from CarryOverStudent model for more accurate tracking
+    carryover_count = CarryOverStudent.objects.filter(student=student).count()
+
     stats = {
         'current_cgpa': current_cgpa,
         'published_results': published_results.count(),
         'total_courses': published_results.count(),
-        'carryovers': published_results.filter(is_carry_over=True).count(),
+        'carryovers': carryover_count,
     }
 
     # Get recent results
@@ -8853,11 +8856,12 @@ def lecturer_enter_results(request):
         # Check if any results were processed
         if results_processed == 0:
             print("No results were processed - returning error")
+            error_details = f"Debug info: {len(ca_fields)} CA fields, {len(exam_fields)} exam fields found in POST data"
             if save_as_draft:
-                return JsonResponse({'success': False, 'error': 'No valid scores found to save'})
+                return JsonResponse({'success': False, 'error': f'No valid scores found to save. {error_details}'})
             else:
-                messages.warning(request, 'No results were submitted. Please enter scores for at least one student.')
-                return redirect('lecturer_enter_results')
+                messages.warning(request, f'Warning! No results were submitted. Please enter scores for at least one student. {error_details}')
+                return redirect(f'/api/lecturer/enter-results/?course_id={selected_course.id}&session_id={selected_session.id}')
 
         # Success - handle response
         if save_as_draft:
@@ -8886,6 +8890,15 @@ def lecturer_enter_results(request):
                     print(f"Notified {exam_officers.count()} Exam Officers")
             except Exception as e:
                 print(f"Error sending notifications: {str(e)}")
+
+            # Trigger carryover detection for submitted results
+            try:
+                from accounts.models import CarryOverStudent
+                carryover_count = CarryOverStudent.identify_carryover_students(selected_session)
+                if carryover_count > 0:
+                    print(f"Identified {carryover_count} new carryover students")
+            except Exception as e:
+                print(f"Error identifying carryover students: {str(e)}")
 
             messages.success(request, f'{results_processed} results submitted successfully to Exam Officer!')
             return redirect('lecturer_dashboard')
@@ -9808,15 +9821,7 @@ def exam_officer_student_records(request):
         'back_url': 'exam_officer_dashboard'
     })
 
-@login_required
-def exam_officer_carryovers(request):
-    """Carryovers functionality - placeholder"""
-    level = request.GET.get('level', '100')
-    return render(request, 'placeholder.html', {
-        'page_title': f'View Carryovers - {level}L',
-        'message': f'View carryovers for {level}L',
-        'back_url': 'exam_officer_dashboard'
-    })
+# Removed duplicate placeholder function - using exam_officer_carryover_students instead
 
 @login_required
 def exam_officer_carryover_export(request):
@@ -9893,10 +9898,7 @@ def exam_officer_student_records(request):
     level = request.GET.get('level', '100')
     return render(request, 'placeholder.html', {'page_title': f'Student Records - {level}L', 'message': f'Manage {level}L student records'})
 
-@login_required
-def exam_officer_carryovers(request):
-    level = request.GET.get('level', '100')
-    return render(request, 'placeholder.html', {'page_title': f'Carryovers - {level}L', 'message': f'Manage carryover students for {level}L'})
+# Removed second duplicate placeholder function
 
 @login_required
 def exam_officer_carryover_export(request):
@@ -11436,6 +11438,136 @@ def student_current_results(request):
     }
 
     return render(request, 'student_current_results.html', context)
+
+@login_required
+def student_carryover_courses(request):
+    """Student view for their carryover courses"""
+    # Check if user has Student role
+    student_roles = UserRole.objects.filter(user=request.user, role='STUDENT')
+    if not student_roles.exists():
+        messages.error(request, 'Access denied. Student role required.')
+        return redirect('dashboard')
+
+    # Get student record
+    try:
+        student = Student.objects.get(user=request.user)
+    except Student.DoesNotExist:
+        messages.error(request, 'Student record not found.')
+        return redirect('dashboard')
+
+    # Get student's carryover records
+    carryover_records = CarryOverStudent.objects.filter(
+        student=student
+    ).select_related(
+        'course', 'session', 'result', 'department', 'level'
+    ).order_by('-identified_at')
+
+    # Group by session
+    carryovers_by_session = {}
+    for carryover in carryover_records:
+        session_name = carryover.session.name
+        if session_name not in carryovers_by_session:
+            carryovers_by_session[session_name] = []
+        carryovers_by_session[session_name].append(carryover)
+
+    context = {
+        'student': student,
+        'carryover_records': carryover_records,
+        'carryovers_by_session': carryovers_by_session,
+        'total_carryovers': carryover_records.count(),
+    }
+
+    return render(request, 'student_carryover_courses.html', context)
+
+@login_required
+def admin_modify_results(request):
+    """Administrative interface for modifying student results"""
+    from .result_modification_service import ResultModificationService
+    from .models import Course, AcademicSession
+
+    # Check authorization
+    if not ResultModificationService._is_authorized_user(request.user):
+        messages.error(request, 'Access denied. Administrative role required.')
+        return redirect('dashboard')
+
+    # Get filter parameters
+    course_id = request.GET.get('course_id')
+    session_id = request.GET.get('session_id')
+
+    selected_course = None
+    selected_session = None
+
+    if course_id:
+        try:
+            selected_course = Course.objects.get(id=course_id)
+        except Course.DoesNotExist:
+            pass
+
+    if session_id:
+        try:
+            selected_session = AcademicSession.objects.get(id=session_id)
+        except AcademicSession.DoesNotExist:
+            pass
+
+    # Handle POST request for modifications
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'modify_single':
+            result_id = request.POST.get('result_id')
+            new_ca_score = request.POST.get('new_ca_score')
+            new_exam_score = request.POST.get('new_exam_score')
+            reason = request.POST.get('reason', '')
+
+            # Convert scores to float if provided
+            try:
+                new_ca_score = float(new_ca_score) if new_ca_score else None
+                new_exam_score = float(new_exam_score) if new_exam_score else None
+            except ValueError:
+                messages.error(request, 'Invalid score values provided.')
+                return redirect(request.path)
+
+            # Modify the result
+            success, message, result = ResultModificationService.modify_result(
+                result_id=result_id,
+                modifier=request.user,
+                new_ca_score=new_ca_score,
+                new_exam_score=new_exam_score,
+                reason=reason,
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+
+            if success:
+                messages.success(request, message)
+            else:
+                messages.error(request, message)
+
+            return redirect(request.path)
+
+    # Get modifiable results
+    results = ResultModificationService.get_modifiable_results(
+        user=request.user,
+        course=selected_course,
+        session=selected_session
+    )
+
+    # Get available courses and sessions for filters
+    available_courses = Course.objects.all().order_by('code')
+    available_sessions = AcademicSession.objects.all().order_by('-start_date')
+
+    # Get modification statistics
+    stats = ResultModificationService.get_modification_statistics(request.user)
+
+    context = {
+        'results': results,
+        'selected_course': selected_course,
+        'selected_session': selected_session,
+        'available_courses': available_courses,
+        'available_sessions': available_sessions,
+        'modification_stats': stats,
+    }
+
+    return render(request, 'admin_modify_results.html', context)
 
 @login_required
 def student_all_results(request):

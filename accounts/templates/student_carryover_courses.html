@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load role_tags %}
+
+{% block title %}My Carryover Courses - Student Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Delegation Status Badges -->
+    {% show_delegation_badges user %}
+    
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">My Carryover Courses</h1>
+                            <p class="mb-0 opacity-75">{{ student.user.get_full_name }} - {{ student.matric_number }}</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">
+                                <div class="h3 fw-bold mb-0">{{ total_carryovers }}</div>
+                                <small class="opacity-75">Carryover Courses</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'student_dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Carryover Courses</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    {% if total_carryovers > 0 %}
+    <!-- Information Alert -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle me-2 fs-4"></i>
+                    <div>
+                        <h6 class="mb-1">Carryover Courses Identified</h6>
+                        <p class="mb-0">You have {{ total_carryovers }} course(s) that need to be retaken. Please contact your academic advisor for guidance on registration and retake procedures.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Carryover Courses by Session -->
+    {% for session_name, carryovers in carryovers_by_session.items %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0 fw-bold text-primary">{{ session_name }} Academic Session</h5>
+                    <small class="text-muted">{{ carryovers|length }} carryover course(s)</small>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Course Code</th>
+                                    <th>Course Title</th>
+                                    <th>Credit Units</th>
+                                    <th>Failed Score</th>
+                                    <th>Grade</th>
+                                    <th>Passing Threshold</th>
+                                    <th>Status</th>
+                                    <th>Identified Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for carryover in carryovers %}
+                                <tr>
+                                    <td>
+                                        <span class="fw-bold text-primary">{{ carryover.course.code }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold">{{ carryover.course.title }}</div>
+                                        <small class="text-muted">{{ carryover.department.name }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ carryover.course.credit_units }} Units</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-danger fw-bold">{{ carryover.failed_score|floatformat:1 }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger">{{ carryover.failed_grade }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-success">{{ carryover.passing_threshold|floatformat:1 }}</span>
+                                    </td>
+                                    <td>
+                                        {% if carryover.status == 'IDENTIFIED' %}
+                                            <span class="badge bg-warning">Identified</span>
+                                        {% elif carryover.status == 'NOTIFIED' %}
+                                            <span class="badge bg-info">Notified</span>
+                                        {% elif carryover.status == 'REGISTERED' %}
+                                            <span class="badge bg-primary">Registered for Retake</span>
+                                        {% elif carryover.status == 'COMPLETED' %}
+                                            <span class="badge bg-success">Completed</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ carryover.identified_at|date:"M d, Y" }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Action Cards -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <i class="bi bi-person-lines-fill display-4 text-primary mb-3"></i>
+                    <h5 class="card-title">Contact Academic Advisor</h5>
+                    <p class="card-text">Get guidance on course retake procedures and registration requirements.</p>
+                    <button class="btn btn-primary" disabled>
+                        <i class="bi bi-telephone me-1"></i>Contact Advisor
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <i class="bi bi-calendar-check display-4 text-info mb-3"></i>
+                    <h5 class="card-title">Registration Information</h5>
+                    <p class="card-text">Check course availability and registration deadlines for retakes.</p>
+                    <button class="btn btn-info" disabled>
+                        <i class="bi bi-info-circle me-1"></i>View Schedule
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- No Carryovers -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="bi bi-check-circle display-1 text-success"></i>
+                    </div>
+                    <h3 class="text-success mb-3">Excellent Performance!</h3>
+                    <p class="text-muted mb-4">
+                        You currently have no carryover courses. Keep up the great work!
+                    </p>
+                    <a href="{% url 'student_current_results' %}" class="btn btn-primary">
+                        <i class="bi bi-eye me-1"></i>View My Results
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

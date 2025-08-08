@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+{% load role_tags %}
+
+{% block title %}Modify Results - Administrative{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Delegation Status Badges -->
+    {% show_delegation_badges user %}
+    
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" style="background: var(--royal-blue-gradient); color: white;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1 fw-bold">Administrative Result Modification</h1>
+                            <p class="mb-0 opacity-75">Modify student results with comprehensive audit logging</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div style="background: rgba(255,255,255,0.2); padding: 12px 16px; border-radius: 12px;">
+                                <div class="h3 fw-bold mb-0">{{ modification_stats.total_modifications }}</div>
+                                <small class="opacity-75">Recent Modifications</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Course</label>
+                            <select name="course_id" class="form-select">
+                                <option value="">All Courses</option>
+                                {% for course in available_courses %}
+                                <option value="{{ course.id }}" {% if selected_course and selected_course.id == course.id %}selected{% endif %}>
+                                    {{ course.code }} - {{ course.title }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Academic Session</label>
+                            <select name="session_id" class="form-select">
+                                <option value="">All Sessions</option>
+                                {% for session in available_sessions %}
+                                <option value="{{ session.id }}" {% if selected_session and selected_session.id == session.id %}selected{% endif %}>
+                                    {{ session.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="bi bi-funnel me-1"></i>Apply Filters
+                            </button>
+                            <a href="{% url 'admin_modify_results' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Clear
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <div class="h4 fw-bold text-primary">{{ modification_stats.total_modifications }}</div>
+                    <small class="text-muted">Total Modifications (30 days)</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <div class="h4 fw-bold text-warning">{{ modification_stats.carryover_changes }}</div>
+                    <small class="text-muted">Carryover Status Changes</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <div class="h4 fw-bold text-info">{{ results.count }}</div>
+                    <small class="text-muted">Modifiable Results</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0 fw-bold">Modifiable Results</h5>
+                </div>
+                <div class="card-body">
+                    {% if results %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Matric Number</th>
+                                    <th>Course</th>
+                                    <th>Session</th>
+                                    <th>CA Score</th>
+                                    <th>Exam Score</th>
+                                    <th>Total</th>
+                                    <th>Grade</th>
+                                    <th>Status</th>
+                                    <th>Carryover</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for result in results %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold">{{ result.enrollment.student.user.get_full_name }}</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ result.enrollment.student.matric_number }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold text-primary">{{ result.enrollment.course.code }}</div>
+                                        <small class="text-muted">{{ result.enrollment.course.title }}</small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ result.enrollment.session.name }}</small>
+                                    </td>
+                                    <td>{{ result.ca_score|floatformat:1 }}</td>
+                                    <td>{{ result.exam_score|floatformat:1 }}</td>
+                                    <td>
+                                        <span class="fw-bold">{{ result.total_score|floatformat:1 }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if result.grade == 'F' %}bg-danger{% elif result.grade == 'D' %}bg-warning{% else %}bg-success{% endif %}">
+                                            {{ result.grade }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ result.get_status_display }}</small>
+                                    </td>
+                                    <td>
+                                        {% if result.is_carry_over %}
+                                            <span class="badge bg-danger">Carryover</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Passing</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-outline-primary btn-sm" 
+                                                onclick="modifyResult({{ result.id }}, '{{ result.enrollment.student.matric_number }}', {{ result.ca_score }}, {{ result.exam_score }})"
+                                                title="Modify Result">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <div class="mb-3">
+                            <i class="bi bi-clipboard-data display-1 text-muted"></i>
+                        </div>
+                        <h4 class="text-muted">No Modifiable Results Found</h4>
+                        <p class="text-muted">
+                            {% if selected_course or selected_session %}
+                                No results match your current filters.
+                            {% else %}
+                                No results are available for modification at this time.
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modify Result Modal -->
+<div class="modal fade" id="modifyResultModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modify Result</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="modify_single">
+                    <input type="hidden" name="result_id" id="modifyResultId">
+                    
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        You are about to modify the result for student <strong id="modifyStudentId"></strong>.
+                        This action will be logged for audit purposes.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">CA Score</label>
+                                <input type="number" name="new_ca_score" id="modifyCaScore" 
+                                       class="form-control" min="0" max="100" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Exam Score</label>
+                                <input type="number" name="new_exam_score" id="modifyExamScore" 
+                                       class="form-control" min="0" max="100" step="0.01">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Reason for Modification <span class="text-danger">*</span></label>
+                        <textarea name="reason" class="form-control" rows="3" 
+                                  placeholder="Please provide a detailed reason for this modification..." required></textarea>
+                        <div class="form-text">This reason will be recorded in the audit log.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-pencil me-1"></i>Modify Result
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function modifyResult(resultId, studentId, caScore, examScore) {
+    document.getElementById('modifyResultId').value = resultId;
+    document.getElementById('modifyStudentId').textContent = studentId;
+    document.getElementById('modifyCaScore').value = caScore;
+    document.getElementById('modifyExamScore').value = examScore;
+    
+    new bootstrap.Modal(document.getElementById('modifyResultModal')).show();
+}
+</script>
+
+{% endblock %}

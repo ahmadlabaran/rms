@@ -213,7 +213,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit" class="btn btn-success" id="approveSubmitBtn">
                         <i class="bi bi-check-circle me-1"></i>Approve Result
                     </button>
                 </div>
@@ -247,7 +247,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger">
+                    <button type="submit" class="btn btn-danger" id="rejectSubmitBtn">
                         <i class="bi bi-x-circle me-1"></i>Reject Result
                     </button>
                 </div>
@@ -258,8 +258,23 @@
 
 <script>
 function approveResult(resultId, studentId) {
+    console.log('approveResult called with:', resultId, studentId);
+
+    if (!resultId || resultId === 'undefined' || resultId === 'null') {
+        alert('Error: Invalid result ID. Please refresh the page and try again.');
+        return;
+    }
+
     document.getElementById('approvalResultId').value = resultId;
     document.getElementById('approvalStudentId').textContent = studentId;
+
+    // Reset submit button state
+    const submitBtn = document.getElementById('approveSubmitBtn');
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Approve Result';
+    }
+
     new bootstrap.Modal(document.getElementById('approvalModal')).show();
 }
 
@@ -368,6 +383,50 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial count update
     updateSelectedCount();
+
+    // Prevent double submission for approval form
+    const approvalForm = document.getElementById('approvalForm');
+    if (approvalForm) {
+        approvalForm.addEventListener('submit', function(e) {
+            const submitBtn = document.getElementById('approveSubmitBtn');
+            const resultId = document.getElementById('approvalResultId').value;
+
+            console.log('Form submission - Result ID:', resultId);
+
+            if (!resultId || resultId === '' || resultId === 'undefined' || resultId === 'null') {
+                e.preventDefault();
+                alert('Error: No result selected. Please close this dialog and try again.');
+                return false;
+            }
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Processing...';
+            }
+        });
+    }
+
+    // Prevent double submission for rejection form
+    const rejectionForm = document.getElementById('rejectionForm');
+    if (rejectionForm) {
+        rejectionForm.addEventListener('submit', function(e) {
+            const submitBtn = document.getElementById('rejectSubmitBtn');
+            const resultId = document.getElementById('rejectionResultId').value;
+
+            console.log('Rejection form submission - Result ID:', resultId);
+
+            if (!resultId || resultId === '' || resultId === 'undefined' || resultId === 'null') {
+                e.preventDefault();
+                alert('Error: No result selected. Please close this dialog and try again.');
+                return false;
+            }
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Processing...';
+            }
+        });
+    }
 });
 </script>
 

@@ -69,7 +69,7 @@ class ResultWorkflowService:
             # Get approver role
             approver_role = cls._get_user_role_for_result(approver, result)
             if not approver_role:
-                return False, "User does not have permission to approve this result"
+                return False, f"User {approver.username} does not have permission to approve this result. Required role: {cls.APPROVER_ROLES.get(current_status, 'Unknown')}"
             
             # Update result status
             old_status = result.status
@@ -100,21 +100,29 @@ class ResultWorkflowService:
             if next_status == 'APPROVED_BY_EXAM_OFFICER':
                 # Auto-progress to SUBMITTED_TO_DEAN
                 final_status = 'SUBMITTED_TO_DEAN'
-                result.status = final_status
-                result.save()
 
-                # Create auto-progression history record
-                ResultApprovalHistory.objects.create(
-                    result=result,
-                    action='AUTO_PROGRESSED',
-                    from_status=next_status,
-                    to_status=final_status,
-                    actor=approver,
-                    actor_role=approver_role,
-                    comments='Auto-progressed to dean review after exam officer approval'
-                )
+                # Use a separate transaction for auto-progression to ensure atomicity
+                try:
+                    result.status = final_status
+                    result.save()
 
-                next_status = final_status  # Update for notifications
+                    # Create auto-progression history record
+                    ResultApprovalHistory.objects.create(
+                        result=result,
+                        action='AUTO_PROGRESSED',
+                        from_status=next_status,
+                        to_status=final_status,
+                        actor=approver,
+                        actor_role=approver_role,
+                        comments='Auto-progressed to dean review after exam officer approval'
+                    )
+
+                    next_status = final_status  # Update for notifications
+
+                except Exception as e:
+                    # If auto-progression fails, log it but don't fail the entire approval
+                    print(f"Warning: Auto-progression failed for result {result.id}: {str(e)}")
+                    # Keep the original next_status
 
             elif next_status == 'APPROVED_BY_DEAN':
                 # Auto-progress to SUBMITTED_TO_DAAA

@@ -1998,6 +1998,17 @@ def exam_officer_pending_results(request):
         result_id = request.POST.get('result_id')
         comments = request.POST.get('comments', '')
 
+        # Validate result_id
+        if not result_id or result_id.strip() == '':
+            messages.error(request, '❌ No result ID provided. Please refresh the page and try again.')
+            return redirect('exam_officer_pending_results')
+
+        try:
+            result_id = int(result_id)
+        except (ValueError, TypeError):
+            messages.error(request, f'❌ Invalid result ID format: {result_id}. Please refresh the page and try again.')
+            return redirect('exam_officer_pending_results')
+
         try:
             # First, try to get the result without status restriction to check if it exists
             result = Result.objects.get(
@@ -2008,11 +2019,21 @@ def exam_officer_pending_results(request):
             # Check if result is in the correct status for processing
             if result.status != 'SUBMITTED_TO_EXAM_OFFICER':
                 if result.status == 'APPROVED_BY_EXAM_OFFICER':
-                    messages.info(request, f'Result for {result.enrollment.student.matric_number} has already been approved.')
+                    messages.info(request, f'✅ Result for {result.enrollment.student.matric_number} has already been approved and is now with the Faculty Dean.')
+                elif result.status == 'SUBMITTED_TO_DEAN':
+                    messages.info(request, f'✅ Result for {result.enrollment.student.matric_number} has been approved and forwarded to the Faculty Dean.')
+                elif result.status == 'APPROVED_BY_DEAN':
+                    messages.info(request, f'✅ Result for {result.enrollment.student.matric_number} has been approved by the Faculty Dean.')
+                elif result.status == 'SUBMITTED_TO_DAAA':
+                    messages.info(request, f'✅ Result for {result.enrollment.student.matric_number} has been approved and is now with DAAA.')
+                elif result.status == 'APPROVED_BY_DAAA':
+                    messages.info(request, f'✅ Result for {result.enrollment.student.matric_number} has been fully approved by DAAA.')
+                elif result.status == 'PUBLISHED':
+                    messages.info(request, f'✅ Result for {result.enrollment.student.matric_number} has been published.')
                 elif result.status == 'REJECTED':
-                    messages.info(request, f'Result for {result.enrollment.student.matric_number} has already been rejected.')
+                    messages.info(request, f'❌ Result for {result.enrollment.student.matric_number} has already been rejected.')
                 else:
-                    messages.warning(request, f'Result for {result.enrollment.student.matric_number} is not available for processing (Status: {result.get_status_display()}).')
+                    messages.warning(request, f'⚠️ Result for {result.enrollment.student.matric_number} is not available for processing (Status: {result.get_status_display()}).')
                 return redirect('exam_officer_pending_results')
 
             if action == 'approve':
@@ -2035,7 +2056,14 @@ def exam_officer_pending_results(request):
             return redirect('exam_officer_pending_results')
 
         except Result.DoesNotExist:
-            messages.error(request, '❌ Result not found. It may have been processed by another user or does not belong to your faculty.')
+            # Try to get the result without faculty filter to provide better error message
+            try:
+                result_check = Result.objects.get(id=result_id)
+                # Result exists but doesn't belong to this faculty
+                messages.error(request, f'❌ Access denied. Result ID {result_id} does not belong to your faculty ({faculty.name}). This result may belong to a different faculty or you may not have permission to access it.')
+            except Result.DoesNotExist:
+                # Result doesn't exist at all
+                messages.error(request, f'❌ Result ID {result_id} not found. It may have been deleted or the ID is invalid.')
             return redirect('exam_officer_pending_results')
         except Exception as e:
             messages.error(request, f'❌ Unexpected error processing result: {str(e)}')

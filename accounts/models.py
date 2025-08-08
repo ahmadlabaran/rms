@@ -536,6 +536,8 @@ class ResultApprovalHistory(models.Model):
         ('APPROVED', 'Approved'),
         ('REJECTED', 'Rejected'),
         ('FORWARDED', 'Forwarded'),
+        ('SCORE_EDITED', 'Score Edited'),
+        ('AUTO_PROGRESSED', 'Auto Progressed'),
     ]
 
     result = models.ForeignKey(Result, on_delete=models.CASCADE, related_name='approval_history')

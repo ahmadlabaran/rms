@@ -151,6 +151,7 @@ urlpatterns = [
     path('faculty-dean/export/', views.faculty_dean_export, name='faculty_dean_export'),
     path('faculty-dean/results/<int:result_id>/approve/', views.faculty_dean_approve_result, name='faculty_dean_approve_result'),
     path('faculty-dean/results/<int:result_id>/view/', views.faculty_dean_view_result, name='faculty_dean_view_result'),
+    path('faculty-dean/results/<int:result_id>/edit-score/', views.faculty_dean_edit_score, name='faculty_dean_edit_score'),
 
     # Additional Faculty Dean URLs
     path('faculty-dean/grading/create/', views.faculty_dean_create_grading_scale, name='faculty_dean_create_grading_scale'),

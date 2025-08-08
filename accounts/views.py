@@ -5692,6 +5692,8 @@ def faculty_dean_pending_results(request):
             if failed_count > 0:
                 messages.warning(request, f'{failed_count} result(s) could not be approved.')
 
+            return redirect('faculty_dean_pending_results')
+
         # Handle single approval
         elif action == 'approve':
             result_id = request.POST.get('result_id')
@@ -7900,7 +7902,245 @@ def faculty_dean_approve_result(request, result_id):
 
 @login_required
 def faculty_dean_view_result(request, result_id):
-    return render(request, 'placeholder.html', {'page_title': 'View Result', 'message': f'View result details ID: {result_id}'})
+    """Faculty Dean View Result Details"""
+    # Check if user has Faculty Dean role
+    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not faculty_dean_roles.exists():
+        messages.error(request, 'Access denied. Faculty Dean role required.')
+        return redirect('dashboard')
+
+    # Get the faculty for this dean
+    faculty_role = faculty_dean_roles.first()
+    faculty = faculty_role.faculty
+
+    if not faculty:
+        messages.error(request, 'No faculty assigned to your Faculty Dean role.')
+        return redirect('dashboard')
+
+    try:
+        # Get the result with all related data
+        result = Result.objects.select_related(
+            'enrollment__student__user',
+            'enrollment__student__department',
+            'enrollment__course',
+            'enrollment__session',
+            'created_by'
+        ).get(
+            id=result_id,
+            enrollment__course__departments__faculty=faculty
+        )
+
+        # Get approval history for this result
+        approval_history = ResultApprovalHistory.objects.filter(
+            result=result
+        ).select_related('actor').order_by('timestamp')
+
+        context = {
+            'result': result,
+            'faculty': faculty,
+            'approval_history': approval_history,
+        }
+
+        return render(request, 'faculty_dean_result_details.html', context)
+
+    except Result.DoesNotExist:
+        messages.error(request, 'Result not found or you do not have permission to view it.')
+        return redirect('faculty_dean_pending_results')
+
+
+@login_required
+def faculty_dean_edit_score(request, result_id):
+    """Faculty Dean Edit Student Score"""
+    # Check if user has Faculty Dean role
+    faculty_dean_roles = UserRole.objects.filter(user=request.user, role='FACULTY_DEAN')
+    if not faculty_dean_roles.exists():
+        messages.error(request, 'Access denied. Faculty Dean role required.')
+        return redirect('dashboard')
+
+    # Get the faculty for this dean
+    faculty_role = faculty_dean_roles.first()
+    faculty = faculty_role.faculty
+
+    if not faculty:
+        messages.error(request, 'No faculty assigned to your Faculty Dean role.')
+        return redirect('dashboard')
+
+    try:
+        # Get the result with all related data
+        result = Result.objects.select_related(
+            'enrollment__student__user',
+            'enrollment__student__department',
+            'enrollment__course',
+            'enrollment__session',
+            'created_by'
+        ).get(
+            id=result_id,
+            enrollment__course__departments__faculty=faculty,
+            status='SUBMITTED_TO_DEAN'  # Only allow editing when submitted to dean
+        )
+
+        if request.method == 'POST':
+            # Get the new scores from the form
+            try:
+                new_ca_score = float(request.POST.get('ca_score', 0))
+                new_exam_score = float(request.POST.get('exam_score', 0))
+                edit_reason = request.POST.get('edit_reason', '').strip()
+
+                # Validate scores
+                if not (0 <= new_ca_score <= 100):
+                    messages.error(request, 'CA score must be between 0 and 100.')
+                    return redirect('faculty_dean_view_result', result_id=result_id)
+
+                if not (0 <= new_exam_score <= 100):
+                    messages.error(request, 'Exam score must be between 0 and 100.')
+                    return redirect('faculty_dean_view_result', result_id=result_id)
+
+                if not edit_reason:
+                    messages.error(request, 'Please provide a reason for editing the score.')
+                    return redirect('faculty_dean_view_result', result_id=result_id)
+
+                # Store original values for logging
+                original_ca = result.ca_score
+                original_exam = result.exam_score
+                original_total = result.total_score
+                original_grade = result.grade
+
+                # Update scores
+                result.ca_score = new_ca_score
+                result.exam_score = new_exam_score
+                result.total_score = new_ca_score + new_exam_score
+                result.last_modified_by = request.user
+
+                # Recalculate grade based on new total score
+                from .models import GradingScale
+                grading_scale = GradingScale.objects.filter(
+                    faculty=faculty
+                ).first()
+
+                if grading_scale:
+                    grade_ranges = grading_scale.ranges.all().order_by('-min_score')
+                    new_grade = 'F'  # Default grade
+                    for grade_range in grade_ranges:
+                        if result.total_score >= float(grade_range.min_score):
+                            new_grade = grade_range.grade
+                            break
+                    result.grade = new_grade
+                else:
+                    # Fallback grading if no grading scale is found
+                    if result.total_score >= 70:
+                        result.grade = 'A'
+                    elif result.total_score >= 60:
+                        result.grade = 'B'
+                    elif result.total_score >= 50:
+                        result.grade = 'C'
+                    elif result.total_score >= 45:
+                        result.grade = 'D'
+                    elif result.total_score >= 40:
+                        result.grade = 'E'
+                    else:
+                        result.grade = 'F'
+
+                result.save()
+
+                # Create approval history record for the score edit
+                ResultApprovalHistory.objects.create(
+                    result=result,
+                    action='SCORE_EDITED',
+                    from_status=result.status,
+                    to_status=result.status,  # Status remains the same
+                    actor=request.user,
+                    actor_role='FACULTY_DEAN',
+                    comments=f'Score edited by Faculty Dean. Reason: {edit_reason}. '
+                            f'CA: {original_ca} → {new_ca_score}, '
+                            f'Exam: {original_exam} → {new_exam_score}, '
+                            f'Total: {original_total} → {result.total_score}, '
+                            f'Grade: {original_grade} → {result.grade}'
+                )
+
+                # Create audit log
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='EDIT_SCORE',
+                    description=f'Edited score for {result.enrollment.student.matric_number} in {result.enrollment.course.code}. '
+                               f'New total: {result.total_score}, Grade: {result.grade}',
+                    level='INFO'
+                )
+
+                # Check and handle carry-over status if applicable
+                carry_over_updated = False
+                try:
+                    carry_over_student = CarryOverStudent.objects.get(
+                        student=result.enrollment.student,
+                        course=result.enrollment.course,
+                        session=result.enrollment.session,
+                        status='ACTIVE'
+                    )
+
+                    # Check if the new score meets the carry-over passing threshold
+                    carry_over_criteria = CarryOverCriteria.objects.filter(
+                        faculty=faculty
+                    ).first()
+
+                    if carry_over_criteria:
+                        passing_threshold = float(carry_over_criteria.minimum_score)
+                    else:
+                        passing_threshold = 40  # Default threshold
+
+                    if result.total_score >= passing_threshold:
+                        # Student now passes, remove from carry-over list
+                        carry_over_student.status = 'RESOLVED'
+                        carry_over_student.resolution_date = timezone.now()
+                        carry_over_student.resolution_reason = f'Score edited by Faculty Dean. New score: {result.total_score}'
+                        carry_over_student.save()
+
+                        carry_over_updated = True
+
+                        # Create audit log for carry-over status change
+                        AuditLog.objects.create(
+                            user=request.user,
+                            action='CARRYOVER_STATUS_CHANGE',
+                            description=f'Removed {result.enrollment.student.matric_number} from carry-over list due to score edit. '
+                                       f'New score: {result.total_score}',
+                            level='INFO'
+                        )
+
+                        # Send notification about carry-over status change
+                        Notification.objects.create(
+                            user=result.enrollment.student.user,
+                            title='Carry-Over Status Updated',
+                            message=f'Your carry-over status for {result.enrollment.course.code} has been resolved due to score update. '
+                                   f'New score: {result.total_score}',
+                            notification_type='CARRYOVER_REMOVED'
+                        )
+
+                except CarryOverStudent.DoesNotExist:
+                    # Student is not on carry-over list, no action needed
+                    pass
+
+                # Success message
+                success_msg = f'✅ Score updated successfully for {result.enrollment.student.matric_number}. '
+                success_msg += f'New total: {result.total_score}, Grade: {result.grade}'
+                if carry_over_updated:
+                    success_msg += '. Student removed from carry-over list.'
+
+                messages.success(request, success_msg)
+
+                return redirect('faculty_dean_view_result', result_id=result_id)
+
+            except (ValueError, TypeError) as e:
+                messages.error(request, 'Invalid score values. Please enter valid numbers.')
+                return redirect('faculty_dean_view_result', result_id=result_id)
+
+            except Exception as e:
+                messages.error(request, f'Error updating score: {str(e)}')
+                return redirect('faculty_dean_view_result', result_id=result_id)
+
+        # If GET request, redirect to view result page
+        return redirect('faculty_dean_view_result', result_id=result_id)
+
+    except Result.DoesNotExist:
+        messages.error(request, 'Result not found, already processed, or you do not have permission to edit it.')
+        return redirect('faculty_dean_pending_results')
 
 # Additional Faculty Dean Views
 @login_required

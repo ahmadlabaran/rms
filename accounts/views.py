@@ -10637,6 +10637,8 @@ def daaa_pending_results(request):
             if failed_count > 0:
                 messages.warning(request, f'{failed_count} result(s) could not be approved.')
 
+            return redirect('daaa_pending_results')
+
         # Handle single approval
         elif action == 'approve':
             result_id = request.POST.get('result_id')
@@ -10688,11 +10690,66 @@ def daaa_pending_results(request):
         status='SUBMITTED_TO_DAAA'
     ).select_related(
         'enrollment__student__user',
+        'enrollment__student__department',
+        'enrollment__student__current_level',
         'enrollment__course',
         'enrollment__session'
     ).prefetch_related(
         'enrollment__course__departments__faculty'
     ).order_by('-updated_at')
+
+    # Create hierarchical structure: Faculty -> Department -> Level -> Course -> Students
+    hierarchical_results = {}
+
+    for result in pending_results:
+        # Get the primary department and faculty for this course
+        primary_dept = result.enrollment.course.departments.first()
+        if not primary_dept:
+            continue
+
+        faculty = primary_dept.faculty
+        department = primary_dept
+        level = result.enrollment.student.current_level.name if result.enrollment.student.current_level else 'Unknown'
+        course = result.enrollment.course
+
+        # Build hierarchical structure
+        if faculty.name not in hierarchical_results:
+            hierarchical_results[faculty.name] = {
+                'faculty': faculty,
+                'departments': {},
+                'total_results': 0
+            }
+
+        if department.name not in hierarchical_results[faculty.name]['departments']:
+            hierarchical_results[faculty.name]['departments'][department.name] = {
+                'department': department,
+                'levels': {},
+                'total_results': 0
+            }
+
+        if level not in hierarchical_results[faculty.name]['departments'][department.name]['levels']:
+            hierarchical_results[faculty.name]['departments'][department.name]['levels'][level] = {
+                'level': level,
+                'courses': {},
+                'total_results': 0
+            }
+
+        course_key = f"{course.code} - {course.title}"
+        if course_key not in hierarchical_results[faculty.name]['departments'][department.name]['levels'][level]['courses']:
+            hierarchical_results[faculty.name]['departments'][department.name]['levels'][level]['courses'][course_key] = {
+                'course': course,
+                'results': [],
+                'total_results': 0
+            }
+
+        # Add the result to the appropriate course
+        hierarchical_results[faculty.name]['departments'][department.name]['levels'][level]['courses'][course_key]['results'].append(result)
+
+        # Update counters
+        hierarchical_results[faculty.name]['total_results'] += 1
+        hierarchical_results[faculty.name]['departments'][department.name]['total_results'] += 1
+        hierarchical_results[faculty.name]['departments'][department.name]['levels'][level]['total_results'] += 1
+        hierarchical_results[faculty.name]['departments'][department.name]['levels'][level]['courses'][course_key]['total_results'] += 1
 
     # Get statistics
     stats = {
@@ -10700,19 +10757,16 @@ def daaa_pending_results(request):
         'by_faculty': {},
         'by_level': {},
         'total_students': pending_results.values('enrollment__student').distinct().count(),
+        'faculties_count': len(hierarchical_results),
     }
 
     # Calculate faculty-wise statistics
-    for result in pending_results:
-        for dept in result.enrollment.course.departments.all():
-            faculty_name = dept.faculty.name
-            if faculty_name not in stats['by_faculty']:
-                stats['by_faculty'][faculty_name] = 0
-            stats['by_faculty'][faculty_name] += 1
+    for faculty_name, faculty_data in hierarchical_results.items():
+        stats['by_faculty'][faculty_name] = faculty_data['total_results']
 
     # Calculate level-wise statistics
     for result in pending_results:
-        level = result.enrollment.course.level
+        level = result.enrollment.student.current_level.name if result.enrollment.student.current_level else 'Unknown'
         if level not in stats['by_level']:
             stats['by_level'][level] = 0
         stats['by_level'][level] += 1
@@ -10722,6 +10776,7 @@ def daaa_pending_results(request):
 
     context = {
         'pending_results': pending_results,
+        'hierarchical_results': hierarchical_results,
         'stats': stats,
         'current_session': current_session,
     }
